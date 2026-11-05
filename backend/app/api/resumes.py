@@ -110,6 +110,55 @@ async def upload_resume(
         )
         db.add(rs)
 
+    # Immediately perform ATS analysis on uploaded CV
+    parsed_representation = {
+        "contact": parsed_data.get("contact", {}),
+        "summary": parsed_data.get("summary", ""),
+        "experience": parsed_data.get("experience", []),
+        "education": parsed_data.get("education", []),
+        "skills": parsed_data.get("skills", []),
+        "projects": parsed_data.get("projects", []),
+        "certifications": parsed_data.get("certifications", []),
+    }
+    analysis_res = AnalysisService.analyze_resume(parsed_representation, raw_text or "")
+    analysis = AnalysisRun(
+        user_id=current_user.id,
+        resume_id=resume.id,
+        overall_score=analysis_res["overall_score"],
+        structure_score=analysis_res["structure_score"],
+        readability_score=analysis_res["readability_score"],
+        impact_score=analysis_res["impact_score"],
+        skills_score=analysis_res["skills_score"],
+        findings=analysis_res["findings"],
+        vague_phrases=analysis_res["vague_phrases"],
+        strengths=analysis_res["strengths"],
+        weaknesses=analysis_res["weaknesses"],
+        recommendations=analysis_res["recommendations"],
+        section_breakdown=analysis_res["section_breakdown"]
+    )
+    db.add(analysis)
+    db.flush()
+
+    for rec in analysis_res.get("recommendations", []):
+        r_item = Recommendation(
+            analysis_run_id=analysis.id,
+            category=rec.get("category", "general"),
+            title=rec.get("title", "Recommendation"),
+            description=rec.get("description", ""),
+            priority=rec.get("priority", "medium")
+        )
+        db.add(r_item)
+
+    # Sync detected contact information to user profile if missing
+    if current_user.profile and parsed_data.get("contact"):
+        c_info = parsed_data["contact"]
+        if not current_user.profile.phone and c_info.get("phone"):
+            current_user.profile.phone = c_info["phone"]
+        if not current_user.profile.linkedin_url and c_info.get("linkedin"):
+            current_user.profile.linkedin_url = c_info["linkedin"]
+        if not current_user.profile.github_url and c_info.get("github"):
+            current_user.profile.github_url = c_info["github"]
+
     db.commit()
     db.refresh(resume)
     log_audit(db, current_user.id, "RESUME_UPLOADED", {"filename": file.filename, "resume_id": resume.id})

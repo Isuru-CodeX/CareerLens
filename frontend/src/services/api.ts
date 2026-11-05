@@ -13,7 +13,7 @@ import {
   AppearanceMode
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 class ApiService {
   private token: string | null = null;
@@ -195,6 +195,21 @@ class ApiService {
   }
 
   // Job Matching
+  async extractJobFromUrl(url: string): Promise<{
+    job_title: string;
+    company_name: string;
+    location?: string;
+    job_description: string;
+    required_skills: string[];
+    source_url: string;
+    source_domain?: string;
+  }> {
+    return this.request('/job-descriptions/extract-url', {
+      method: 'POST',
+      body: JSON.stringify({ url })
+    });
+  }
+
   async parseJobDescription(data: { title: string; company?: string; source_url?: string; raw_text: string }): Promise<JobDescription> {
     return this.request<JobDescription>('/job-descriptions/analyse', {
       method: 'POST',

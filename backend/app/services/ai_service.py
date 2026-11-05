@@ -1,10 +1,154 @@
 import re
+import json
+import logging
 from typing import Dict, Any, List, Optional
+import httpx
 from app.core.config import settings
+
+logger = logging.getLogger("careerlens.ai")
 
 class AIService:
     @staticmethod
+    async def _call_gemini(prompt: str, system_instruction: str = "") -> Optional[str]:
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            return None
+
+        # Try gemini-2.5-flash first, fallback to gemini-1.5-flash
+        models = ["gemini-2.5-flash", "gemini-1.5-flash"]
+        for model in models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            payload: Dict[str, Any] = {
+                "contents": [
+                    {
+                        "parts": [{"text": prompt}]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.4,
+                    "maxOutputTokens": 2048,
+                }
+            }
+            if system_instruction:
+                payload["systemInstruction"] = {
+                    "parts": [{"text": system_instruction}]
+                }
+
+            try:
+                async with httpx.AsyncClient(timeout=12.0) as client:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts and "text" in parts[0]:
+                                return parts[0]["text"].strip()
+                    else:
+                        logger.warning(f"Gemini {model} returned status {resp.status_code}: {resp.text[:120]}")
+            except Exception as e:
+                logger.warning(f"Gemini {model} call failed: {e}")
+        return None
+
+    @staticmethod
+    async def _call_openai(prompt: str, system_instruction: str = "") -> Optional[str]:
+        api_key = settings.OPENAI_API_KEY
+        if not api_key:
+            return None
+
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        messages = []
+        if system_instruction:
+            messages.append({"role": "system", "content": system_instruction})
+        messages.append({"role": "user", "content": prompt})
+
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": messages,
+            "temperature": 0.4,
+            "max_tokens": 2048
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                resp = await client.post(url, headers=headers, json=payload)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    choices = data.get("choices", [])
+                    if choices:
+                        return choices[0].get("message", {}).get("content", "").strip()
+        except Exception as e:
+            logger.warning(f"OpenAI call failed: {e}")
+        return None
+
+    @classmethod
+    async def _call_llm(cls, prompt: str, system_instruction: str = "") -> Optional[str]:
+        # Prefer Gemini, fallback to OpenAI
+        if settings.GEMINI_API_KEY:
+            res = await cls._call_gemini(prompt, system_instruction)
+            if res:
+                return res
+        if settings.OPENAI_API_KEY:
+            res = await cls._call_openai(prompt, system_instruction)
+            if res:
+                return res
+        return None
+
+    @classmethod
+    async def structure_job_posting(
+        cls,
+        raw_text: str,
+        guessed_title: str = "",
+        guessed_company: str = "",
+        guessed_location: str = ""
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Uses LLM to cleanly format, clean, and structure raw scraped job text.
+        """
+        if not raw_text or len(raw_text) < 100:
+            return None
+
+        prompt = f"""You are an expert HR data parser. Extract the structured details from this job posting.
+Guessed Title: {guessed_title}
+Guessed Company: {guessed_company}
+Guessed Location: {guessed_location}
+
+Raw Job Posting Text:
+\"\"\"{raw_text[:5000]}\"\"\"
+
+Return ONLY a valid JSON object with these keys:
+{{
+  "job_title": "Clean Role Title (e.g. Senior Software Engineer)",
+  "company_name": "Company Name",
+  "location": "City, Country or Remote",
+  "job_description": "Clean, well-structured description including About Role, Responsibilities, and Qualifications",
+  "required_skills": ["Skill1", "Skill2", "Skill3"]
+}}"""
+        system = "You are a specialized parser that converts messy job posting text into clean structured JSON. Return only valid JSON without markdown fences."
+        response_text = await cls._call_llm(prompt, system)
+        if not response_text:
+            return None
+
+        # Clean JSON from potential markdown fences
+        cleaned = re.sub(r"^```json\s*", "", response_text, flags=re.I)
+        cleaned = re.sub(r"^```\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned).strip()
+
+        try:
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, dict) and parsed.get("job_title"):
+                return parsed
+        except Exception:
+            pass
+        return None
+
+    @classmethod
     def rewrite_content(
+        cls,
         text: str,
         rewrite_type: str = "bullet",
         target_role: Optional[str] = None,
@@ -24,13 +168,11 @@ class AIService:
             }
 
         if rewrite_type == "bullet":
-            # Identify verbs and passive starters
             cleaned = text.lstrip("-•*– ").strip()
-            # If starts with 'responsible for' or 'helped with'
             improved = cleaned
             changes = []
-            
             lower_clean = cleaned.lower()
+
             if lower_clean.startswith("responsible for"):
                 sub = cleaned[len("responsible for"):].strip()
                 improved = f"Spearheaded {sub}, accelerating delivery timelines and ensuring standard compliance across production workflows."
@@ -46,7 +188,6 @@ class AIService:
                 improved = f"Architected and deployed {sub}, enhancing system scalability and reducing latency for end users."
                 changes.append("Substituted generic 'worked on' with high-caliber technical verbs 'Architected and deployed'.")
             else:
-                # Add XYZ structure if missing metric
                 has_metric = bool(re.search(r'\d+%', cleaned) or re.search(r'\$\d+', cleaned))
                 if not has_metric:
                     improved = f"{cleaned.rstrip('.')}, optimizing operational throughput by 30% and elevating code reliability."
@@ -80,9 +221,8 @@ class AIService:
                 ],
                 "formula_used": "Core Identity + High-Impact Specialization + Quantified Track Record"
             }
-        
+
         else:
-            # Project description
             improved = (
                 f"Engineered full-lifecycle solution: {text.rstrip('.')}. "
                 f"Containerized with Docker, automated CI/CD deployment pipelines, and achieved seamless integration "
@@ -98,8 +238,9 @@ class AIService:
                 "formula_used": "Problem + Architectural Choice + Business Impact"
             }
 
-    @staticmethod
+    @classmethod
     def generate_cover_letter(
+        cls,
         resume_name: str,
         resume_summary: str,
         resume_skills: List[str],
@@ -120,8 +261,7 @@ class AIService:
         """
         top_skills_str = ", ".join(resume_skills[:5]) if resume_skills else "software engineering and modern technology systems"
         name = resume_name if resume_name else "Candidate"
-        
-        # Build professional header with contact details and links
+
         header_parts = [name]
         contact_line_parts = []
         if candidate_email:
@@ -151,8 +291,7 @@ class AIService:
             header_parts.append(" | ".join(link_parts))
 
         header_block = "\n".join(header_parts)
-        
-        # Build signature block
+
         sig_lines = [name]
         if candidate_email:
             sig_lines.append(candidate_email)
@@ -192,15 +331,16 @@ Sincerely,
             "grounded_facts_used": facts
         }
 
-    @staticmethod
+    @classmethod
     def generate_interview_questions(
+        cls,
         job_description: str,
         target_role: Optional[str] = None,
         candidate_skills: Optional[List[str]] = None
     ) -> List[Dict[str, str]]:
         role = target_role or "Software Engineer / Professional"
         skills = candidate_skills[:4] if candidate_skills else ["System Design", "Agile", "API Development"]
-        
+
         questions = [
             {
                 "question": f"Can you walk us through a challenging technical problem you solved while working with {skills[0] if skills else 'your primary tech stack'}?",
@@ -234,4 +374,3 @@ Sincerely,
             }
         ]
         return questions
-

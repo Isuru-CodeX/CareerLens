@@ -17,7 +17,6 @@ def get_normalized_db_url(url: str) -> str:
         raw_file = url[10:]
         if raw_file == ":memory:":
             return url
-        # Check if absolute path already (Unix leading slash or Windows drive letter)
         if os.path.isabs(raw_file) or (len(raw_file) >= 2 and raw_file[1] == ":"):
             return f"sqlite:///{raw_file.replace(os.sep, '/')}"
         if raw_file.startswith("./") or raw_file.startswith(".\\"):
@@ -40,7 +39,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./careerlens.db")
     
     # File Storage
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(_PROJECT_ROOT, "storage"))
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage"))
     MAX_UPLOAD_SIZE_MB: int = 10
     
     # AI integration
@@ -62,8 +61,7 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "*"
+        "http://127.0.0.1:3000"
     ]
 
     @property

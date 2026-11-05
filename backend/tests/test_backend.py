@@ -358,4 +358,29 @@ def test_resume_upload_analysis_and_pdf():
     r_del = client.delete(f"/api/resumes/{resume_id}", headers=headers)
     assert r_del.status_code == 200
 
+def test_job_url_extraction():
+    reg = client.post("/api/auth/register", json={
+        "email": "urlextract@careerlens.ai",
+        "password": "Password123!",
+        "full_name": "Job Seeker"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Invalid URL rejects with 400
+    r_bad = client.post("/api/job-descriptions/extract-url", json={"url": "not-a-valid-url"}, headers=headers)
+    assert r_bad.status_code == 400
+
+    # 2. LinkedIn URL extraction
+    r_extract = client.post("/api/job-descriptions/extract-url", json={
+        "url": "https://www.linkedin.com/jobs/view/4463126127/"
+    }, headers=headers)
+    assert r_extract.status_code == 200
+    data = r_extract.json()
+    assert "job_title" in data
+    assert "company_name" in data
+    assert len(data["job_description"]) > 100
+    assert len(data["job_title"]) > 0
+
+
 

@@ -140,6 +140,18 @@ class AnalysisRunOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 # Job Description & Matching Schemas
+class JobUrlExtractRequest(BaseModel):
+    url: str
+
+class JobUrlExtractResponse(BaseModel):
+    job_title: str
+    company_name: str
+    location: Optional[str] = None
+    job_description: str
+    required_skills: List[str] = []
+    source_url: str
+    source_domain: Optional[str] = None
+
 class JobDescriptionCreate(BaseModel):
     title: str
     company: Optional[str] = None

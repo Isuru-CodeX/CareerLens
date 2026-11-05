@@ -5,11 +5,29 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit
 from app.models.models import User, Resume, JobDescription, JobMatch
 from app.schemas.schemas import (
-    JobDescriptionCreate, JobDescriptionOut, MatchRequest, JobMatchOut
+    JobDescriptionCreate, JobDescriptionOut, MatchRequest, JobMatchOut,
+    JobUrlExtractRequest, JobUrlExtractResponse
 )
 from app.services.matching_service import MatchingService
+from app.services.job_extractor_service import JobExtractorService
 
 router = APIRouter(tags=["Job Descriptions & Matching"])
+
+@router.post("/job-descriptions/extract-url", response_model=JobUrlExtractResponse)
+async def extract_job_from_url(
+    data: JobUrlExtractRequest,
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        extracted = await JobExtractorService.extract_from_url(data.url)
+        return extracted
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to extract job details from URL: {str(e)}"
+        )
 
 @router.post("/job-descriptions/analyse", response_model=JobDescriptionOut)
 def parse_and_save_job_description(

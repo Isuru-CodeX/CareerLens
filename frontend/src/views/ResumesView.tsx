@@ -19,6 +19,7 @@ import { Resume } from '../types';
 import { api } from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
+import { useAuth } from '../context/useAuth';
 
 interface ResumesViewProps {
   onNavigate: (view: string, extra?: any) => void;
@@ -29,6 +30,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
   onNavigate,
   openUploadOnMount = false
 }) => {
+  const { user, loginDemo } = useAuth();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadModalOpen, setUploadModalOpen] = useState(openUploadOnMount);
@@ -109,6 +111,13 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
     }, 150);
 
     try {
+      if (!user && !api.getToken()) {
+        try {
+          await loginDemo();
+        } catch {
+          // ignore
+        }
+      }
       const newResume = await api.uploadResume(uploadFile, uploadTitle, uploadTargetRole);
       clearInterval(progressTimer);
       setUploadProgress(100);
