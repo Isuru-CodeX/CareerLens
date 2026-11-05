@@ -11,8 +11,8 @@ import {
   Menu,
   ChevronDown
 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/useTheme';
+import { useAuth } from '../context/useAuth';
 import { AppearanceMode } from '../types';
 
 interface NavbarProps {
@@ -27,7 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleMobileMenu,
   onNavigate
 }) => {
-  const { mode, resolvedTheme, setMode } = useTheme();
+  const { mode, resolvedTheme } = useTheme();
   const { user, logout, updateUserAppearance, loginDemo } = useAuth();
   
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
@@ -233,3 +233,4 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
+

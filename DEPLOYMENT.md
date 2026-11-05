@@ -91,3 +91,4 @@ docker exec -t careerlens-postgres pg_dump -U careerlens careerlens > backup_$(d
 ```bash
 cat backup_20261105.sql | docker exec -i careerlens-postgres psql -U careerlens -d careerlens
 ```
+

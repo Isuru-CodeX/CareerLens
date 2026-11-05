@@ -6,13 +6,7 @@ import {
   Check,
   FileText,
   MessageSquare,
-  HelpCircle,
-  Briefcase,
-  Download,
-  ShieldAlert,
-  ArrowRight,
-  RefreshCw,
-  SlidersHorizontal
+  Download
 } from 'lucide-react';
 import { Resume } from '../types';
 import { api } from '../services/api';
@@ -62,6 +56,24 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   );
   const [interviewQuestions, setInterviewQuestions] = useState<any[]>([]);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (targetRole) {
+      setRewriteRole(targetRole);
+      setCoverJobTitle(targetRole);
+    }
+  }, [targetRole]);
+
+  useEffect(() => {
+    if (jobDescription) {
+      setCoverJD(jobDescription);
+      setInterviewJD(jobDescription);
+    }
+  }, [jobDescription]);
 
   useEffect(() => {
     const fetchResumes = async () => {
@@ -142,6 +154,17 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
     navigator.clipboard.writeText(text);
     setter(true);
     setTimeout(() => setter(false), 2000);
+  };
+
+  const downloadCoverLetterTxt = () => {
+    if (!coverLetterResult) return;
+    const blob = new Blob([coverLetterResult], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Cover_Letter_${companyName.replace(/\s+/g, '_')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -405,6 +428,14 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                   Editable Cover Letter Draft
                 </span>
                 <div className="flex gap-2">
+                  <button
+                    onClick={downloadCoverLetterTxt}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5"
+                    title="Download as Text"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download .txt</span>
+                  </button>
                   <button
                     onClick={() => copyToClipboard(coverLetterResult, setCopiedCover)}
                     className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5"

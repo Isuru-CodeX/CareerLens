@@ -1,27 +1,16 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { User, AppearanceMode } from '../types';
 import { api } from '../services/api';
-import { useTheme } from './ThemeContext';
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  loginDemo: () => Promise<void>;
-  register: (email: string, password: string, fullName?: string) => Promise<void>;
-  logout: () => void;
-  updateUserAppearance: (preference: AppearanceMode) => Promise<void>;
-  refreshUser: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { useTheme } from './useTheme';
+import { AuthContext } from './authContextDef';
+export type { AuthContextType } from './authContextDef';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const { setMode } = useTheme();
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const token = api.getToken();
       if (!token) {
@@ -40,11 +29,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  };
+  }, [setMode]);
 
   useEffect(() => {
     fetchUser();
-  }, []);
+  }, [fetchUser]);
 
   const login = async (email: string, password: string) => {
     const res = await api.login({ email, password });
@@ -96,12 +85,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

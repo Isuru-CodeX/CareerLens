@@ -1,24 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Briefcase,
   Plus,
   Search,
-  Filter,
   Kanban,
   Table as TableIcon,
   Calendar,
   DollarSign,
-  MapPin,
-  ExternalLink,
-  Clock,
-  MoreVertical,
-  CheckCircle,
   X,
   Trash2,
   Edit2,
-  Bell,
-  ArrowRight
+  Bell
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Application, ApplicationStage, ApplicationStats } from '../types';
@@ -67,7 +59,7 @@ export const ApplicationsView: React.FC = () => {
     { id: 'rejected', label: 'Rejected', color: 'border-red-200 dark:border-red-950 bg-red-50/30 dark:bg-red-950/10' }
   ];
 
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
       const list = await api.getApplications({
@@ -83,11 +75,11 @@ export const ApplicationsView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, stageFilter]);
 
   useEffect(() => {
     fetchApplications();
-  }, [searchQuery, stageFilter]);
+  }, [fetchApplications]);
 
   const handleStageChange = async (appId: string, newStage: ApplicationStage) => {
     try {
@@ -301,8 +293,17 @@ export const ApplicationsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Kanban View */}
-      {viewMode === 'kanban' ? (
+      {loading ? (
+        <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs animate-pulse">
+          <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-1/4 mx-auto mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-48 bg-slate-100 dark:bg-slate-800/50 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      ) : viewMode === 'kanban' ? (
+        /* Kanban View */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 overflow-x-auto pb-4">
           {stages.map((stage) => {
             const colApps = applications.filter((a) => a.stage === stage.id);

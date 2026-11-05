@@ -140,3 +140,4 @@ def generate_interview_prep(
 
     log_audit(db, current_user.id, "INTERVIEW_PREP_GENERATED")
     return {"questions": questions}
+

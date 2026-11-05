@@ -70,3 +70,4 @@ def log_audit(db: Session, user_id: Optional[str], action: str, details: dict = 
         db.commit()
     except Exception:
         db.rollback()
+

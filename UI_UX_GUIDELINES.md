@@ -59,3 +59,4 @@ CareerLens AI utilizes subtle, fresh animations powered by Framer Motion:
 - **Card Hover Effects**: Micro-elevations (`y: -2px` to `y: -3px`) with smooth shadow transitions.
 - **Offer Celebration**: Lightweight particle confetti triggers upon advancing any application to the "Offer" stage.
 - **Modal Transitions**: Backdrop blur with scale-in dialog physics.
+

@@ -151,3 +151,4 @@ GDPR compliance endpoint returning a complete JSON archive of all personal data,
 
 ### `DELETE /api/users/account`
 Permanently deletes user account, profile, all uploaded resume files, and activity logs.
+

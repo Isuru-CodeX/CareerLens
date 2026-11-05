@@ -301,3 +301,4 @@ class AuditLog(Base):
     timestamp = Column(DateTime, default=get_utc_now)
     
     user = relationship("User", back_populates="audit_logs")
+

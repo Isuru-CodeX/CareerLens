@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { api } from '../services/api';
 
 interface AuthModalProps {
@@ -63,7 +63,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       await loginDemo();
       onClose();
     } catch (err: any) {
-      setError('Failed to log in with demo account. Please ensure seed data was executed.');
+      console.error(err);
+      setError(err?.message || 'Failed to log in with demo account. Please ensure seed data was executed.');
     } finally {
       setLoading(false);
     }
@@ -262,3 +263,4 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     </AnimatePresence>
   );
 };
+

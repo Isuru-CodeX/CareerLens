@@ -348,3 +348,4 @@ def delete_resume(
     db.commit()
     log_audit(db, current_user.id, "RESUME_DELETED", {"resume_id": resume_id})
     return {"message": "Resume successfully deleted."}
+

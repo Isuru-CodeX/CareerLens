@@ -1,18 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Sparkles,
   Download,
   AlertTriangle,
   CheckCircle,
-  HelpCircle,
-  TrendingUp,
   FileText,
-  Target,
   ArrowRight,
-  ShieldCheck,
-  Zap,
-  Info
+  Zap
 } from 'lucide-react';
 import { Resume, AnalysisRun } from '../types';
 import { api } from '../services/api';
@@ -33,60 +26,62 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
   const [analysis, setAnalysis] = useState<AnalysisRun | null>(null);
   const [loading, setLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const runNewAnalysis = useCallback(async (id: string) => {
+    try {
+      setIsGenerating(true);
+      const res = await api.analyseResume(id);
+      setAnalysis(res);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
+
+  const loadAnalysis = useCallback(async (id: string) => {
+    try {
+      setLoading(true);
+      const analyses = await api.getResumeAnalyses(id);
+      if (analyses.length > 0) {
+        setAnalysis(analyses[0]);
+      } else {
+        await runNewAnalysis(id);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [runNewAnalysis]);
 
   useEffect(() => {
+    if (resumeId) {
+      setSelectedResumeId(resumeId);
+    }
+  }, [resumeId]);
+
+  useEffect(() => {
+    let isMounted = true;
     const init = async () => {
       try {
         const list = await api.getResumes();
+        if (!isMounted) return;
         setResumes(list);
-        if (!selectedResumeId && list.length > 0) {
-          setSelectedResumeId(list[0].id);
-        }
+        setSelectedResumeId(prev => prev || (list.length > 0 ? list[0].id : ''));
       } catch (err) {
         console.error(err);
       }
     };
     init();
+    return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {
     if (selectedResumeId) {
       loadAnalysis(selectedResumeId);
     }
-  }, [selectedResumeId]);
-
-  const loadAnalysis = async (id: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const analyses = await api.getResumeAnalyses(id);
-      if (analyses.length > 0) {
-        setAnalysis(analyses[0]);
-      } else {
-        // Run analysis automatically if none exists yet
-        runNewAnalysis(id);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load analysis.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const runNewAnalysis = async (id: string) => {
-    try {
-      setIsGenerating(true);
-      const res = await api.analyseResume(id);
-      setAnalysis(res);
-    } catch (err: any) {
-      setError(err.message || 'Failed to execute resume analysis.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const selectedResume = resumes.find((r) => r.id === selectedResumeId);
+  }, [selectedResumeId, loadAnalysis]);
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">

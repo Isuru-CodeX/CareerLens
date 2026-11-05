@@ -117,3 +117,4 @@ def get_dashboard_data(
         upcoming_reminders=reminders,
         skill_recommendations=skill_recs[:4]
     )
+

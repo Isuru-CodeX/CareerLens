@@ -146,3 +146,4 @@ def get_match(
     if not match:
         raise HTTPException(status_code=404, detail="Match not found.")
     return match
+

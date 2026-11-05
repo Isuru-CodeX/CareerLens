@@ -50,3 +50,4 @@ Resumes and career application records contain sensitive Personally Identifiable
   ```bash
   python -c "import secrets; print(secrets.token_hex(32))"
   ```
+

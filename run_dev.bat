@@ -26,3 +26,4 @@ echo Frontend: http://localhost:5173
 echo Swagger API: http://localhost:8000/docs
 echo Demo User: demo@careerlens.ai / CareerLens2026!
 pause
+

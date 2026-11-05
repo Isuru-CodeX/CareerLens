@@ -136,3 +136,4 @@ python database/seed-data/seed.py
 This sets up demo account credentials:
 - **Email**: `demo@careerlens.ai`
 - **Password**: `CareerLens2026!`
+

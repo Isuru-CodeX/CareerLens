@@ -39,3 +39,4 @@ __all__ = [
     "ConsentRecord",
     "AuditLog",
 ]
+

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText,
   UploadCloud,
   Trash2,
   Download,
@@ -16,7 +15,7 @@ import {
   Layers,
   FileCheck
 } from 'lucide-react';
-import { Resume, ParsedSection } from '../types';
+import { Resume } from '../types';
 import { api } from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
@@ -237,13 +236,23 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setResumeToDelete(r)}
-                    className="text-slate-400 hover:text-red-500 p-1 rounded-lg transition-colors"
-                    title="Delete resume"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={api.getResumeDownloadUrl(r.id)}
+                      download
+                      className="text-slate-400 hover:text-blue-600 p-1 rounded-lg transition-colors"
+                      title="Download original file"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
+                    <button
+                      onClick={() => setResumeToDelete(r)}
+                      className="text-slate-400 hover:text-red-500 p-1 rounded-lg transition-colors"
+                      title="Delete resume"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">

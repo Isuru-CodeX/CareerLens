@@ -215,3 +215,4 @@ class AnalysisService:
             "recommendations": recommendations,
             "section_breakdown": section_breakdown
         }
+

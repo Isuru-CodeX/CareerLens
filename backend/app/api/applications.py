@@ -146,7 +146,7 @@ def update_application(
     if not app:
         raise HTTPException(status_code=404, detail="Application not found.")
 
-    update_dict = data.dict(exclude_unset=True)
+    update_dict = data.model_dump(exclude_unset=True)
     stage_changed = False
     old_stage = app.stage
 
@@ -229,3 +229,4 @@ def toggle_reminder(
     db.commit()
     db.refresh(reminder)
     return reminder
+

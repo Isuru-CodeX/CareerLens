@@ -225,3 +225,4 @@ class ParsingService:
             "certifications": classified_sections["certifications"],
             "raw_text": raw_text
         }
+

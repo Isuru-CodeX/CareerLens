@@ -23,3 +23,4 @@ export const DisclaimerBanner: React.FC<DisclaimerBannerProps> = ({ compact = fa
     </div>
   );
 };
+

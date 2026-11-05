@@ -135,3 +135,4 @@ def reset_password(req: PasswordResetConfirm, db: Session = Depends(get_db)):
     db.commit()
     log_audit(db, user.id, "PASSWORD_RESET_COMPLETED")
     return {"message": "Password successfully reset. You may now sign in."}
+

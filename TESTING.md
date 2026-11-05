@@ -55,3 +55,4 @@ npm run build
 | **GDPR Data Export** | Click "Export Personal Data" in Profile | Machine-readable JSON downloaded with profile and application history | Complete JSON downloaded | **Verified** |
 | **Account Deletion** | Click "Delete Account" with confirmation | Account removed, resumes deleted from filesystem storage, logged out | User & files purged | **Verified** |
 | **Mobile Responsiveness**| Inspect at 320px, 375px, 768px, 1280px | Slide-over drawer toggles; cards stack; no horizontal overflow | Fully responsive | **Verified** |
+

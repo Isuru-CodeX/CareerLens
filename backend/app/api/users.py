@@ -35,7 +35,7 @@ def update_career_profile(
         profile = CareerProfile(user_id=current_user.id)
         db.add(profile)
     
-    update_dict = data.dict(exclude_unset=True)
+    update_dict = data.model_dump(exclude_unset=True)
     for field, val in update_dict.items():
         setattr(profile, field, val)
         
@@ -128,3 +128,4 @@ def delete_user_account(
     db.delete(current_user)
     db.commit()
     return {"message": "Account and all associated documents permanently deleted."}
+

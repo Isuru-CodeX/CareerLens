@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import {
-  User,
   ShieldCheck,
   Download,
   Trash2,
@@ -9,26 +7,18 @@ import {
   Sun,
   Moon,
   Laptop,
-  Check,
-  AlertTriangle,
-  Briefcase,
-  DollarSign,
-  MapPin,
-  Sparkles
+  Check
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { CareerProfile, AppearanceMode } from '../types';
+import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/useTheme';
 import { api } from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 
 export const ProfileView: React.FC = () => {
-  const { user, updateUserAppearance, logout } = useAuth();
+  const { updateUserAppearance, logout } = useAuth();
   const { mode, resolvedTheme } = useTheme();
 
-  const [profile, setProfile] = useState<CareerProfile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -49,9 +39,7 @@ export const ProfileView: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        setLoading(true);
         const p = await api.getProfile();
-        setProfile(p);
         setTargetTitle(p.target_title || '');
         setTargetIndustry(p.target_industry || '');
         setYearsExp(p.years_of_experience || 0);
@@ -61,8 +49,6 @@ export const ProfileView: React.FC = () => {
         setSkillsList(p.skills_list || []);
       } catch (err) {
         console.error(err);
-      } finally {
-        setLoading(false);
       }
     };
     fetchProfile();

@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import {
-  Target,
-  Sparkles,
   CheckCircle2,
   XCircle,
   HelpCircle,
-  ArrowRight,
-  BookOpen,
-  Briefcase,
-  AlertCircle,
+  Sparkles,
   Zap
 } from 'lucide-react';
 import { Resume, JobMatch } from '../types';
@@ -46,15 +40,21 @@ Preferred:
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialResumeId) {
+      setSelectedResumeId(initialResumeId);
+    }
+  }, [initialResumeId]);
+
+  useEffect(() => {
+    let isMounted = true;
     const init = async () => {
       try {
         const list = await api.getResumes();
+        if (!isMounted) return;
         setResumes(list);
-        if (!selectedResumeId && list.length > 0) {
-          setSelectedResumeId(list[0].id);
-        }
-        // Check if there is an existing match
+        setSelectedResumeId(prev => prev || (list.length > 0 ? list[0].id : ''));
         const matches = await api.getMatches();
+        if (!isMounted) return;
         if (matches.length > 0) {
           setMatchResult(matches[0]);
         }
@@ -63,6 +63,7 @@ Preferred:
       }
     };
     init();
+    return () => { isMounted = false; };
   }, []);
 
   const handleRunMatch = async (e: React.FormEvent) => {

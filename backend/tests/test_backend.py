@@ -236,3 +236,4 @@ def test_application_tracker_api():
     assert r_dash.status_code == 200
     dash_data = r_dash.json()
     assert dash_data["application_stats"]["total_applications"] == 1
+

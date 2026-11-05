@@ -140,3 +140,4 @@ cd frontend && npm run build
 
 ## License
 MIT License. Built for candidates seeking transparent career intelligence and data ownership.
+

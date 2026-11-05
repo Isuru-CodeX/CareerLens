@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 # User Schemas
 class UserBase(BaseModel):
@@ -31,8 +31,7 @@ class UserOut(UserBase):
     is_active: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -57,8 +56,7 @@ class CareerProfileOut(CareerProfileUpdate):
     user_id: str
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Resume Schemas
 class ParsedSectionUpdate(BaseModel):
@@ -74,8 +72,7 @@ class ParsedSectionOut(BaseModel):
     is_user_verified: bool
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ResumeVersionOut(BaseModel):
     id: str
@@ -84,8 +81,7 @@ class ResumeVersionOut(BaseModel):
     created_at: datetime
     structured_snapshot: Optional[Dict[str, Any]] = {}
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ResumeOut(BaseModel):
     id: str
@@ -101,8 +97,7 @@ class ResumeOut(BaseModel):
     sections: List[ParsedSectionOut] = []
     versions: List[ResumeVersionOut] = []
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Analysis Schemas
 class VaguePhraseItem(BaseModel):
@@ -137,8 +132,7 @@ class AnalysisRunOut(BaseModel):
         "Guidance score only. Not an actual employer ATS guarantee or prediction of hiring outcome."
     )
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Job Description & Matching Schemas
 class JobDescriptionCreate(BaseModel):
@@ -160,8 +154,7 @@ class JobDescriptionOut(BaseModel):
     salary_range: Optional[str] = None
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class MatchRequest(BaseModel):
     resume_id: str
@@ -189,8 +182,7 @@ class JobMatchOut(BaseModel):
         "Match scores represent semantic and keyword alignment heuristic guidance only, not a guaranteed employer ATS result."
     )
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # AI Writing Assistant Schemas
 class RewriteRequest(BaseModel):
@@ -267,8 +259,7 @@ class ApplicationEventOut(BaseModel):
     event_date: datetime
     notes: Optional[str] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ReminderCreate(BaseModel):
     application_id: Optional[str] = None
@@ -283,8 +274,7 @@ class ReminderOut(BaseModel):
     is_completed: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ApplicationOut(BaseModel):
     id: str
@@ -306,8 +296,7 @@ class ApplicationOut(BaseModel):
     events: List[ApplicationEventOut] = []
     reminders: List[ReminderOut] = []
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ApplicationStats(BaseModel):
     total_applications: int

@@ -94,3 +94,4 @@ sequenceDiagram
     API-->>Frontend: Return Score matrix & Vague phrase findings
     Frontend->>User: Display animated gauge & checklist
 ```
+

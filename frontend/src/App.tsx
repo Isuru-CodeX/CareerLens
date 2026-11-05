@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { AuthModal } from './views/AuthModal';
@@ -13,7 +13,6 @@ import { ApplicationsView } from './views/ApplicationsView';
 import { ProfileView } from './views/ProfileView';
 
 const MainLayout: React.FC = () => {
-  const { user } = useAuth();
   const [currentView, setCurrentView] = useState<string>('dashboard');
   const [viewParams, setViewParams] = useState<any>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

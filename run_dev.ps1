@@ -26,3 +26,4 @@ Write-Host "`nCareerLens AI is running!" -ForegroundColor Cyan
 Write-Host "Frontend: http://localhost:5173" -ForegroundColor White
 Write-Host "Backend API & Swagger: http://localhost:8000/docs" -ForegroundColor White
 Write-Host "Demo Account: demo@careerlens.ai / CareerLens2026!" -ForegroundColor White
+
