@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-page: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-surface-elevated: #ffffff;
+    --bg-subtle: #f1f5f9;
+    --bg-hover: #e2e8f0;
+    
+    --border-subtle: #e2e8f0;
+    --border-strong: #cbd5e1;
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-inverted: #f8fafc;
+    
+    --brand-primary: #2563eb;
+    --brand-hover: #1d4ed8;
+    --brand-active: #1e40af;
+    --brand-subtle: #eff6ff;
+    --brand-border: #bfdbfe;
+    
+    --emerald-primary: #10b981;
+    --emerald-subtle: #ecfdf5;
+    --emerald-border: #a7f3d0;
+    --emerald-text: #065f46;
+    
+    --warning-primary: #f59e0b;
+    --warning-subtle: #fffbeb;
+    --warning-border: #fde68a;
+    --warning-text: #92400e;
+
+    --danger-primary: #ef4444;
+    --danger-subtle: #fef2f2;
+    --danger-border: #fecaca;
+    --danger-text: #991b1b;
+
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark {
+    --bg-page: #0b1120;
+    --bg-surface: #0f172a;
+    --bg-surface-elevated: #1e293b;
+    --bg-subtle: #1e293b;
+    --bg-hover: #334155;
+    
+    --border-subtle: #1e293b;
+    --border-strong: #334155;
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-inverted: #0f172a;
+    
+    --brand-primary: #3b82f6;
+    --brand-hover: #60a5fa;
+    --brand-active: #2563eb;
+    --brand-subtle: #172554;
+    --brand-border: #1e40af;
+    
+    --emerald-primary: #10b981;
+    --emerald-subtle: #064e3b;
+    --emerald-border: #047857;
+    --emerald-text: #6ee7b7;
+    
+    --warning-primary: #f59e0b;
+    --warning-subtle: #78350f;
+    --warning-border: #b45309;
+    --warning-text: #fde68a;
+
+    --danger-primary: #ef4444;
+    --danger-subtle: #7f1d1d;
+    --danger-border: #b91c1c;
+    --danger-text: #fca5a5;
+
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Print styles for readable resume previews */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .resume-paper {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+}
