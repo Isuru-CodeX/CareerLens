@@ -9,6 +9,11 @@ export interface User {
   created_at: string;
 }
 
+export interface ProfileLink {
+  label: string;
+  url: string;
+}
+
 export interface CareerProfile {
   id: string;
   user_id: string;
@@ -22,6 +27,11 @@ export interface CareerProfile {
   skills_list: any[];
   education_history: any[];
   work_history: any[];
+  phone?: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  portfolio_url?: string | null;
+  other_links?: ProfileLink[];
   updated_at: string;
 }
 

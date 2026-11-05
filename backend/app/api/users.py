@@ -58,6 +58,11 @@ def export_user_data(
     profile_dict = {
         "email": current_user.email,
         "full_name": current_user.full_name,
+        "phone": profile.phone if profile else "",
+        "linkedin_url": profile.linkedin_url if profile else "",
+        "github_url": profile.github_url if profile else "",
+        "portfolio_url": profile.portfolio_url if profile else "",
+        "other_links": profile.other_links if profile else [],
         "target_title": profile.target_title if profile else "",
         "skills": profile.skills_list if profile else [],
         "education": profile.education_history if profile else [],

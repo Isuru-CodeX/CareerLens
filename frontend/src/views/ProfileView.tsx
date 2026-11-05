@@ -7,7 +7,14 @@ import {
   Sun,
   Moon,
   Laptop,
-  Check
+  Check,
+  Phone,
+  Globe,
+  Mail,
+  Link2,
+  Plus,
+  ExternalLink,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { useTheme } from '../context/useTheme';
@@ -15,14 +22,36 @@ import { api } from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 
+// Custom clean icons for professional profiles
+const LinkedinIcon = () => (
+  <svg className="w-4 h-4 text-[#0077b5]" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+  </svg>
+);
+
+const GithubIcon = () => (
+  <svg className="w-4 h-4 text-slate-800 dark:text-slate-200" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+  </svg>
+);
+
 export const ProfileView: React.FC = () => {
-  const { updateUserAppearance, logout } = useAuth();
+  const { user, updateUserAppearance, logout } = useAuth();
   const { mode, resolvedTheme } = useTheme();
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Form fields
+  // Contact info & social links
+  const [phone, setPhone] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [otherLinks, setOtherLinks] = useState<{ label: string; url: string }[]>([]);
+  const [newLinkLabel, setNewLinkLabel] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+
+  // Career profile fields
   const [targetTitle, setTargetTitle] = useState('');
   const [targetIndustry, setTargetIndustry] = useState('');
   const [yearsExp, setYearsExp] = useState(0);
@@ -47,6 +76,11 @@ export const ProfileView: React.FC = () => {
         setDesiredSalaryMax(p.desired_salary_max || '');
         setSummary(p.summary || '');
         setSkillsList(p.skills_list || []);
+        setPhone(p.phone || '');
+        setLinkedinUrl(p.linkedin_url || '');
+        setGithubUrl(p.github_url || '');
+        setPortfolioUrl(p.portfolio_url || '');
+        setOtherLinks(p.other_links || []);
       } catch (err) {
         console.error(err);
       }
@@ -54,8 +88,8 @@ export const ProfileView: React.FC = () => {
     fetchProfile();
   }, []);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSaving(true);
     try {
       await api.updateProfile({
@@ -65,7 +99,12 @@ export const ProfileView: React.FC = () => {
         desired_salary_min: desiredSalaryMin ? Number(desiredSalaryMin) : null,
         desired_salary_max: desiredSalaryMax ? Number(desiredSalaryMax) : null,
         summary: summary,
-        skills_list: skillsList
+        skills_list: skillsList,
+        phone: phone,
+        linkedin_url: linkedinUrl,
+        github_url: githubUrl,
+        portfolio_url: portfolioUrl,
+        other_links: otherLinks
       });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
@@ -88,6 +127,23 @@ export const ProfileView: React.FC = () => {
 
   const handleRemoveSkill = (skill: string) => {
     setSkillsList(skillsList.filter((s) => s !== skill));
+  };
+
+  const handleAddOtherLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLinkUrl.trim()) return;
+    const label = newLinkLabel.trim() || 'Link';
+    let url = newLinkUrl.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    setOtherLinks([...otherLinks, { label, url }]);
+    setNewLinkLabel('');
+    setNewLinkUrl('');
+  };
+
+  const handleRemoveOtherLink = (index: number) => {
+    setOtherLinks(otherLinks.filter((_, i) => i !== index));
   };
 
   const handleExportData = async () => {
@@ -127,11 +183,218 @@ export const ProfileView: React.FC = () => {
           Career Profile & Privacy Settings
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Manage your career target parameters, appearance preferences, and exercise GDPR data export and deletion rights.
+          Manage your career target parameters, contact information, appearance preferences, and exercise GDPR data export and deletion rights.
         </p>
       </div>
 
-      {/* Appearance Settings Section (Mandatory 3-Mode Specification) */}
+      {/* 1. Contact Information & Professional Links Section */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+              <Phone className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                Contact Information & Professional Links
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                These coordinates are automatically inserted into your generated cover letters, resume header exports, and recruiter communications.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          {/* Email */}
+          <div>
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Email Address
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                disabled
+                value={user?.email || 'demo@careerlens.ai'}
+                className="w-full pl-9 pr-24 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 cursor-not-allowed font-mono text-xs"
+              />
+              <span className="absolute right-2.5 top-2 px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
+                Verified
+              </span>
+            </div>
+          </div>
+
+          {/* Phone / Mobile */}
+          <div>
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Phone / Mobile Number
+            </label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+1 (555) 019-2834"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-sans"
+              />
+            </div>
+          </div>
+
+          {/* LinkedIn Profile */}
+          <div>
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              LinkedIn Profile URL
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-2.5">
+                <LinkedinIcon />
+              </div>
+              <input
+                type="text"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                placeholder="https://linkedin.com/in/alexrivera"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-sans"
+              />
+            </div>
+          </div>
+
+          {/* GitHub Profile */}
+          <div>
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              GitHub Profile URL
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-2.5">
+                <GithubIcon />
+              </div>
+              <input
+                type="text"
+                value={githubUrl}
+                onChange={(e) => setGithubUrl(e.target.value)}
+                placeholder="https://github.com/alexrivera"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-sans"
+              />
+            </div>
+          </div>
+
+          {/* Portfolio / Personal Website */}
+          <div className="sm:col-span-2">
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Portfolio / Personal Website URL
+            </label>
+            <div className="relative">
+              <Globe className="absolute left-3 top-2.5 w-4 h-4 text-emerald-500" />
+              <input
+                type="text"
+                value={portfolioUrl}
+                onChange={(e) => setPortfolioUrl(e.target.value)}
+                placeholder="https://alexrivera.dev"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-sans"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Custom Links List */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+          <label className="block font-semibold text-slate-700 dark:text-slate-300 text-xs">
+            Additional Links & Profiles (Blog, Medium, Behance, X, etc.)
+          </label>
+
+          {otherLinks.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {otherLinks.map((link, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-xs"
+                >
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-bold text-[10px] shrink-0">
+                      {link.label}
+                    </span>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 truncate flex items-center gap-1 font-mono text-[11px]"
+                    >
+                      <span>{link.url}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
+                    </a>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveOtherLink(idx)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 transition-colors shrink-0 ml-2"
+                    title="Remove link"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-slate-400 italic">No additional links added yet.</p>
+          )}
+
+          {/* Add link form */}
+          <form onSubmit={handleAddOtherLink} className="flex flex-wrap sm:flex-nowrap gap-2 pt-1 text-xs">
+            <div className="w-full sm:w-1/3">
+              <input
+                type="text"
+                placeholder="Label (e.g. Tech Blog)"
+                value={newLinkLabel}
+                onChange={(e) => setNewLinkLabel(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+              />
+            </div>
+            <div className="w-full sm:flex-1">
+              <div className="relative">
+                <Link2 className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="https://..."
+                  value={newLinkUrl}
+                  onChange={(e) => setNewLinkUrl(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={!newLinkUrl.trim()}
+              className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs transition-colors flex items-center gap-1 shrink-0 disabled:opacity-40"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Link</span>
+            </button>
+          </form>
+        </div>
+
+        {/* Quick Save Contact Button */}
+        <div className="flex items-center justify-between pt-2">
+          {saveSuccess ? (
+            <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+              <Check className="w-4 h-4" /> Contact details saved successfully!
+            </span>
+          ) : <span />}
+
+          <button
+            type="button"
+            onClick={() => handleSaveProfile()}
+            disabled={saving}
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{saving ? 'Saving...' : 'Save Contact Info'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Appearance Settings Section */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-white">
@@ -205,7 +468,7 @@ export const ProfileView: React.FC = () => {
         </div>
       </div>
 
-      {/* Career Profile Form */}
+      {/* 3. Career Profile & Qualifications Form */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-white">
@@ -352,7 +615,7 @@ export const ProfileView: React.FC = () => {
         </form>
       </div>
 
-      {/* GDPR Data Controls & Security */}
+      {/* 4. GDPR Data Controls & Security */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600">
@@ -360,58 +623,61 @@ export const ProfileView: React.FC = () => {
           </div>
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              Privacy, Consent & Data Governance
+              Data Privacy & GDPR Rights Management
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Resumes contain confidential personal data. You retain 100% control over your data.
+              You own your career telemetry. Export complete machine-readable copies or exercise permanent right-to-be-forgotten.
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          {/* Export Data */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
-            <h3 className="font-bold text-xs text-slate-900 dark:text-white">
-              Export Personal Data (GDPR)
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Download a machine-readable JSON archive containing your complete profile, uploaded resume metadata, analysis runs, and job applications.
+          {/* Export JSON */}
+          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/40 space-y-2">
+            <div className="font-bold text-xs text-slate-800 dark:text-slate-200">
+              Download Machine-Readable Archive
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Exports your user profile, uploaded resumes, parsed credentials, and application tracker logs into a single structured .JSON format.
             </p>
             <button
+              type="button"
               onClick={handleExportData}
               disabled={isExporting}
-              className="mt-2 px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center gap-1.5 shadow-xs"
+              className="mt-2 px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-2 shadow-xs transition-colors disabled:opacity-50"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{isExporting ? 'Exporting...' : 'Download JSON Data'}</span>
+              <span>{isExporting ? 'Exporting...' : 'Export Data (.JSON)'}</span>
             </button>
           </div>
 
-          {/* Delete Account */}
-          <div className="p-4 rounded-2xl border border-red-200 dark:border-red-900/40 bg-red-50/30 dark:bg-red-950/10 space-y-2">
-            <h3 className="font-bold text-xs text-red-600 dark:text-red-400">
-              Permanent Account Deletion
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Permanently purge your account, profile, all uploaded resume files from private storage, and tracking history. This cannot be undone.
+          {/* Permanent Deletion */}
+          <div className="p-4 rounded-2xl border border-red-200 dark:border-red-950/60 bg-red-50/30 dark:bg-red-950/20 space-y-2">
+            <div className="font-bold text-xs text-red-700 dark:text-red-400">
+              Permanent Account & Resume Deletion
+            </div>
+            <p className="text-[11px] text-red-600/80 dark:text-red-300/70">
+              Irrevocably deletes your user profile, all uploaded original documents, generated drafts, and analysis history from storage.
             </p>
             <button
+              type="button"
               onClick={() => setDeleteAccountModalOpen(true)}
-              className="mt-2 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs"
+              className="mt-2 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs flex items-center gap-2 shadow-xs transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete Account & Resumes</span>
+              <span>Delete Account & Data</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Delete Account Confirmation */}
+      {/* Confirmation Modal for Delete Account */}
       <ConfirmModal
         isOpen={deleteAccountModalOpen}
-        title="Permanently Delete Account & Resumes?"
-        message="This action will immediately delete your user account, all uploaded resume documents, extracted profiles, analysis histories, and application pipelines. This action is irreversible."
-        confirmLabel="Permanently Delete Everything"
+        title="Permanently Delete CareerLens Account?"
+        message="This operation cannot be undone. All your resumes, parsed sections, AI analyses, cover letters, and application tracker history will be immediately and irrevocably purged from the database."
+        confirmLabel="Purge Everything"
+        isDestructive
         onConfirm={handleDeleteAccount}
         onCancel={() => setDeleteAccountModalOpen(false)}
       />

@@ -235,7 +235,20 @@ class ApiService {
     });
   }
 
-  async generateCoverLetter(data: { resume_id: string; job_description: string; company_name?: string; job_title?: string; tone?: string }) {
+  async generateCoverLetter(data: {
+    resume_id: string;
+    job_description: string;
+    company_name?: string;
+    job_title?: string;
+    tone?: string;
+    candidate_name?: string;
+    email?: string;
+    phone?: string;
+    linkedin_url?: string;
+    github_url?: string;
+    portfolio_url?: string;
+    other_links?: { label: string; url: string }[];
+  }) {
     return this.request<{
       cover_letter: string;
       grounded_facts_used: string[];

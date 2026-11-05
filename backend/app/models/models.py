@@ -47,6 +47,11 @@ class CareerProfile(Base):
     desired_salary_min = Column(Integer, nullable=True)
     desired_salary_max = Column(Integer, nullable=True)
     summary = Column(Text, nullable=True)
+    phone = Column(String(50), nullable=True)
+    linkedin_url = Column(String(255), nullable=True)
+    github_url = Column(String(255), nullable=True)
+    portfolio_url = Column(String(255), nullable=True)
+    other_links = Column(JSON, default=list)  # list of {"label": str, "url": str}
     skills_list = Column(JSON, default=list)  # list of skill dicts/strings
     education_history = Column(JSON, default=list)  # list of education items
     work_history = Column(JSON, default=list)  # list of work experiences

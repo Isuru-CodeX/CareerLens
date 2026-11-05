@@ -186,7 +186,7 @@ def test_ai_service():
     assert "Spearheaded" in res["improved"]
     assert len(res["changes"]) > 0
 
-    # 2. Cover Letter
+    # 2. Cover Letter with Contact Info & Social Links
     cl = AIService.generate_cover_letter(
         resume_name="Alex Developer",
         resume_summary="Experienced engineer",
@@ -194,10 +194,20 @@ def test_ai_service():
         recent_experience="Engineered high-throughput microservices",
         job_description="Looking for senior backend developer",
         company_name="Stripe",
-        job_title="Senior Engineer"
+        job_title="Senior Engineer",
+        candidate_email="alex@example.com",
+        candidate_phone="+1 (555) 019-2834",
+        linkedin_url="https://linkedin.com/in/alex",
+        github_url="https://github.com/alex",
+        portfolio_url="https://alex.dev"
     )
     assert "Stripe" in cl["cover_letter"]
     assert "Alex Developer" in cl["cover_letter"]
+    assert "alex@example.com" in cl["cover_letter"]
+    assert "+1 (555) 019-2834" in cl["cover_letter"]
+    assert "linkedin.com/in/alex" in cl["cover_letter"]
+    assert "github.com/alex" in cl["cover_letter"]
+    assert "alex.dev" in cl["cover_letter"]
 
     # 3. Interview prep
     prep = AIService.generate_interview_questions("Python developer job description")

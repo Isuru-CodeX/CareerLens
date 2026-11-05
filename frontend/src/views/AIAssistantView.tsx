@@ -6,9 +6,12 @@ import {
   Check,
   FileText,
   MessageSquare,
-  Download
+  Download,
+  ChevronDown,
+  ChevronUp,
+  UserCheck
 } from 'lucide-react';
-import { Resume } from '../types';
+import { Resume, CareerProfile } from '../types';
 import { api } from '../services/api';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 
@@ -49,6 +52,17 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [copiedCover, setCopiedCover] = useState(false);
 
+  // Profile Contact Info state for Cover Letter
+  const [userProfile, setUserProfile] = useState<CareerProfile | null>(null);
+  const [includeContactHeader, setIncludeContactHeader] = useState(true);
+  const [candidateName, setCandidateName] = useState('');
+  const [candidateEmail, setCandidateEmail] = useState('');
+  const [candidatePhone, setCandidatePhone] = useState('');
+  const [candidateLinkedin, setCandidateLinkedin] = useState('');
+  const [candidateGithub, setCandidateGithub] = useState('');
+  const [candidatePortfolio, setCandidatePortfolio] = useState('');
+  const [contactCustomExpanded, setContactCustomExpanded] = useState(false);
+
   // Tab 3: Interview Prep state
   const [interviewJD, setInterviewJD] = useState(
     jobDescription ||
@@ -76,18 +90,33 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   }, [jobDescription]);
 
   useEffect(() => {
-    const fetchResumes = async () => {
+    const fetchInitialData = async () => {
       try {
-        const list = await api.getResumes();
-        setResumes(list);
-        if (list.length > 0) {
-          setSelectedResumeId(list[0].id);
+        const [resumesList, prof, me] = await Promise.all([
+          api.getResumes(),
+          api.getProfile().catch(() => null),
+          api.getMe().catch(() => null)
+        ]);
+        setResumes(resumesList);
+        if (resumesList.length > 0) {
+          setSelectedResumeId(resumesList[0].id);
+        }
+        if (prof) {
+          setUserProfile(prof);
+          if (prof.phone) setCandidatePhone(prof.phone);
+          if (prof.linkedin_url) setCandidateLinkedin(prof.linkedin_url);
+          if (prof.github_url) setCandidateGithub(prof.github_url);
+          if (prof.portfolio_url) setCandidatePortfolio(prof.portfolio_url);
+        }
+        if (me) {
+          if (me.full_name) setCandidateName(me.full_name);
+          if (me.email) setCandidateEmail(me.email);
         }
       } catch (err) {
         console.error(err);
       }
     };
-    fetchResumes();
+    fetchInitialData();
   }, []);
 
   // Rewriter Submit
@@ -120,7 +149,14 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
         resume_id: selectedResumeId,
         job_description: coverJD,
         company_name: companyName,
-        job_title: coverJobTitle
+        job_title: coverJobTitle,
+        candidate_name: candidateName || undefined,
+        email: candidateEmail || undefined,
+        phone: includeContactHeader ? (candidatePhone || undefined) : undefined,
+        linkedin_url: includeContactHeader ? (candidateLinkedin || undefined) : undefined,
+        github_url: includeContactHeader ? (candidateGithub || undefined) : undefined,
+        portfolio_url: includeContactHeader ? (candidatePortfolio || undefined) : undefined,
+        other_links: includeContactHeader ? (userProfile?.other_links || undefined) : undefined
       });
       setCoverLetterResult(res.cover_letter);
       setCoverLetterFacts(res.grounded_facts_used);
@@ -403,6 +439,157 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                 onChange={(e) => setCoverJD(e.target.value)}
                 className="w-full p-3.5 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white leading-relaxed"
               />
+            </div>
+
+            {/* Contact Information & Links Header Controls */}
+            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeContactHeader}
+                    onChange={(e) => setIncludeContactHeader(e.target.checked)}
+                    className="w-4 h-4 rounded-md text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Include Profile Contact Header & Links</span>
+                  </span>
+                </label>
+
+                {includeContactHeader && (
+                  <button
+                    type="button"
+                    onClick={() => setContactCustomExpanded(!contactCustomExpanded)}
+                    className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 self-start sm:self-auto"
+                  >
+                    <span>{contactCustomExpanded ? 'Hide Contact Fields' : 'Review / Customize Header Details'}</span>
+                    {contactCustomExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+              </div>
+
+              {/* Badges preview */}
+              {includeContactHeader && !contactCustomExpanded && (
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-600 dark:text-slate-400">
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-medium">
+                    Name: {candidateName || 'Candidate'}
+                  </span>
+                  {candidateEmail && (
+                    <span className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-medium">
+                      Email: {candidateEmail}
+                    </span>
+                  )}
+                  {candidatePhone && (
+                    <span className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-medium">
+                      Phone: {candidatePhone}
+                    </span>
+                  )}
+                  {candidateLinkedin && (
+                    <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 font-medium">
+                      LinkedIn
+                    </span>
+                  )}
+                  {candidateGithub && (
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-medium">
+                      GitHub
+                    </span>
+                  )}
+                  {candidatePortfolio && (
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 font-medium">
+                      Portfolio
+                    </span>
+                  )}
+                  {userProfile?.other_links && userProfile.other_links.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-medium">
+                      +{userProfile.other_links.length} other link{userProfile.other_links.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Expanded contact details editor */}
+              {includeContactHeader && contactCustomExpanded && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-700/60 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                      Candidate Name
+                    </label>
+                    <input
+                      type="text"
+                      value={candidateName}
+                      onChange={(e) => setCandidateName(e.target.value)}
+                      placeholder="Alex Rivera"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                      Email
+                    </label>
+                    <input
+                      type="text"
+                      value={candidateEmail}
+                      onChange={(e) => setCandidateEmail(e.target.value)}
+                      placeholder="alex@example.com"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                      Mobile / Phone
+                    </label>
+                    <input
+                      type="text"
+                      value={candidatePhone}
+                      onChange={(e) => setCandidatePhone(e.target.value)}
+                      placeholder="+1 (555) 019-2834"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                      LinkedIn URL
+                    </label>
+                    <input
+                      type="text"
+                      value={candidateLinkedin}
+                      onChange={(e) => setCandidateLinkedin(e.target.value)}
+                      placeholder="https://linkedin.com/in/..."
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                      GitHub URL
+                    </label>
+                    <input
+                      type="text"
+                      value={candidateGithub}
+                      onChange={(e) => setCandidateGithub(e.target.value)}
+                      placeholder="https://github.com/..."
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                      Portfolio URL
+                    </label>
+                    <input
+                      type="text"
+                      value={candidatePortfolio}
+                      onChange={(e) => setCandidatePortfolio(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end">

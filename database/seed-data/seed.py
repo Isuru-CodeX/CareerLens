@@ -47,6 +47,11 @@ def run_seed():
             desired_salary_min=160000,
             desired_salary_max=210000,
             summary="Senior Full-Stack Engineer with 6+ years specializing in distributed systems, modern React / TypeScript interfaces, and FastAPI cloud microservices.",
+            phone="+1 (415) 890-2341",
+            linkedin_url="https://linkedin.com/in/alexrivera",
+            github_url="https://github.com/alexrivera",
+            portfolio_url="https://alexrivera.dev",
+            other_links=[{"label": "Personal Tech Blog", "url": "https://alexrivera.dev/blog"}],
             skills_list=["Python", "TypeScript", "React", "FastAPI", "Docker", "PostgreSQL", "AWS", "Redis", "CI/CD"],
             education_history=[{
                 "degree": "B.S. in Computer Science",

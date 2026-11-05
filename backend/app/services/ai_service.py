@@ -106,14 +106,63 @@ class AIService:
         recent_experience: str,
         job_description: str,
         company_name: str = "Hiring Team",
-        job_title: str = "Target Position"
+        job_title: str = "Target Position",
+        candidate_email: Optional[str] = None,
+        candidate_phone: Optional[str] = None,
+        linkedin_url: Optional[str] = None,
+        github_url: Optional[str] = None,
+        portfolio_url: Optional[str] = None,
+        other_links: Optional[List[Dict[str, str]]] = None
     ) -> Dict[str, Any]:
         """
-        Generate an authentic, truthful cover letter strictly grounded in user resume facts.
+        Generate an authentic, truthful cover letter strictly grounded in user resume facts
+        and personalized contact information.
         """
         top_skills_str = ", ".join(resume_skills[:5]) if resume_skills else "software engineering and modern technology systems"
+        name = resume_name if resume_name else "Candidate"
         
-        letter = f"""Dear Hiring Team at {company_name},
+        # Build professional header with contact details and links
+        header_parts = [name]
+        contact_line_parts = []
+        if candidate_email:
+            contact_line_parts.append(candidate_email)
+        if candidate_phone:
+            contact_line_parts.append(candidate_phone)
+        if contact_line_parts:
+            header_parts.append(" | ".join(contact_line_parts))
+
+        link_parts = []
+        if linkedin_url:
+            clean_li = linkedin_url.replace("https://", "").replace("http://", "").rstrip("/")
+            link_parts.append(f"LinkedIn: {clean_li}")
+        if github_url:
+            clean_gh = github_url.replace("https://", "").replace("http://", "").rstrip("/")
+            link_parts.append(f"GitHub: {clean_gh}")
+        if portfolio_url:
+            clean_pf = portfolio_url.replace("https://", "").replace("http://", "").rstrip("/")
+            link_parts.append(f"Portfolio: {clean_pf}")
+        for lk in (other_links or []):
+            if isinstance(lk, dict) and lk.get("url"):
+                label = lk.get("label") or "Link"
+                clean_url = lk["url"].replace("https://", "").replace("http://", "").rstrip("/")
+                link_parts.append(f"{label}: {clean_url}")
+
+        if link_parts:
+            header_parts.append(" | ".join(link_parts))
+
+        header_block = "\n".join(header_parts)
+        
+        # Build signature block
+        sig_lines = [name]
+        if candidate_email:
+            sig_lines.append(candidate_email)
+        if candidate_phone:
+            sig_lines.append(candidate_phone)
+        signature_block = "\n".join(sig_lines)
+
+        letter = f"""{header_block}
+
+Dear Hiring Team at {company_name},
 
 I am writing to express my strong enthusiasm for the {job_title} role at {company_name}. With hands-on experience in {top_skills_str}, coupled with a rigorous track record of delivering reliable, scalable solutions, I am eager to contribute directly to your team's mission.
 
@@ -124,16 +173,23 @@ What draws me specifically to {company_name} is your commitment to high standard
 Thank you for your time and consideration. I look forward to the possibility of speaking with you.
 
 Sincerely,
-{resume_name if resume_name else "Candidate"}
+
+{signature_block}
 """
+        facts = [
+            f"Candidate identity: {name}",
+            f"Verified skills referenced: {top_skills_str}",
+            f"Experience highlights: {recent_experience[:100] if recent_experience else 'Demonstrated production experience'}",
+            f"Target company & role: {company_name} - {job_title}"
+        ]
+        if candidate_email or candidate_phone:
+            facts.append(f"Contact details: {candidate_email or ''} {candidate_phone or ''}".strip())
+        if link_parts:
+            facts.append(f"Professional links: {', '.join(link_parts)}")
+
         return {
             "cover_letter": letter.strip(),
-            "grounded_facts_used": [
-                f"Candidate identity: {resume_name}",
-                f"Verified skills referenced: {top_skills_str}",
-                f"Experience highlights: {recent_experience[:100] if recent_experience else 'Demonstrated production experience'}",
-                f"Target company & role: {company_name} - {job_title}"
-            ]
+            "grounded_facts_used": facts
         }
 
     @staticmethod

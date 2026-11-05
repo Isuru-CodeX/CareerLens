@@ -47,6 +47,11 @@ class CareerProfileUpdate(BaseModel):
     desired_salary_min: Optional[int] = None
     desired_salary_max: Optional[int] = None
     summary: Optional[str] = None
+    phone: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    other_links: Optional[List[Dict[str, str]]] = []
     skills_list: Optional[List[Any]] = []
     education_history: Optional[List[Any]] = []
     work_history: Optional[List[Any]] = []
@@ -204,6 +209,13 @@ class CoverLetterRequest(BaseModel):
     company_name: Optional[str] = "Hiring Team"
     job_title: Optional[str] = "Target Role"
     tone: Optional[str] = "Professional, Impactful"
+    candidate_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    other_links: Optional[List[Dict[str, str]]] = None
 
 class CoverLetterResponse(BaseModel):
     cover_letter: str

@@ -10,6 +10,25 @@ from app.api import auth, users, resumes, jobs, ai, applications, dashboard
 async def lifespan(app: FastAPI):
     # Initialize DB tables
     Base.metadata.create_all(bind=engine)
+    # Ensure existing SQLite tables have newly added columns
+    with engine.connect() as conn:
+        try:
+            from sqlalchemy import text
+            res = conn.execute(text("PRAGMA table_info(career_profiles)"))
+            existing_cols = [row[1] for row in res.fetchall()]
+            if existing_cols:
+                for col_name, col_type in [
+                    ("phone", "VARCHAR(50)"),
+                    ("linkedin_url", "VARCHAR(255)"),
+                    ("github_url", "VARCHAR(255)"),
+                    ("portfolio_url", "VARCHAR(255)"),
+                    ("other_links", "JSON")
+                ]:
+                    if col_name not in existing_cols:
+                        conn.execute(text(f"ALTER TABLE career_profiles ADD COLUMN {col_name} {col_type}"))
+                conn.commit()
+        except Exception:
+            pass
     yield
 
 app = FastAPI(
