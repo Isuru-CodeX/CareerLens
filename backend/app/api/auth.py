@@ -8,6 +8,7 @@ from app.schemas.schemas import (
     UserRegister, UserLogin, UserOut, TokenResponse,
     PasswordResetRequest, PasswordResetConfirm, AppearanceUpdate
 )
+from app.services.email_service import email_service
 from datetime import timedelta
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -104,16 +105,29 @@ def update_appearance(
     return current_user
 
 @router.post("/forgot-password")
-def forgot_password(req: PasswordResetRequest, db: Session = Depends(get_db)):
+async def forgot_password(req: PasswordResetRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email.lower()).first()
     # Always return success message to prevent user enumeration
     reset_token = None
+    email_dispatched = False
     if user:
         reset_token = create_access_token({"sub": user.id, "action": "reset_pwd"}, expires_delta=timedelta(hours=1))
         log_audit(db, user.id, "PASSWORD_RESET_REQUESTED")
+        email_dispatched = await email_service.send_password_reset_email(
+            to_email=user.email,
+            reset_token=reset_token,
+            user_name=user.full_name
+        )
+
     return {
-        "message": "If that email exists in our records, a secure password reset token has been issued.",
-        "reset_token": reset_token  # For demo / self-service convenience in local environments
+        "message": (
+            "If that email exists in our records, a secure password reset link has been sent to your inbox."
+            if email_dispatched
+            else "If that email exists in our records, a password reset link has been generated."
+        ),
+        "email_sent": email_dispatched,
+        # Only expose reset_token when real email dispatch is not active, for developer/demo ease
+        "reset_token": reset_token if not email_dispatched else None
     }
 
 @router.post("/reset-password")

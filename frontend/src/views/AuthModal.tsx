@@ -1,29 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Sparkles, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { api } from '../services/api';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'signin' | 'signup';
+  initialTab?: 'signin' | 'signup' | 'forgot' | 'reset';
+  initialResetToken?: string;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
-  initialTab = 'signin'
+  initialTab = 'signin',
+  initialResetToken = ''
 }) => {
-  const [tab, setTab] = useState<'signin' | 'signup' | 'forgot'>(initialTab);
+  const [tab, setTab] = useState<'signin' | 'signup' | 'forgot' | 'reset'>(initialTab);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [resetToken, setResetToken] = useState(initialResetToken);
+  const [devResetToken, setDevResetToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const { login, register, loginDemo } = useAuth();
+
+  useEffect(() => {
+    if (initialTab) {
+      setTab(initialTab);
+    }
+    if (initialResetToken) {
+      setResetToken(initialResetToken);
+      setTab('reset');
+    }
+  }, [initialTab, initialResetToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,13 +56,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
         await register(email, password, fullName);
         onClose();
-      } else {
+      } else if (tab === 'forgot') {
         // Forgot password
         const res = await api.forgotPassword(email);
         setInfo(res.message);
         if (res.reset_token) {
-          setInfo(res.message + ' (Demo environment reset token generated)');
+          setDevResetToken(res.reset_token);
         }
+      } else if (tab === 'reset') {
+        // Reset password
+        if (password.length < 8) {
+          throw new Error('Password must be at least 8 characters long.');
+        }
+        if (password !== confirmPassword) {
+          throw new Error('Passwords do not match.');
+        }
+        if (!resetToken) {
+          throw new Error('Missing password reset token. Please request a new link.');
+        }
+        const res = await api.resetPassword(resetToken, password);
+        setInfo(res.message + ' You can now sign in.');
+        setTab('signin');
+        setPassword('');
+        setConfirmPassword('');
+        setResetToken('');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.');
@@ -67,6 +99,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setError(err?.message || 'Failed to log in with demo account. Please ensure seed data was executed.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUseDevResetToken = () => {
+    if (devResetToken) {
+      setResetToken(devResetToken);
+      setTab('reset');
+      setError(null);
+      setInfo('Enter your new password below:');
+      setDevResetToken(null);
     }
   };
 
@@ -108,53 +150,70 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             {/* Quick Demo Login Option */}
-            <div className="my-4 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-950/40 dark:to-emerald-950/40 border border-blue-200/80 dark:border-blue-900/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 font-semibold text-xs text-blue-900 dark:text-blue-300">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span>Instant Evaluation Mode</span>
+            {tab !== 'reset' && (
+              <div className="my-4 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-950/40 dark:to-emerald-950/40 border border-blue-200/80 dark:border-blue-900/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 font-semibold text-xs text-blue-900 dark:text-blue-300">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>Instant Evaluation Mode</span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                      Pre-loaded with sample resume, analyses, and applications.
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                    Pre-loaded with sample resume, analyses, and job applications.
-                  </p>
+                  <button
+                    type="button"
+                    onClick={handleDemoLogin}
+                    disabled={loading}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition-colors shrink-0 disabled:opacity-50"
+                  >
+                    Demo Login
+                  </button>
                 </div>
+              </div>
+            )}
+
+            {/* Tab navigation */}
+            {tab !== 'reset' && (
+              <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 mb-5">
                 <button
                   type="button"
-                  onClick={handleDemoLogin}
-                  disabled={loading}
-                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition-colors shrink-0 disabled:opacity-50"
+                  onClick={() => { setTab('signin'); setError(null); setInfo(null); }}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    tab === 'signin'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
                 >
-                  Demo Login
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setTab('signup'); setError(null); setInfo(null); }}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    tab === 'signup'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
+                >
+                  Create Account
                 </button>
               </div>
-            </div>
+            )}
 
-            {/* Tabs */}
-            <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 mb-5">
-              <button
-                type="button"
-                onClick={() => { setTab('signin'); setError(null); setInfo(null); }}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  tab === 'signin'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setTab('signup'); setError(null); setInfo(null); }}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  tab === 'signup'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
-                }`}
-              >
-                Create Account
-              </button>
-            </div>
+            {tab === 'reset' && (
+              <div className="mb-4">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-xs font-semibold mb-2">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Choose New Password</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Set Account Password</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Enter and confirm your new secure password.
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs">
@@ -163,8 +222,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
 
             {info && (
-              <div className="mb-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 text-xs">
-                {info}
+              <div className="mb-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 text-xs flex flex-col gap-2">
+                <span>{info}</span>
+                {devResetToken && (
+                  <button
+                    type="button"
+                    onClick={handleUseDevResetToken}
+                    className="self-start text-[11px] font-bold text-blue-700 dark:text-blue-300 underline hover:text-blue-800"
+                  >
+                    Open Password Reset Form &rarr;
+                  </button>
+                )}
               </div>
             )}
 
@@ -188,24 +256,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="alex@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                  />
+              {tab !== 'reset' && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="alex@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {tab !== 'forgot' && (
+              {tab !== 'forgot' && tab !== 'reset' && (
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -235,6 +305,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               )}
 
+              {tab === 'reset' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                      <input
+                        type="password"
+                        required
+                        placeholder="Minimum 8 characters"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Confirm New Password
+                    </label>
+                    <div className="relative">
+                      <CheckCircle2 className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                      <input
+                        type="password"
+                        required
+                        placeholder="Repeat your new password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
               <button
                 type="submit"
                 disabled={loading}
@@ -244,7 +352,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <span>Processing...</span>
                 ) : (
                   <>
-                    <span>{tab === 'signin' ? 'Sign In' : tab === 'signup' ? 'Create Account' : 'Send Reset Link'}</span>
+                    <span>
+                      {tab === 'signin'
+                        ? 'Sign In'
+                        : tab === 'signup'
+                        ? 'Create Account'
+                        : tab === 'forgot'
+                        ? 'Send Reset Link'
+                        : 'Save New Password'}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -263,4 +379,3 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     </AnimatePresence>
   );
 };
-

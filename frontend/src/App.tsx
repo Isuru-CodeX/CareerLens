@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
@@ -17,7 +17,24 @@ const MainLayout: React.FC = () => {
   const [viewParams, setViewParams] = useState<any>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'signin' | 'signup' | 'forgot' | 'reset'>('signin');
+  const [authResetToken, setAuthResetToken] = useState<string>('');
   const [quickUploadTrigger, setQuickUploadTrigger] = useState(false);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('reset_token');
+      if (token) {
+        setAuthResetToken(token);
+        setAuthModalTab('reset');
+        setAuthModalOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch (e) {
+      console.error('Failed to parse URL reset token', e);
+    }
+  }, []);
 
   const handleNavigate = (view: string, params: any = {}) => {
     setCurrentView(view);
@@ -102,7 +119,13 @@ const MainLayout: React.FC = () => {
       {/* Auth Modal */}
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        initialTab={authModalTab}
+        initialResetToken={authResetToken}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setAuthModalTab('signin');
+          setAuthResetToken('');
+        }}
       />
 
       {/* Footer */}

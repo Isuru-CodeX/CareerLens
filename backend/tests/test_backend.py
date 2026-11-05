@@ -87,6 +87,30 @@ def test_auth_flow():
     assert r_app.status_code == 200
     assert r_app.json()["appearance_preference"] == "light"
 
+    # 6. Forgot Password flow
+    r_forgot = client.post("/api/auth/forgot-password", json={"email": "testuser@careerlens.ai"})
+    assert r_forgot.status_code == 200
+    forgot_data = r_forgot.json()
+    assert "message" in forgot_data
+    reset_token = forgot_data.get("reset_token")
+    assert reset_token is not None
+
+    # 7. Reset Password
+    r_reset = client.post("/api/auth/reset-password", json={
+        "token": reset_token,
+        "new_password": "NewSecretPassword2026!"
+    })
+    assert r_reset.status_code == 200
+    assert "successfully reset" in r_reset.json()["message"]
+
+    # 8. Verify Login with New Password
+    r_new_log = client.post("/api/auth/login", json={
+        "email": "testuser@careerlens.ai",
+        "password": "NewSecretPassword2026!"
+    })
+    assert r_new_log.status_code == 200
+    assert "access_token" in r_new_log.json()
+
 def test_parsing_service():
     sample_text = """
     Jane Doe
