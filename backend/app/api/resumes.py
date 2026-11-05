@@ -47,7 +47,7 @@ async def upload_resume(
 
     # Save to private storage with safe UUID name
     safe_file_name = f"{uuid.uuid4()}{file_ext}"
-    saved_path = os.path.join(settings.UPLOAD_DIR, safe_file_name)
+    saved_path = os.path.join(settings.RESOLVED_UPLOAD_DIR, safe_file_name)
     with open(saved_path, "wb") as f:
         f.write(content)
 
@@ -150,7 +150,16 @@ def reparse_resume(
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
 
-    raw_text = ParsingService.extract_text_from_file(resume.file_path, resume.file_type)
+    file_path = resume.file_path
+    if not file_path or not os.path.exists(file_path):
+        candidate = os.path.join(settings.RESOLVED_UPLOAD_DIR, os.path.basename(file_path or ""))
+        if os.path.exists(candidate):
+            file_path = candidate
+
+    if file_path and os.path.exists(file_path):
+        raw_text = ParsingService.extract_text_from_file(file_path, resume.file_type)
+    else:
+        raw_text = resume.raw_text or ""
     parsed_data = ParsingService.parse_resume(raw_text)
 
     # Update sections
@@ -316,11 +325,19 @@ def download_resume_file(
         Resume.id == resume_id,
         Resume.user_id == current_user.id
     ).first()
-    if not resume or not os.path.exists(resume.file_path):
-        raise HTTPException(status_code=404, detail="File not found on storage.")
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    file_path = resume.file_path
+    if not file_path or not os.path.exists(file_path):
+        candidate = os.path.join(settings.RESOLVED_UPLOAD_DIR, os.path.basename(file_path or ""))
+        if os.path.exists(candidate):
+            file_path = candidate
+        else:
+            raise HTTPException(status_code=404, detail="File not found on storage.")
 
     return FileResponse(
-        path=resume.file_path,
+        path=file_path,
         filename=resume.file_name,
         media_type="application/octet-stream"
     )
@@ -338,9 +355,15 @@ def delete_resume(
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
 
-    if resume.file_path and os.path.exists(resume.file_path):
+    file_path = resume.file_path
+    if not file_path or not os.path.exists(file_path):
+        candidate = os.path.join(settings.RESOLVED_UPLOAD_DIR, os.path.basename(file_path or ""))
+        if os.path.exists(candidate):
+            file_path = candidate
+
+    if file_path and os.path.exists(file_path):
         try:
-            os.remove(resume.file_path)
+            os.remove(file_path)
         except Exception:
             pass
 

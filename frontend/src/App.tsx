@@ -16,25 +16,29 @@ const MainLayout: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('dashboard');
   const [viewParams, setViewParams] = useState<any>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalTab, setAuthModalTab] = useState<'signin' | 'signup' | 'forgot' | 'reset'>('signin');
-  const [authResetToken, setAuthResetToken] = useState<string>('');
+  const getInitialResetToken = () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('reset_token') || '';
+    } catch {
+      return '';
+    }
+  };
+  const [initialResetToken] = useState<string>(getInitialResetToken);
+  const [authModalOpen, setAuthModalOpen] = useState(!!initialResetToken);
+  const [authModalTab, setAuthModalTab] = useState<'signin' | 'signup' | 'forgot' | 'reset'>(initialResetToken ? 'reset' : 'signin');
+  const [authResetToken, setAuthResetToken] = useState<string>(initialResetToken);
   const [quickUploadTrigger, setQuickUploadTrigger] = useState(false);
 
   useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('reset_token');
-      if (token) {
-        setAuthResetToken(token);
-        setAuthModalTab('reset');
-        setAuthModalOpen(true);
+    if (initialResetToken) {
+      try {
         window.history.replaceState({}, '', window.location.pathname);
+      } catch {
+        // ignore
       }
-    } catch (e) {
-      console.error('Failed to parse URL reset token', e);
     }
-  }, []);
+  }, [initialResetToken]);
 
   const handleNavigate = (view: string, params: any = {}) => {
     setCurrentView(view);

@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit
 from app.models.models import (
@@ -124,9 +125,14 @@ def delete_user_account(
     # Clean up uploaded files on disk
     user_resumes = db.query(Resume).filter(Resume.user_id == current_user.id).all()
     for r in user_resumes:
-        if r.file_path and os.path.exists(r.file_path):
+        file_path = r.file_path
+        if not file_path or not os.path.exists(file_path):
+            candidate = os.path.join(settings.RESOLVED_UPLOAD_DIR, os.path.basename(file_path or ""))
+            if os.path.exists(candidate):
+                file_path = candidate
+        if file_path and os.path.exists(file_path):
             try:
-                os.remove(r.file_path)
+                os.remove(file_path)
             except Exception:
                 pass
                 

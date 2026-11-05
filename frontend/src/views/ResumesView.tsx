@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   UploadCloud,
@@ -49,9 +49,8 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
   const [isSavingSection, setIsSavingSection] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const fetchResumes = async () => {
+  const fetchResumes = useCallback(async () => {
     try {
-      setLoading(true);
       const list = await api.getResumes();
       setResumes(list);
     } catch (err) {
@@ -59,10 +58,25 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchResumes();
+    let isMounted = true;
+    api.getResumes()
+      .then((list) => {
+        if (!isMounted) return;
+        setResumes(list);
+      })
+      .catch((err) => {
+        console.error(err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {

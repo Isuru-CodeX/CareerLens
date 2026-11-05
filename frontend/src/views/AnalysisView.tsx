@@ -23,9 +23,18 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
 }) => {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string>(resumeId || '');
+  const [prevResumeId, setPrevResumeId] = useState(resumeId);
+  if (resumeId !== prevResumeId) {
+    setPrevResumeId(resumeId);
+    if (resumeId) {
+      setSelectedResumeId(resumeId);
+    }
+  }
+
   const [analysis, setAnalysis] = useState<AnalysisRun | null>(null);
-  const [loading, setLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const isLoading = isGenerating || (!!selectedResumeId && (!analysis || analysis.resume_id !== selectedResumeId));
 
   const runNewAnalysis = useCallback(async (id: string) => {
     try {
@@ -39,49 +48,42 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
     }
   }, []);
 
-  const loadAnalysis = useCallback(async (id: string) => {
-    try {
-      setLoading(true);
-      const analyses = await api.getResumeAnalyses(id);
-      if (analyses.length > 0) {
-        setAnalysis(analyses[0]);
-      } else {
-        await runNewAnalysis(id);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [runNewAnalysis]);
-
-  useEffect(() => {
-    if (resumeId) {
-      setSelectedResumeId(resumeId);
-    }
-  }, [resumeId]);
-
   useEffect(() => {
     let isMounted = true;
-    const init = async () => {
-      try {
-        const list = await api.getResumes();
+    api.getResumes()
+      .then((list) => {
         if (!isMounted) return;
         setResumes(list);
         setSelectedResumeId(prev => prev || (list.length > 0 ? list[0].id : ''));
-      } catch (err) {
+      })
+      .catch((err) => {
         console.error(err);
-      }
-    };
-    init();
+      });
     return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {
-    if (selectedResumeId) {
-      loadAnalysis(selectedResumeId);
-    }
-  }, [selectedResumeId, loadAnalysis]);
+    if (!selectedResumeId) return;
+    let isMounted = true;
+    api.getResumeAnalyses(selectedResumeId)
+      .then((analyses) => {
+        if (!isMounted) return;
+        if (analyses.length > 0) {
+          setAnalysis(analyses[0]);
+        } else {
+          return api.analyseResume(selectedResumeId).then((res) => {
+            if (isMounted) {
+              setAnalysis(res);
+            }
+          });
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+
+    return () => { isMounted = false; };
+  }, [selectedResumeId]);
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -136,7 +138,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
         </div>
       </div>
 
-      {loading || isGenerating ? (
+      {isLoading ? (
         <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
           <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin mx-auto" />
           <h3 className="font-bold text-sm text-slate-900 dark:text-white">

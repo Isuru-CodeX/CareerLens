@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
@@ -30,15 +30,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const { login, register, loginDemo } = useAuth();
 
-  useEffect(() => {
-    if (initialTab) {
-      setTab(initialTab);
-    }
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+  const [prevResetToken, setPrevResetToken] = useState(initialResetToken);
+
+  if (initialTab !== prevInitialTab || initialResetToken !== prevResetToken) {
+    setPrevInitialTab(initialTab);
+    setPrevResetToken(initialResetToken);
     if (initialResetToken) {
       setResetToken(initialResetToken);
       setTab('reset');
+    } else if (initialTab) {
+      setTab(initialTab);
     }
-  }, [initialTab, initialResetToken]);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

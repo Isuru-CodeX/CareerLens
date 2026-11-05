@@ -1,4 +1,5 @@
 # Start CareerLens AI Backend & Frontend Development Servers
+Set-Location $PSScriptRoot
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host " Starting CareerLens AI Development Environment " -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan

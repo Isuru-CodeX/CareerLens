@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText,
@@ -32,20 +32,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await api.getDashboard();
       setData(res);
+      setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to load dashboard.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDashboard();
+    let isMounted = true;
+    api.getDashboard()
+      .then((res) => {
+        if (!isMounted) return;
+        setData(res);
+        setError(null);
+      })
+      .catch((err: any) => {
+        if (!isMounted) return;
+        setError(err.message || 'Failed to load dashboard.');
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleToggleReminder = async (remId: string) => {

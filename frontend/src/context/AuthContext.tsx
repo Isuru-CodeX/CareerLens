@@ -7,17 +7,17 @@ export type { AuthContextType } from './authContextDef';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => !!api.getToken());
   const { setMode } = useTheme();
 
   const fetchUser = useCallback(async () => {
+    const token = api.getToken();
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     try {
-      const token = api.getToken();
-      if (!token) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
       const u = await api.getMe();
       setUser(u);
       if (u.appearance_preference) {
@@ -32,8 +32,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [setMode]);
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    const token = api.getToken();
+    if (!token) return;
+
+    let isMounted = true;
+    api.getMe()
+      .then((u) => {
+        if (!isMounted) return;
+        setUser(u);
+        if (u.appearance_preference) {
+          setMode(u.appearance_preference);
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        api.setToken(null);
+        setUser(null);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setMode]);
 
   const login = async (email: string, password: string) => {
     const res = await api.login({ email, password });

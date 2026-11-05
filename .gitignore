@@ -29,8 +29,11 @@ backend/.env
 .DS_Store
 Thumbs.db
 *.log
+.pytest_cache/
 
 # Storage
+storage/*
+!storage/.gitkeep
 backend/storage/*
 !backend/storage/.gitkeep
 

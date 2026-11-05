@@ -22,6 +22,13 @@ export const JobMatchView: React.FC<JobMatchViewProps> = ({
 }) => {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string>(initialResumeId || '');
+  const [prevInitialResumeId, setPrevInitialResumeId] = useState(initialResumeId);
+  if (initialResumeId !== prevInitialResumeId) {
+    setPrevInitialResumeId(initialResumeId);
+    if (initialResumeId) {
+      setSelectedResumeId(initialResumeId);
+    }
+  }
   const [jobTitle, setJobTitle] = useState('Senior Full-Stack Engineer');
   const [company, setCompany] = useState('TechFlow Labs');
   const [jobText, setJobText] = useState(`TechFlow is seeking a Senior Full-Stack Engineer to scale our real-time collaboration suite.
@@ -38,12 +45,6 @@ Preferred:
   const [matchResult, setMatchResult] = useState<JobMatch | null>(null);
   const [isMatching, setIsMatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (initialResumeId) {
-      setSelectedResumeId(initialResumeId);
-    }
-  }, [initialResumeId]);
 
   useEffect(() => {
     let isMounted = true;

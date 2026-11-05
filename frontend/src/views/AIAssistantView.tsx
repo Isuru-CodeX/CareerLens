@@ -71,23 +71,24 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   const [interviewQuestions, setInterviewQuestions] = useState<any[]>([]);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
-  useEffect(() => {
-    if (initialTab) setActiveTab(initialTab);
-  }, [initialTab]);
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+  const [prevTargetRole, setPrevTargetRole] = useState(targetRole);
+  const [prevJobDesc, setPrevJobDesc] = useState(jobDescription);
 
-  useEffect(() => {
+  if (initialTab !== prevInitialTab || targetRole !== prevTargetRole || jobDescription !== prevJobDesc) {
+    setPrevInitialTab(initialTab);
+    setPrevTargetRole(targetRole);
+    setPrevJobDesc(jobDescription);
+    if (initialTab) setActiveTab(initialTab);
     if (targetRole) {
       setRewriteRole(targetRole);
       setCoverJobTitle(targetRole);
     }
-  }, [targetRole]);
-
-  useEffect(() => {
     if (jobDescription) {
       setCoverJD(jobDescription);
       setInterviewJD(jobDescription);
     }
-  }, [jobDescription]);
+  }
 
   useEffect(() => {
     const fetchInitialData = async () => {

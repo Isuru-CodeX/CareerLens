@@ -61,14 +61,14 @@ export const ApplicationsView: React.FC = () => {
 
   const fetchApplications = useCallback(async () => {
     try {
-      setLoading(true);
-      const list = await api.getApplications({
-        q: searchQuery || undefined,
-        stage: stageFilter || undefined
-      });
+      const [list, st] = await Promise.all([
+        api.getApplications({
+          q: searchQuery || undefined,
+          stage: stageFilter || undefined
+        }),
+        api.getApplicationStats()
+      ]);
       setApplications(list);
-
-      const st = await api.getApplicationStats();
       setStats(st);
     } catch (err) {
       console.error(err);
@@ -78,8 +78,27 @@ export const ApplicationsView: React.FC = () => {
   }, [searchQuery, stageFilter]);
 
   useEffect(() => {
-    fetchApplications();
-  }, [fetchApplications]);
+    let isMounted = true;
+    Promise.all([
+      api.getApplications({
+        q: searchQuery || undefined,
+        stage: stageFilter || undefined
+      }),
+      api.getApplicationStats()
+    ]).then(([list, st]) => {
+      if (!isMounted) return;
+      setApplications(list);
+      setStats(st);
+    }).catch((err) => {
+      console.error(err);
+    }).finally(() => {
+      if (isMounted) setLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [searchQuery, stageFilter]);
 
   const handleStageChange = async (appId: string, newStage: ApplicationStage) => {
     try {

@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.api import auth, users, resumes, jobs, ai, applications, dashboard
@@ -53,6 +55,8 @@ app.add_middleware(
 # Exception handlers
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, (StarletteHTTPException, RequestValidationError)):
+        raise exc
     # Log securely without exposing stack traces to end users in production
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

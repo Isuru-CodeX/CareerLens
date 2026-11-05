@@ -271,3 +271,91 @@ def test_application_tracker_api():
     dash_data = r_dash.json()
     assert dash_data["application_stats"]["total_applications"] == 1
 
+def test_user_profile_and_contact_info():
+    # Register user
+    reg = client.post("/api/auth/register", json={
+        "email": "contactuser@careerlens.ai",
+        "password": "Password123!",
+        "full_name": "Jordan Casey"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Update Career Profile with Contact Coordinates & Custom Links
+    profile_data = {
+        "target_title": "Staff Cloud Architect",
+        "target_industry": "Fintech & Distributed Systems",
+        "years_of_experience": 8,
+        "phone": "+1 (555) 789-0123",
+        "linkedin_url": "https://linkedin.com/in/jordancasey",
+        "github_url": "https://github.com/jordancasey",
+        "portfolio_url": "https://jordancasey.tech",
+        "other_links": [
+            {"label": "Substack Newsletter", "url": "https://jordancasey.substack.com"}
+        ],
+        "summary": "Accomplished cloud infrastructure leader."
+    }
+    r_put = client.put("/api/users/profile", json=profile_data, headers=headers)
+    assert r_put.status_code == 200
+    res_data = r_put.json()
+    assert res_data["phone"] == "+1 (555) 789-0123"
+    assert res_data["linkedin_url"] == "https://linkedin.com/in/jordancasey"
+    assert res_data["github_url"] == "https://github.com/jordancasey"
+    assert res_data["portfolio_url"] == "https://jordancasey.tech"
+    assert len(res_data["other_links"]) == 1
+    assert res_data["other_links"][0]["label"] == "Substack Newsletter"
+
+    # 2. Get Profile
+    r_get = client.get("/api/users/profile", headers=headers)
+    assert r_get.status_code == 200
+    assert r_get.json()["phone"] == "+1 (555) 789-0123"
+
+    # 3. GDPR Data Export
+    r_export = client.get("/api/users/export", headers=headers)
+    assert r_export.status_code == 200
+    export_json = r_export.json()
+    assert "user_profile" in export_json
+    assert export_json["user_profile"]["phone"] == "+1 (555) 789-0123"
+    assert export_json["user_profile"]["linkedin_url"] == "https://linkedin.com/in/jordancasey"
+    assert export_json["user_profile"]["github_url"] == "https://github.com/jordancasey"
+    assert len(export_json["user_profile"]["other_links"]) == 1
+
+def test_resume_upload_analysis_and_pdf():
+    # Register user
+    reg = client.post("/api/auth/register", json={
+        "email": "resumetest@careerlens.ai",
+        "password": "Password123!",
+        "full_name": "Taylor Morgan"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Upload TXT resume
+    sample_resume_bytes = b"""Taylor Morgan\ntaylor@example.com | (555) 444-3322\nProfessional Summary\nSenior Software Architect with 7 years experience.\nExperience\nArchitect at TechCorp\nBuilt high throughput APIs with Python and Docker.\nSkills\nPython, Docker, FastAPI, Kubernetes, AWS\n"""
+    files = {"file": ("taylor_resume.txt", sample_resume_bytes, "text/plain")}
+    data = {"title": "Taylor Resume 2026", "target_role": "Senior Cloud Architect"}
+    r_upload = client.post("/api/resumes/upload", files=files, data=data, headers=headers)
+    assert r_upload.status_code == 200
+    resume_id = r_upload.json()["id"]
+
+    # 2. Download Uploaded Resume
+    r_download = client.get(f"/api/resumes/{resume_id}/download", headers=headers)
+    assert r_download.status_code == 200
+    assert b"Taylor Morgan" in r_download.content
+
+    # 3. Analyse Resume
+    r_analyse = client.post(f"/api/resumes/{resume_id}/analyse", headers=headers)
+    assert r_analyse.status_code == 200
+    analysis_id = r_analyse.json()["id"]
+
+    # 4. Download PDF Analysis Report
+    r_pdf = client.get(f"/api/resumes/{resume_id}/analyses/{analysis_id}/pdf", headers=headers)
+    assert r_pdf.status_code == 200
+    assert r_pdf.headers["content-type"] == "application/pdf"
+    assert len(r_pdf.content) > 500
+
+    # 5. Delete Resume
+    r_del = client.delete(f"/api/resumes/{resume_id}", headers=headers)
+    assert r_del.status_code == 200
+
+
