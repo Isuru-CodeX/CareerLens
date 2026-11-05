@@ -42,7 +42,7 @@ class Settings(BaseSettings):
         "*"
     ]
 
-    model_config = SettingsConfigDict(env_file=".env", extra="allow")
+    model_config = SettingsConfigDict(env_file=(".env", "backend/.env", "../.env"), extra="allow")
 
 settings = Settings()
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

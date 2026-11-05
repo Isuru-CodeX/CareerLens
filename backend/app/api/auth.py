@@ -126,8 +126,7 @@ async def forgot_password(req: PasswordResetRequest, db: Session = Depends(get_d
             else "If that email exists in our records, a password reset link has been generated."
         ),
         "email_sent": email_dispatched,
-        # Only expose reset_token when real email dispatch is not active, for developer/demo ease
-        "reset_token": reset_token if not email_dispatched else None
+        "reset_token": reset_token
     }
 
 @router.post("/reset-password")
