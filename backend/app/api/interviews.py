@@ -247,3 +247,4 @@ def get_interview_session(
         "scorecard": session.scorecard or {},
         "created_at": session.created_at.isoformat() if session.created_at else None
     }
+

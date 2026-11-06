@@ -38,10 +38,10 @@ Write-Host "Verifying database and seeding data..." -ForegroundColor Yellow
 & backend\venv\Scripts\python.exe database\seed-data\seed.py
 
 Write-Host "Starting FastAPI Backend on http://localhost:8000..." -ForegroundColor Green
-Start-Process powershell -WorkingDirectory "$PSScriptRoot\backend" -ArgumentList "-NoExit -Command & { .\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload }"
+Start-Process powershell -WorkingDirectory "$PSScriptRoot\backend" -ArgumentList @("-NoExit", "-Command", "& { .\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload }")
 
 Write-Host "Starting React Frontend on http://localhost:5173..." -ForegroundColor Green
-Start-Process powershell -WorkingDirectory "$PSScriptRoot\frontend" -ArgumentList "-NoExit -Command & { npm run dev }"
+Start-Process powershell -WorkingDirectory "$PSScriptRoot\frontend" -ArgumentList @("-NoExit", "-Command", "& { npm run dev }")
 
 Write-Host "`nCareerLens AI is running!" -ForegroundColor Cyan
 Write-Host "Frontend: http://localhost:5173" -ForegroundColor White

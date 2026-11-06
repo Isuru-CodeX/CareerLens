@@ -105,3 +105,4 @@ def test_full_interview_session_api_flow():
     sessions_list = list_resp.json()
     assert len(sessions_list) >= 1
     assert sessions_list[0]["id"] == session_id
+
