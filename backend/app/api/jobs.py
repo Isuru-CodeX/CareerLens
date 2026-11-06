@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -13,6 +14,8 @@ from app.services.job_extractor_service import JobExtractorService
 from app.services.deep_match.service import DeepMatchService, to_legacy
 from app.services.deep_match.heuristics_v2 import jd_years
 
+logger = logging.getLogger("careerlens.jobs")
+
 router = APIRouter(tags=["Job Descriptions & Matching"])
 
 @router.post("/job-descriptions/extract-url", response_model=JobUrlExtractResponse)
@@ -26,6 +29,7 @@ async def extract_job_from_url(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.exception(f"URL extraction error for {data.url}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to extract job details from URL: {str(e)}"
@@ -70,7 +74,7 @@ def list_job_descriptions(
     return jds
 
 @router.post("/matches", response_model=JobMatchOut)
-def match_resume(
+async def match_resume(
     req: MatchRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -83,6 +87,8 @@ def match_resume(
         raise HTTPException(status_code=404, detail="Resume not found.")
 
     job_text = ""
+    target_title = req.job_title
+    target_company = req.company
     jd_id = req.job_description_id
 
     if jd_id:
@@ -93,14 +99,26 @@ def match_resume(
         if not jd:
             raise HTTPException(status_code=404, detail="Job description not found.")
         job_text = jd.raw_text
+        target_title = target_title or jd.title
+        target_company = target_company or jd.company
     elif req.job_text:
-        job_text = req.job_text
+        job_text = req.job_text.strip()
+        # Auto-detect if job_text is a web URL
+        if job_text.startswith(("http://", "https://")):
+            try:
+                ext = await JobExtractorService.extract_from_url(job_text)
+                job_text = ext.get("job_description") or job_text
+                target_title = target_title or ext.get("job_title")
+                target_company = target_company or ext.get("company_name")
+            except Exception as e:
+                logger.warning(f"Could not auto-extract URL in job_text: {e}")
+
         # Save as quick JD
         jd = JobDescription(
             user_id=current_user.id,
-            title=req.job_title or "Quick Match Job",
-            company=req.company or "Company",
-            raw_text=req.job_text,
+            title=target_title or "Quick Match Job",
+            company=target_company or "Company",
+            raw_text=job_text,
             required_skills=[],
             preferred_skills=[]
         )
@@ -110,9 +128,29 @@ def match_resume(
     else:
         raise HTTPException(status_code=400, detail="Either job_description_id or job_text must be provided.")
 
-    # Deep Match: LLM judgement + grounding + deterministic scoring (falls back to the improved basic engine)
-    report = DeepMatchService().analyze(resume_text=resume.raw_text or "", job_text=job_text)
-    match_result = to_legacy(report)
+    try:
+        # Deep Match: LLM judgement + grounding + deterministic scoring (falls back to the improved basic engine)
+        report = DeepMatchService().analyze(
+            resume_text=resume.raw_text or "",
+            job_text=job_text,
+            job_title=target_title,
+            company=target_company
+        )
+        match_result = to_legacy(report)
+    except Exception as e:
+        logger.exception("Error in DeepMatchService analyze, attempting safe fallback")
+        # Extreme fallback to ensure user never receives a 500 error
+        from app.services.deep_match.heuristics_v2 import estimate_years
+        years = estimate_years(resume.raw_text or "")
+        report = DeepMatchService()._heuristic_report(
+            resume_text=resume.raw_text or "",
+            job_text=job_text,
+            years=years,
+            job_title=target_title,
+            company=target_company
+        )
+        report["warnings"].append(f"Analysis recovered via resilient fallback: {str(e)[:100]}")
+        match_result = to_legacy(report)
 
     job_match = JobMatch(
         user_id=current_user.id,
@@ -160,4 +198,3 @@ def get_match(
     if not match:
         raise HTTPException(status_code=404, detail="Match not found.")
     return match
-

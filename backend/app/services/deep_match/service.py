@@ -30,16 +30,41 @@ def _clean(text: str, limit: int) -> str:
     return re.sub(r"</?(resume|job_post)>", "", text, flags=re.I)      # stop tag-injection / prompt-injection
 
 
-def _detect_meta(job_text: str) -> dict:
+def _detect_meta(job_text: str, job_title: Optional[str] = None, company: Optional[str] = None) -> dict:
     low = job_text.lower()
+    
+    # Title determination
+    detected_title = job_title or ""
+    if not detected_title:
+        m_t = re.search(r"(?:Job Title|Role|Position)\s*[:—–-]\s*([^\n\r]+)", job_text, re.I)
+        if m_t:
+            detected_title = m_t.group(1).strip()
+        else:
+            first_line = job_text.strip().split("\n")[0].strip()
+            if len(first_line) < 70 and not any(k in first_line.lower() for k in ("http", "www", "apply", "description")):
+                detected_title = first_line
+            else:
+                detected_title = "Target Position"
+
+    # Company determination
+    detected_company = company or ""
+    if not detected_company:
+        m_c = re.search(r"(?:About Our Company|Company|Employer)\s*[:—–-]?\s*([^\n\r]+)", job_text, re.I)
+        if m_c:
+            detected_company = m_c.group(1).strip()
+        else:
+            detected_company = "Prospective Employer"
+
+    # Seniority determination
+    combined_title = f"{detected_title} {low}"
     seniority = "mid"
-    if any(w in low for w in ("lead", "principal", "staff", "architect", "director", "head")):
+    if any(w in combined_title for w in ("lead", "principal", "staff", "architect", "director", "head")):
         seniority = "lead"
-    elif any(w in low for w in ("senior", "sr.", "sr ")):
+    elif any(w in combined_title for w in ("senior", "sr.", "sr ")):
         seniority = "senior"
-    elif any(w in low for w in ("junior", "jr.", "entry", "associate")):
+    elif any(w in combined_title for w in ("junior", "jr.", "entry", "associate")):
         seniority = "junior"
-    elif "intern" in low:
+    elif "intern" in combined_title:
         seniority = "intern"
 
     work_mode = "unspecified"
@@ -91,6 +116,8 @@ def _detect_meta(job_text: str) -> dict:
         culture = ["Collaborative engineering team", "Continuous delivery culture"]
 
     return {
+        "title": detected_title,
+        "company": detected_company,
         "seniority": seniority,
         "work_mode": work_mode,
         "domain": domain,
@@ -105,18 +132,30 @@ class DeepMatchService:
         self.deep = deep or LLMClient(model=settings.LLM_MODEL_DEEP)     # strong model: judgement
 
     # ------------------------------------------------------------------ public
-    def analyze(self, resume_text: str, job_text: str) -> Dict[str, Any]:
+    def analyze(
+        self,
+        resume_text: str,
+        job_text: str,
+        job_title: Optional[str] = None,
+        company: Optional[str] = None
+    ) -> Dict[str, Any]:
         resume_text, job_text = _clean(resume_text, MAX_RESUME_CHARS), _clean(job_text, MAX_JOB_CHARS)
         years = estimate_years(resume_text)
         warnings: List[str] = []
         if self.deep.available:
             try:
-                return self._llm_report(resume_text, job_text, years)
+                rep = self._llm_report(resume_text, job_text, years)
+                if job_title and not rep["job_profile"].get("title"):
+                    rep["job_profile"]["title"] = job_title
+                if company and not rep["job_profile"].get("company"):
+                    rep["job_profile"]["company"] = company
+                return rep
             except LLMError as e:
                 warnings.append(f"AI analysis unavailable ({str(e)[:120]}); showing the advanced analytical engine instead.")
         else:
             warnings.append("No AI key configured; showing the advanced analytical engine. Add an API key to unlock LLM deep mode.")
-        report = self._heuristic_report(resume_text, job_text, years)
+
+        report = self._heuristic_report(resume_text, job_text, years, job_title=job_title, company=company)
         report["warnings"] = warnings
         return report
 
@@ -150,9 +189,16 @@ class DeepMatchService:
         }
 
     # ------------------------------------------------------------------ fallback / advanced analytical path
-    def _heuristic_report(self, resume_text: str, job_text: str, years: float) -> Dict[str, Any]:
+    def _heuristic_report(
+        self,
+        resume_text: str,
+        job_text: str,
+        years: float,
+        job_title: Optional[str] = None,
+        company: Optional[str] = None
+    ) -> Dict[str, Any]:
         qm = quick_match(resume_text, job_text)
-        meta = _detect_meta(job_text)
+        meta = _detect_meta(job_text, job_title=job_title, company=company)
         req_years = qm["jd_years"] or (5.0 if meta["seniority"] == "senior" else 7.0 if meta["seniority"] == "lead" else 3.0)
 
         reqs: List[Requirement] = []
@@ -243,7 +289,8 @@ class DeepMatchService:
         ))
 
         job = JobProfile(
-            title=meta.get("title", "Target Role"),
+            title=meta["title"],
+            company=meta["company"],
             seniority=meta["seniority"],
             min_years_experience=req_years,
             work_mode=meta["work_mode"],
@@ -384,8 +431,20 @@ class DeepMatchService:
         top_skills_str = ", ".join(top_met[:3]) if top_met else "modern software engineering"
         summary_suggestion = (
             f"Results-driven {meta['seniority'].capitalize()} Engineer with {years} years of experience specializing in {top_skills_str}. "
-            f"Demonstrated history of building reliable systems and collaborating across agile teams to deliver business-critical products."
+            f"Demonstrated history of building reliable systems and collaborating across agile teams to deliver business-critical products as {meta['title']} at {meta['company']}."
         )
+
+        # Seniority signal logic that strictly conforms to literal types
+        if years <= 0:
+            sig = "unclear"
+        elif years > req_years * 1.5:
+            sig = "above"
+        elif years >= req_years * 0.7:
+            sig = "aligned"
+        elif years >= req_years * 0.4:
+            sig = "moderate"
+        else:
+            sig = "below"
 
         analysis = DeepAnalysis(
             assessments=asm,
@@ -397,14 +456,14 @@ class DeepMatchService:
             skill_roadmap=skill_roadmap,
             interview_prep=interview_prep,
             executive_summary=(
-                f"Candidate exhibits a {score['verdict'].replace('_', ' ')} alignment for this {meta['seniority']} role. "
+                f"Candidate exhibits a {score['verdict'].replace('_', ' ')} alignment for this {meta['seniority']} role ({meta['title']} at {meta['company']}). "
                 f"Core strengths include verified competence in {top_skills_str or 'foundational engineering'}. "
                 f"Primary areas for optimization involve addressing key missing competencies ({', '.join(missing_skills[:2]) if missing_skills else 'tenure depth'}) "
                 f"and quantifying bullet achievements to maximize ATS and recruiter engagement."
             ),
             experience_fit=ExperienceFit(
                 candidate_relevant_years=years,
-                seniority_signal="aligned" if years >= req_years * 0.8 else ("below" if years < req_years * 0.6 else "moderate"),
+                seniority_signal=sig,
                 reasoning=f"Calculated {years} years from resume timeline against target requirement of {req_years} years for {meta['seniority']} tier.",
                 career_gaps=[],
             ),

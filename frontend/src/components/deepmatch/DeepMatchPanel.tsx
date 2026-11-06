@@ -129,11 +129,18 @@ export const DeepMatchPanel: React.FC<{ report: DeepReport; onTailor?: () => voi
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                    Executive Match Brief
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Comprehensive career alignment assessment generated from your verified resume
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      {jp.title || 'Target Role'}
+                    </h3>
+                    {jp.company && (
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        {jp.company}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {jp.location ? `${jp.location} · ` : ''}{jp.work_mode !== 'unspecified' ? `${jp.work_mode} · ` : ''}{jp.domain || 'Software Systems'}
                   </p>
                 </div>
               </div>

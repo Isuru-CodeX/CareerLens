@@ -42,6 +42,7 @@ export interface DeepReport {
   warnings: string[];
   job_profile: {
     title: string;
+    company?: string | null;
     seniority: string;
     min_years_experience: number | null;
     work_mode: string;

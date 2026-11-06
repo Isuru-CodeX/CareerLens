@@ -1,5 +1,5 @@
 """app/services/deep_match/schemas.py - structured contracts between the LLM, the scorer and the UI."""
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 Importance = Literal["must", "important", "nice"]
@@ -18,10 +18,11 @@ class Requirement(BaseModel):
 
 class JobProfile(BaseModel):
     title: str
-    seniority: Literal["intern", "junior", "mid", "senior", "lead", "principal", "executive", "unspecified"]
+    company: Optional[str] = None
+    seniority: str = "mid"
     min_years_experience: Optional[float] = None
     max_years_experience: Optional[float] = None
-    work_mode: Literal["remote", "hybrid", "onsite", "unspecified"] = "unspecified"
+    work_mode: str = "unspecified"
     location: Optional[str] = None
     salary_text: Optional[str] = Field(None, description="Only if the post states pay. Never guess.")
     domain: Optional[str] = None
@@ -47,7 +48,7 @@ class Assessment(BaseModel):
 
 class ExperienceFit(BaseModel):
     candidate_relevant_years: Optional[float] = None
-    seniority_signal: Literal["below", "aligned", "above", "unclear"] = "unclear"
+    seniority_signal: Literal["below", "aligned", "above", "moderate", "unclear"] = "unclear"
     reasoning: str
     career_gaps: List[str] = []
 

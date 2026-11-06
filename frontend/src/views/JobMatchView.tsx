@@ -117,8 +117,49 @@ Preferred:
       setError('Please select a resume to match.');
       return;
     }
-    if (!jobText.trim()) {
-      setError('Please provide a job description.');
+
+    let currentJobText = jobText.trim();
+    let currentJobTitle = jobTitle;
+    let currentCompany = company;
+
+    // If jobText itself is a link, auto-extract first
+    if (currentJobText.startsWith('http://') || currentJobText.startsWith('https://')) {
+      try {
+        setIsExtractingUrl(true);
+        const data = await api.extractJobFromUrl(currentJobText);
+        currentJobTitle = data.job_title;
+        currentCompany = data.company_name;
+        currentJobText = data.job_description;
+        setJobTitle(data.job_title);
+        setCompany(data.company_name);
+        setJobText(data.job_description);
+        setExtractedMeta(data);
+      } catch (err: any) {
+        console.warn('Auto-extraction from jobText URL failed:', err);
+      } finally {
+        setIsExtractingUrl(false);
+      }
+    } else if (jobUrl.trim() && (!currentJobText || currentJobText.length < 50)) {
+      // If user provided a URL in the import box but didn't click auto-fill first
+      try {
+        setIsExtractingUrl(true);
+        const data = await api.extractJobFromUrl(jobUrl.trim());
+        currentJobTitle = data.job_title;
+        currentCompany = data.company_name;
+        currentJobText = data.job_description;
+        setJobTitle(data.job_title);
+        setCompany(data.company_name);
+        setJobText(data.job_description);
+        setExtractedMeta(data);
+      } catch (err: any) {
+        console.warn('Auto-extraction from jobUrl failed:', err);
+      } finally {
+        setIsExtractingUrl(false);
+      }
+    }
+
+    if (!currentJobText) {
+      setError('Please provide a job description or import from a job listing link.');
       return;
     }
 
@@ -128,13 +169,13 @@ Preferred:
     try {
       const match = await api.matchResume({
         resume_id: selectedResumeId,
-        job_text: jobText,
-        job_title: jobTitle,
-        company: company
+        job_text: currentJobText,
+        job_title: currentJobTitle,
+        company: currentCompany
       });
       setMatchResult(match);
     } catch (err: any) {
-      setError(err.message || 'Job match failed.');
+      setError(err.message || 'Job match failed. Please check the job description and try again.');
     } finally {
       setIsMatching(false);
     }
