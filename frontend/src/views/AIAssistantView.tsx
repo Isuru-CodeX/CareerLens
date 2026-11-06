@@ -12,11 +12,17 @@ import {
   UserCheck,
   Globe,
   Link,
-  AlertCircle
+  AlertCircle,
+  Wand2,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { Resume, CareerProfile } from '../types';
+import { Resume, CareerProfile, Preset, CoverLetterRecord, CoverLetterVersion, TextPolishChange } from '../types';
 import { api } from '../services/api';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
+import { PresetSelect } from '../components/PresetSelect';
+import { StyleToggle } from '../components/StyleToggle';
 
 interface AIAssistantViewProps {
   initialTab?: 'rewrite' | 'coverletter' | 'interview';
@@ -59,6 +65,27 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   const [coverLetterFacts, setCoverLetterFacts] = useState<string[]>([]);
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [copiedCover, setCopiedCover] = useState(false);
+
+  // Multi-CV Presets & Style state
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('all');
+  const [coverStyle, setCoverStyle] = useState<'professional' | 'human'>('professional');
+  const [coverVariant, setCoverVariant] = useState<'en-GB' | 'en-US'>('en-GB');
+
+  // Cover Letter Record & Version tracking
+  const [coverLetterRecord, setCoverLetterRecord] = useState<CoverLetterRecord | null>(null);
+  const [coverVersions, setCoverVersions] = useState<CoverLetterVersion[]>([]);
+  const [activeVersionIndex, setActiveVersionIndex] = useState<number>(0);
+
+  // Change Request Regeneration state
+  const [changeRequestText, setChangeRequestText] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
+
+  // Editorial Polish state
+  const [isPolishing, setIsPolishing] = useState(false);
+  const [polishChanges, setPolishChanges] = useState<TextPolishChange[] | null>(null);
+  const [showPolishDiff, setShowPolishDiff] = useState(false);
 
   // Profile Contact Info state for Cover Letter
   const [userProfile, setUserProfile] = useState<CareerProfile | null>(null);
@@ -107,15 +134,26 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
     }
   }
 
+  const fetchPresets = async () => {
+    try {
+      const list = await api.getPresets();
+      setPresets(list);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [resumesList, prof, me] = await Promise.all([
+        const [resumesList, prof, me, presetsList] = await Promise.all([
           api.getResumes(),
           api.getProfile().catch(() => null),
-          api.getMe().catch(() => null)
+          api.getMe().catch(() => null),
+          api.getPresets().catch(() => [])
         ]);
         setResumes(resumesList);
+        setPresets(presetsList);
         if (resumesList.length > 0) {
           setSelectedResumeId(resumesList[0].id);
         }
@@ -188,36 +226,115 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   // Cover Letter Submit
   const handleGenerateCoverLetter = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedResumeId) return;
     setIsGeneratingCover(true);
+    setRegenerateError(null);
+    setPolishChanges(null);
     try {
-      const res = await api.generateCoverLetter({
-        resume_id: selectedResumeId,
-        job_description: coverJD,
-        company_name: companyName,
+      // 1. Primary: Use CoverLetter record API with Multi-CV context and versioning
+      const record = await api.createCoverLetterRecord({
+        preset_id: selectedPresetId !== 'all' ? selectedPresetId : null,
         job_title: coverJobTitle,
-        candidate_name: (includeContactHeader && showName) ? (candidateName.trim() || 'Isuru Rathnayaka') : undefined,
-        email: (includeContactHeader && showEmail) ? (candidateEmail.trim() || 'isururathnayaka999@gmail.com') : undefined,
-        phone: (includeContactHeader && showPhone) ? (candidatePhone.trim() || '+94727938613') : undefined,
-        linkedin_url: (includeContactHeader && showLinkedin) ? (candidateLinkedin.trim() || 'https://linkedin.com/in/isururathnayaka') : undefined,
-        github_url: (includeContactHeader && showGithub) ? (candidateGithub.trim() || 'https://github.com/Isuru-CodeX') : undefined,
-        portfolio_url: (includeContactHeader && showPortfolio) ? (candidatePortfolio.trim() || 'https://isuru-portfolio.vercel.app') : undefined,
-        other_links: includeContactHeader ? (userProfile?.other_links || undefined) : undefined,
-        include_project_links_body: (includeContactHeader && includeProjectLinksBody),
-        include_contact_header: includeContactHeader,
-        include_name: includeContactHeader && showName,
-        include_email: includeContactHeader && showEmail,
-        include_phone: includeContactHeader && showPhone,
-        include_linkedin: includeContactHeader && showLinkedin,
-        include_github: includeContactHeader && showGithub,
-        include_portfolio: includeContactHeader && showPortfolio
+        company: companyName,
+        job_description: coverJD,
+        style: coverStyle,
+        variant: coverVariant
       });
-      setCoverLetterResult(res.cover_letter);
-      setCoverLetterFacts(res.grounded_facts_used);
-    } catch (err) {
-      console.error(err);
+      setCoverLetterRecord(record);
+      setCoverVersions(record.versions);
+      setActiveVersionIndex(record.versions.length - 1);
+      setCoverLetterResult(record.current_version.body);
+      setCoverLetterFacts(record.current_version.notes || []);
+    } catch {
+      // 2. Fallback to single-resume generator if profile has no skills/experiences yet
+      try {
+        const targetResumeId = selectedResumeId || (resumes.length > 0 ? resumes[0].id : '');
+        if (targetResumeId) {
+          const res = await api.generateCoverLetter({
+            resume_id: targetResumeId,
+            job_description: coverJD,
+            company_name: companyName,
+            job_title: coverJobTitle,
+            candidate_name: (includeContactHeader && showName) ? (candidateName.trim() || 'Isuru Rathnayaka') : undefined,
+            email: (includeContactHeader && showEmail) ? (candidateEmail.trim() || 'isururathnayaka999@gmail.com') : undefined,
+            phone: (includeContactHeader && showPhone) ? (candidatePhone.trim() || '+94727938613') : undefined,
+            linkedin_url: (includeContactHeader && showLinkedin) ? (candidateLinkedin.trim() || 'https://linkedin.com/in/isururathnayaka') : undefined,
+            github_url: (includeContactHeader && showGithub) ? (candidateGithub.trim() || 'https://github.com/Isuru-CodeX') : undefined,
+            portfolio_url: (includeContactHeader && showPortfolio) ? (candidatePortfolio.trim() || 'https://isuru-portfolio.vercel.app') : undefined,
+            other_links: includeContactHeader ? (userProfile?.other_links || undefined) : undefined,
+            include_project_links_body: (includeContactHeader && includeProjectLinksBody),
+            include_contact_header: includeContactHeader,
+            include_name: includeContactHeader && showName,
+            include_email: includeContactHeader && showEmail,
+            include_phone: includeContactHeader && showPhone,
+            include_linkedin: includeContactHeader && showLinkedin,
+            include_github: includeContactHeader && showGithub,
+            include_portfolio: includeContactHeader && showPortfolio
+          });
+          setCoverLetterResult(res.cover_letter);
+          setCoverLetterFacts(res.grounded_facts_used);
+        }
+      } catch (fallbackErr: any) {
+        console.error(fallbackErr);
+      }
     } finally {
       setIsGeneratingCover(false);
+    }
+  };
+
+  const handleRegenerateCoverLetter = async (customRequest?: string) => {
+    const req = customRequest || changeRequestText;
+    if (!req.trim()) return;
+    setIsRegenerating(true);
+    setRegenerateError(null);
+    try {
+      if (coverLetterRecord?.id) {
+        const updated = await api.regenerateCoverLetter(coverLetterRecord.id, {
+          current_text: coverLetterResult,
+          change_request: req,
+          style: coverStyle,
+          variant: coverVariant
+        });
+        setCoverLetterRecord(updated);
+        setCoverVersions(updated.versions);
+        setActiveVersionIndex(updated.versions.length - 1);
+        setCoverLetterResult(updated.current_version.body);
+        setCoverLetterFacts(updated.current_version.notes || []);
+        setChangeRequestText('');
+      } else {
+        const res = await api.polishText({
+          text: coverLetterResult,
+          style: coverStyle,
+          variant: coverVariant,
+          mode: 'restyle'
+        });
+        setCoverLetterResult(res.text);
+        setPolishChanges(res.changes);
+        setChangeRequestText('');
+      }
+    } catch (err: any) {
+      setRegenerateError(err.message || 'Regeneration failed.');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  const handlePolishText = async (mode: 'fix' | 'restyle') => {
+    if (!coverLetterResult.trim()) return;
+    setIsPolishing(true);
+    try {
+      const res = await api.polishText({
+        text: coverLetterResult,
+        style: coverStyle,
+        variant: coverVariant,
+        mode
+      });
+      setCoverLetterResult(res.text);
+      setPolishChanges(res.changes);
+      setShowPolishDiff(true);
+    } catch (err: any) {
+      alert(err.message || 'Polish failed.');
+    } finally {
+      setIsPolishing(false);
     }
   };
 
@@ -500,22 +617,16 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
               )}
             </div>
 
+            {/* Presets, Target Parameters & Style */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Source Resume Facts
-                </label>
-                <select
-                  value={selectedResumeId}
-                  onChange={(e) => setSelectedResumeId(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                >
-                  {resumes.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.title}
-                    </option>
-                  ))}
-                </select>
+                <PresetSelect
+                  value={selectedPresetId}
+                  onChange={setSelectedPresetId}
+                  presets={presets}
+                  resumes={resumes}
+                  onPresetsChanged={fetchPresets}
+                />
               </div>
 
               <div>
@@ -543,6 +654,16 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                   className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
               </div>
+            </div>
+
+            {/* Writing Style & Variant Selection */}
+            <div className="pt-1">
+              <StyleToggle
+                style={coverStyle}
+                onStyleChange={setCoverStyle}
+                variant={coverVariant}
+                onVariantChange={setCoverVariant}
+              />
             </div>
 
             <div>
@@ -820,7 +941,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
             <div className="flex justify-end">
               <button
                 onClick={handleGenerateCoverLetter}
-                disabled={isGeneratingCover || !selectedResumeId}
+                disabled={isGeneratingCover || (!selectedResumeId && resumes.length === 0)}
                 className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
@@ -835,28 +956,125 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
               animate={{ opacity: 1, y: 0 }}
               className="p-6 md:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4"
             >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="font-bold text-xs text-slate-900 dark:text-white">
-                  Editable Cover Letter Draft
-                </span>
-                <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <span className="font-bold text-xs text-slate-900 dark:text-white">
+                    Editable Cover Letter Draft
+                  </span>
+
+                  {/* Version Navigation */}
+                  {coverVersions.length > 1 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const prevIdx = Math.max(0, activeVersionIndex - 1);
+                          setActiveVersionIndex(prevIdx);
+                          setCoverLetterResult(coverVersions[prevIdx].body);
+                          setCoverLetterFacts(coverVersions[prevIdx].notes || []);
+                        }}
+                        disabled={activeVersionIndex <= 0}
+                        className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer transition-colors"
+                        title="Previous version"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-[11px]">
+                        Version {activeVersionIndex + 1} of {coverVersions.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextIdx = Math.min(coverVersions.length - 1, activeVersionIndex + 1);
+                          setActiveVersionIndex(nextIdx);
+                          setCoverLetterResult(coverVersions[nextIdx].body);
+                          setCoverLetterFacts(coverVersions[nextIdx].notes || []);
+                        }}
+                        disabled={activeVersionIndex >= coverVersions.length - 1}
+                        className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer transition-colors"
+                        title="Next version"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Grammar & Polish Buttons */}
+                  <button
+                    type="button"
+                    onClick={() => handlePolishText('fix')}
+                    disabled={isPolishing}
+                    className="px-2.5 py-1.5 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/60 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:opacity-50"
+                    title="Fix grammar, spelling, and punctuation"
+                  >
+                    <Wand2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>{isPolishing ? 'Polishing...' : 'Fix grammar'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePolishText('restyle')}
+                    disabled={isPolishing}
+                    className="px-2.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold flex items-center gap-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer disabled:opacity-50"
+                    title="Adopt selected writing voice & style"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>Make more human</span>
+                  </button>
+
                   <button
                     onClick={downloadCoverLetterTxt}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                     title="Download as Text"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Download .txt</span>
                   </button>
+
                   <button
                     onClick={() => copyToClipboard(coverLetterResult, setCopiedCover)}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                   >
                     {copiedCover ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedCover ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
               </div>
+
+              {/* Polish Diff Alert */}
+              {polishChanges && polishChanges.length > 0 && (
+                <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                      <Wand2 className="w-4 h-4 text-indigo-600" />
+                      <span>Editorial Polish: {polishChanges.length} improvements applied</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPolishDiff(!showPolishDiff)}
+                      className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 hover:underline cursor-pointer"
+                    >
+                      {showPolishDiff ? 'Hide Details' : 'View Changes'}
+                    </button>
+                  </div>
+                  {showPolishDiff && (
+                    <div className="space-y-1.5 pt-2 border-t border-indigo-200/60 dark:border-indigo-900/40 text-[11px]">
+                      {polishChanges.map((c, idx) => (
+                        <div key={idx} className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-red-600 line-through font-mono">{c.before}</span>
+                          <span className="text-slate-400">→</span>
+                          <span className="text-emerald-700 dark:text-emerald-400 font-semibold font-mono">{c.after}</span>
+                          {c.reason && (
+                            <span className="text-slate-500 italic">({c.reason})</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <textarea
                 rows={14}
@@ -865,12 +1083,92 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                 className="w-full p-4 text-xs font-sans rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-white leading-relaxed focus:outline-hidden"
               />
 
-              <div className="p-3.5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 text-xs text-blue-900 dark:text-blue-300 space-y-1">
-                <span className="font-semibold">Candidate details utilized:</span>
-                <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-0.5">
-                  {coverLetterFacts.map((fact, idx) => (
-                    <div key={idx}>• {fact}</div>
+              {/* Feature 6: Change Request Regeneration Box */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 text-blue-600" />
+                    <span>What would you like to change?</span>
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Truthfulness check strictly enforced
+                  </span>
+                </div>
+
+                {/* Quick Action Suggestion Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Make it more concise',
+                    'Sound more confident',
+                    'Make it less formal',
+                    'Focus more on my projects',
+                    'Add a stronger closing',
+                    'Highlight problem solving'
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => handleRegenerateCoverLetter(chip)}
+                      disabled={isRegenerating}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-500 hover:text-blue-600 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      + {chip}
+                    </button>
                   ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={changeRequestText}
+                    onChange={(e) => setChangeRequestText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleRegenerateCoverLetter();
+                      }
+                    }}
+                    placeholder="e.g. Focus on my backend scalability experience and strengthen the opening..."
+                    className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRegenerateCoverLetter()}
+                    disabled={isRegenerating || !changeRequestText.trim()}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shrink-0"
+                  >
+                    {isRegenerating ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Regenerating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Regenerate</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {regenerateError && (
+                  <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-[11px] text-red-700 dark:text-red-300">
+                    {regenerateError}
+                  </div>
+                )}
+              </div>
+
+              {/* Grounded Candidate Facts & Truthfulness Notes */}
+              <div className="p-3.5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 text-xs text-blue-900 dark:text-blue-300 space-y-1">
+                <span className="font-semibold">Candidate details utilized & truthfulness notes:</span>
+                <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-0.5">
+                  {coverLetterFacts.length > 0 ? (
+                    coverLetterFacts.map((fact, idx) => (
+                      <div key={idx}>• {fact}</div>
+                    ))
+                  ) : (
+                    <div>• Grounded in candidate profile credentials and verified project repositories.</div>
+                  )}
                 </div>
               </div>
             </motion.div>

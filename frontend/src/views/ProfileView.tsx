@@ -11,10 +11,6 @@ import {
   Phone,
   Globe,
   Mail,
-  Link2,
-  Plus,
-  ExternalLink,
-  X,
   Camera,
   Upload,
   AlertCircle
@@ -25,6 +21,11 @@ import { api } from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { AvatarCropModal } from '../components/AvatarCropModal';
+import { AddressFields, AddressData } from '../components/AddressFields';
+import { LinksEditor } from '../components/LinksEditor';
+import { ExperienceEditor } from '../components/ExperienceEditor';
+import { SkillsEditor } from '../components/SkillsEditor';
+import { ProfileExperience, ProfileSkill } from '../types';
 
 // Custom clean icons for professional profiles
 const LinkedinIcon = () => (
@@ -60,8 +61,7 @@ export const ProfileView: React.FC = () => {
   const [githubUrl, setGithubUrl] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [otherLinks, setOtherLinks] = useState<{ label: string; url: string }[]>([]);
-  const [newLinkLabel, setNewLinkLabel] = useState('');
-  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [address, setAddress] = useState<AddressData>({});
 
   // Career profile fields
   const [targetTitle, setTargetTitle] = useState('');
@@ -70,34 +70,51 @@ export const ProfileView: React.FC = () => {
   const [desiredSalaryMin, setDesiredSalaryMin] = useState<number | ''>('');
   const [desiredSalaryMax, setDesiredSalaryMax] = useState<number | ''>('');
   const [summary, setSummary] = useState('');
-  const [skillsList, setSkillsList] = useState<string[]>([]);
-  const [newSkillInput, setNewSkillInput] = useState('');
+  const [profileExperiences, setProfileExperiences] = useState<ProfileExperience[]>([]);
+  const [profileSkills, setProfileSkills] = useState<ProfileSkill[]>([]);
 
   // Modals
   const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    let isMounted = true;
+    const fetchAllData = async () => {
       try {
-        const p = await api.getProfile();
+        const [p, exps, sks] = await Promise.all([
+          api.getProfile(),
+          api.getProfileExperiences().catch(() => []),
+          api.getProfileSkills().catch(() => [])
+        ]);
+        if (!isMounted) return;
         setTargetTitle(p.target_title || '');
         setTargetIndustry(p.target_industry || '');
         setYearsExp(p.years_of_experience || 0);
         setDesiredSalaryMin(p.desired_salary_min || '');
         setDesiredSalaryMax(p.desired_salary_max || '');
         setSummary(p.summary || '');
-        setSkillsList(p.skills_list || []);
         setPhone(p.phone || '');
         setLinkedinUrl(p.linkedin_url || '');
         setGithubUrl(p.github_url || '');
         setPortfolioUrl(p.portfolio_url || '');
         setOtherLinks(p.other_links || []);
+        setAddress({
+          address_line1: p.address_line1 || '',
+          city: p.city || '',
+          region: p.region || '',
+          postal_code: p.postal_code || '',
+          country: p.country || ''
+        });
+        setProfileExperiences(exps);
+        setProfileSkills(sks);
       } catch (err) {
         console.error(err);
       }
     };
-    fetchProfile();
+    fetchAllData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSaveProfile = async (e?: React.FormEvent) => {
@@ -111,8 +128,12 @@ export const ProfileView: React.FC = () => {
         desired_salary_min: desiredSalaryMin ? Number(desiredSalaryMin) : null,
         desired_salary_max: desiredSalaryMax ? Number(desiredSalaryMax) : null,
         summary: summary,
-        skills_list: skillsList,
         phone: phone,
+        address_line1: address.address_line1,
+        city: address.city,
+        region: address.region,
+        postal_code: address.postal_code,
+        country: address.country,
         linkedin_url: linkedinUrl,
         github_url: githubUrl,
         portfolio_url: portfolioUrl,
@@ -127,35 +148,62 @@ export const ProfileView: React.FC = () => {
     }
   };
 
-  const handleAddSkill = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newSkillInput.trim()) {
-      e.preventDefault();
-      if (!skillsList.includes(newSkillInput.trim())) {
-        setSkillsList([...skillsList, newSkillInput.trim()]);
+  const handleSaveExperience = async (exp: ProfileExperience) => {
+    try {
+      if (exp.id.startsWith('temp_')) {
+        const created = await api.createProfileExperience({
+          job_title: exp.job_title,
+          company: exp.company,
+          industry: exp.industry,
+          start_year: exp.start_year,
+          start_month: exp.start_month,
+          end_year: exp.end_year,
+          end_month: exp.end_month,
+          is_current: exp.is_current,
+          description: exp.description,
+          highlights: exp.highlights
+        });
+        setProfileExperiences((prev) => prev.map((x) => (x.id === exp.id ? created : x)));
+      } else {
+        const updated = await api.updateProfileExperience(exp.id, exp);
+        setProfileExperiences((prev) => prev.map((x) => (x.id === exp.id ? updated : x)));
       }
-      setNewSkillInput('');
+    } catch (err) {
+      console.error('Failed to save experience:', err);
     }
   };
 
-  const handleRemoveSkill = (skill: string) => {
-    setSkillsList(skillsList.filter((s) => s !== skill));
-  };
-
-  const handleAddOtherLink = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newLinkUrl.trim()) return;
-    const label = newLinkLabel.trim() || 'Link';
-    let url = newLinkUrl.trim();
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
+  const handleDeleteExperience = async (id: string) => {
+    try {
+      if (!id.startsWith('temp_')) {
+        await api.deleteProfileExperience(id);
+      }
+      setProfileExperiences((prev) => prev.filter((x) => x.id !== id));
+    } catch (err) {
+      console.error('Failed to delete experience:', err);
     }
-    setOtherLinks([...otherLinks, { label, url }]);
-    setNewLinkLabel('');
-    setNewLinkUrl('');
   };
 
-  const handleRemoveOtherLink = (index: number) => {
-    setOtherLinks(otherLinks.filter((_, i) => i !== index));
+  const handleAddSkills = async (names: string[]) => {
+    try {
+      const added = await api.addProfileSkills(names);
+      setProfileSkills((prev) => {
+        const existingIds = new Set(prev.map((s) => s.id));
+        const newOnes = added.filter((a) => !existingIds.has(a.id));
+        return [...prev, ...newOnes];
+      });
+    } catch (err) {
+      console.error('Failed to add skills:', err);
+    }
+  };
+
+  const handleRemoveSkill = async (id: string) => {
+    try {
+      await api.deleteProfileSkill(id);
+      setProfileSkills((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      console.error('Failed to remove skill:', err);
+    }
   };
 
   const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -471,80 +519,14 @@ export const ProfileView: React.FC = () => {
           </div>
         </div>
 
-        {/* Custom Links List */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
-          <label className="block font-semibold text-slate-700 dark:text-slate-300 text-xs">
-            Additional Links & Profiles (Blog, Medium, Behance, X, etc.)
-          </label>
+        {/* Address Fields */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          <AddressFields value={address} onChange={setAddress} />
+        </div>
 
-          {otherLinks.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {otherLinks.map((link, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-xs"
-                >
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-bold text-[10px] shrink-0">
-                      {link.label}
-                    </span>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 truncate flex items-center gap-1 font-mono text-[11px]"
-                    >
-                      <span>{link.url}</span>
-                      <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
-                    </a>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveOtherLink(idx)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 transition-colors shrink-0 ml-2"
-                    title="Remove link"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[11px] text-slate-400 italic">No additional links added yet.</p>
-          )}
-
-          {/* Add link form */}
-          <form onSubmit={handleAddOtherLink} className="flex flex-wrap sm:flex-nowrap gap-2 pt-1 text-xs">
-            <div className="w-full sm:w-1/3">
-              <input
-                type="text"
-                placeholder="Label (e.g. Tech Blog)"
-                value={newLinkLabel}
-                onChange={(e) => setNewLinkLabel(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-            <div className="w-full sm:flex-1">
-              <div className="relative">
-                <Link2 className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="https://..."
-                  value={newLinkUrl}
-                  onChange={(e) => setNewLinkUrl(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                />
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={!newLinkUrl.trim()}
-              className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs transition-colors flex items-center gap-1 shrink-0 disabled:opacity-40"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Link</span>
-            </button>
-          </form>
+        {/* Additional Links & Profiles */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          <LinksEditor links={otherLinks} onChange={setOtherLinks} />
         </div>
 
         {/* Quick Save Contact Button */}
@@ -653,7 +635,7 @@ export const ProfileView: React.FC = () => {
         </div>
 
         <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Target Role Title
@@ -679,23 +661,28 @@ export const ProfileView: React.FC = () => {
                 className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Years of Professional Experience
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="50"
-                value={yearsExp}
-                onChange={(e) => setYearsExp(Number(e.target.value))}
-                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Work Experience Section with auto year calculations */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <ExperienceEditor
+              items={profileExperiences}
+              onChange={setProfileExperiences}
+              onSaveItem={handleSaveExperience}
+              onDeleteItem={handleDeleteExperience}
+            />
+          </div>
+
+          {/* Verified Technical and Core Skills Section */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <SkillsEditor
+              skills={profileSkills}
+              onAddSkills={handleAddSkills}
+              onRemoveSkill={handleRemoveSkill}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Desired Min Base Salary ($ USD)
@@ -719,38 +706,6 @@ export const ProfileView: React.FC = () => {
                 value={desiredSalaryMax}
                 onChange={(e) => setDesiredSalaryMax(e.target.value === '' ? '' : Number(e.target.value))}
                 className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          {/* Core Skills Tags */}
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Verified Technical & Core Skills
-            </label>
-            <div className="flex flex-wrap gap-2 p-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 min-h-[46px] items-center">
-              {skillsList.map((skill) => (
-                <span
-                  key={skill}
-                  className="px-2.5 py-1 rounded-xl bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center gap-1.5"
-                >
-                  <span>{skill}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveSkill(skill)}
-                    className="hover:text-red-500"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-              <input
-                type="text"
-                placeholder="Type skill & press Enter..."
-                value={newSkillInput}
-                onChange={(e) => setNewSkillInput(e.target.value)}
-                onKeyDown={handleAddSkill}
-                className="flex-1 min-w-[120px] bg-transparent text-xs text-slate-900 dark:text-white outline-hidden p-1"
               />
             </div>
           </div>

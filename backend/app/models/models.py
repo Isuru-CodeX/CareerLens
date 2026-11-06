@@ -22,6 +22,8 @@ class User(Base):
     appearance_preference = Column(String(20), default="system")  # "system", "light", "dark"
     avatar_path = Column(String(500), nullable=True)
     avatar_url = Column(String(500), nullable=True)
+    avatar_source = Column(String(50), nullable=True, default="manual")  # "cv" or "manual"
+    email_verified_at = Column(DateTime, nullable=True, default=get_utc_now)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
@@ -37,6 +39,10 @@ class User(Base):
     audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
     drafts = relationship("GeneratedDraft", back_populates="user", cascade="all, delete-orphan")
     activities = relationship("UserActivity", back_populates="user", cascade="all, delete-orphan", order_by="desc(UserActivity.created_at)")
+    profile_experiences = relationship("ProfileExperience", back_populates="user", cascade="all, delete-orphan", order_by="desc(ProfileExperience.start_year)")
+    profile_skills = relationship("ProfileSkill", back_populates="user", cascade="all, delete-orphan", order_by="ProfileSkill.name")
+    presets = relationship("Preset", back_populates="user", cascade="all, delete-orphan", order_by="Preset.created_at")
+    cover_letters = relationship("CoverLetter", back_populates="user", cascade="all, delete-orphan", order_by="desc(CoverLetter.created_at)")
 
 class CareerProfile(Base):
     __tablename__ = "career_profiles"
@@ -51,6 +57,11 @@ class CareerProfile(Base):
     desired_salary_max = Column(Integer, nullable=True)
     summary = Column(Text, nullable=True)
     phone = Column(String(50), nullable=True)
+    address_line1 = Column(String(255), nullable=True)
+    city = Column(String(100), nullable=True)
+    region = Column(String(100), nullable=True)
+    postal_code = Column(String(50), nullable=True)
+    country = Column(String(100), nullable=True)
     linkedin_url = Column(String(255), nullable=True)
     github_url = Column(String(255), nullable=True)
     portfolio_url = Column(String(255), nullable=True)
@@ -73,6 +84,10 @@ class Resume(Base):
     file_path = Column(String(500), nullable=False)
     file_size = Column(Integer, default=0)
     file_type = Column(String(50), nullable=False)  # "pdf", "docx", "txt"
+    sha256 = Column(String(64), nullable=True, index=True)
+    role_category = Column(String(100), nullable=True)
+    preview_path = Column(String(500), nullable=True)
+    parsed_json = Column(JSON, nullable=True)
     raw_text = Column(Text, nullable=True)
     is_archived = Column(Boolean, default=False)
     created_at = Column(DateTime, default=get_utc_now)
@@ -354,5 +369,100 @@ class ResumeExperience(Base):
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
     
     resume = relationship("Resume", back_populates="experiences")
+
+class ProfileExperience(Base):
+    __tablename__ = "user_experiences"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    job_title = Column(String(255), nullable=False)
+    company = Column(String(255), nullable=False)
+    industry = Column(String(100), default="Other")
+    start_year = Column(Integer, nullable=False)
+    start_month = Column(Integer, nullable=True)
+    end_year = Column(Integer, nullable=True)
+    end_month = Column(Integer, nullable=True)
+    is_current = Column(Boolean, default=False)
+    description = Column(Text, nullable=True, default="")
+    highlights = Column(JSON, default=list)
+    source = Column(String(20), default="manual")  # "cv" or "manual"
+    created_at = Column(DateTime, default=get_utc_now)
+
+    user = relationship("User", back_populates="profile_experiences")
+
+class ExperienceSource(Base):
+    __tablename__ = "experience_sources"
+
+    experience_id = Column(String(36), ForeignKey("user_experiences.id", ondelete="CASCADE"), primary_key=True)
+    resume_id = Column(String(36), ForeignKey("resumes.id", ondelete="CASCADE"), primary_key=True)
+
+class ProfileSkill(Base):
+    __tablename__ = "user_skills"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    name = Column(String(100), nullable=False)
+    name_normalized = Column(String(100), nullable=False, index=True)
+    source = Column(String(20), default="manual")  # "cv" or "manual"
+    created_at = Column(DateTime, default=get_utc_now)
+
+    user = relationship("User", back_populates="profile_skills")
+
+class SkillSource(Base):
+    __tablename__ = "skill_sources"
+
+    skill_id = Column(String(36), ForeignKey("user_skills.id", ondelete="CASCADE"), primary_key=True)
+    resume_id = Column(String(36), ForeignKey("resumes.id", ondelete="CASCADE"), primary_key=True)
+
+class Preset(Base):
+    __tablename__ = "presets"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    name = Column(String(100), nullable=False)
+    target_role = Column(String(150), nullable=True)
+    include_manual = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    user = relationship("User", back_populates="presets")
+    resumes = relationship("PresetResume", back_populates="preset", cascade="all, delete-orphan")
+
+class PresetResume(Base):
+    __tablename__ = "preset_resumes"
+
+    preset_id = Column(String(36), ForeignKey("presets.id", ondelete="CASCADE"), primary_key=True)
+    resume_id = Column(String(36), ForeignKey("resumes.id", ondelete="CASCADE"), primary_key=True)
+
+    preset = relationship("Preset", back_populates="resumes")
+
+class CoverLetter(Base):
+    __tablename__ = "cover_letters"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    preset_id = Column(String(36), ForeignKey("presets.id", ondelete="SET NULL"), nullable=True)
+    job_title = Column(String(255), nullable=True)
+    company = Column(String(255), nullable=True)
+    job_description = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    user = relationship("User", back_populates="cover_letters")
+    versions = relationship("CoverLetterVersion", back_populates="letter", cascade="all, delete-orphan", order_by="CoverLetterVersion.version_no.asc()")
+
+class CoverLetterVersion(Base):
+    __tablename__ = "cover_letter_versions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    letter_id = Column(String(36), ForeignKey("cover_letters.id", ondelete="CASCADE"), index=True, nullable=False)
+    version_no = Column(Integer, nullable=False)
+    body = Column(Text, nullable=False)
+    change_request = Column(Text, nullable=True)
+    notes = Column(JSON, default=list)
+    style = Column(String(50), default="professional")
+    variant = Column(String(50), default="en-GB")
+    created_at = Column(DateTime, default=get_utc_now)
+
+    letter = relationship("CoverLetter", back_populates="versions")
+
 
 

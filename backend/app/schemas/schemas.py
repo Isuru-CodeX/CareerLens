@@ -31,6 +31,8 @@ class UserOut(UserBase):
     is_active: bool
     created_at: datetime
     avatar_url: Optional[str] = None
+    avatar_source: Optional[str] = "manual"
+    email_verified_at: Optional[datetime] = None
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -53,6 +55,11 @@ class CareerProfileUpdate(BaseModel):
     desired_salary_max: Optional[int] = None
     summary: Optional[str] = None
     phone: Optional[str] = None
+    address_line1: Optional[str] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
     linkedin_url: Optional[str] = None
     github_url: Optional[str] = None
     portfolio_url: Optional[str] = None
@@ -98,9 +105,13 @@ class ResumeOut(BaseModel):
     user_id: str
     title: str
     target_role: Optional[str] = None
+    role_category: Optional[str] = None
     file_name: str
     file_size: int
     file_type: str
+    sha256: Optional[str] = None
+    preview_path: Optional[str] = None
+    can_preview: Optional[bool] = False
     raw_text: Optional[str] = None
     created_at: datetime
     updated_at: datetime
@@ -476,3 +487,142 @@ class DataExportOut(BaseModel):
     applications: List[Dict[str, Any]]
     analyses: List[Dict[str, Any]]
     job_matches: List[Dict[str, Any]]
+
+# ==========================================
+# New CV Upgrade & Presets Schemas
+# ==========================================
+
+class ProfileExperienceCreate(BaseModel):
+    job_title: str = Field(..., max_length=255)
+    company: str = Field(..., max_length=255)
+    industry: str = Field(default="Other", max_length=100)
+    start_year: int = Field(..., ge=1950, le=2100)
+    start_month: Optional[int] = Field(None, ge=1, le=12)
+    end_year: Optional[int] = Field(None, ge=1950, le=2100)
+    end_month: Optional[int] = Field(None, ge=1, le=12)
+    is_current: bool = False
+    description: Optional[str] = Field("", max_length=4000)
+    highlights: List[str] = Field(default_factory=list)
+
+class ProfileExperienceUpdate(BaseModel):
+    job_title: Optional[str] = None
+    company: Optional[str] = None
+    industry: Optional[str] = None
+    start_year: Optional[int] = None
+    start_month: Optional[int] = None
+    end_year: Optional[int] = None
+    end_month: Optional[int] = None
+    is_current: Optional[bool] = None
+    description: Optional[str] = None
+    highlights: Optional[List[str]] = None
+
+class ProfileExperienceOut(BaseModel):
+    id: str
+    job_title: str
+    company: str
+    industry: str
+    start_year: int
+    start_month: Optional[int] = None
+    end_year: Optional[int] = None
+    end_month: Optional[int] = None
+    is_current: bool
+    description: Optional[str] = ""
+    highlights: List[str] = []
+    source: str = "manual"
+    years_count: int = 0
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ProfileSkillCreate(BaseModel):
+    names: List[str] = Field(..., min_length=1)
+
+class ProfileSkillOut(BaseModel):
+    id: str
+    name: str
+    source: str = "manual"
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class PresetCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    target_role: Optional[str] = Field(None, max_length=150)
+    include_manual: bool = True
+    resume_ids: List[str] = Field(default_factory=list)
+
+class PresetUpdate(BaseModel):
+    name: Optional[str] = None
+    target_role: Optional[str] = None
+    include_manual: Optional[bool] = None
+    resume_ids: Optional[List[str]] = None
+
+class PresetOut(BaseModel):
+    id: str
+    name: str
+    target_role: Optional[str] = None
+    include_manual: bool = True
+    resume_count: int = 0
+    resume_ids: List[str] = []
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CoverLetterVersionOut(BaseModel):
+    id: str
+    version_no: int
+    body: str
+    change_request: Optional[str] = None
+    notes: List[str] = []
+    style: str = "professional"
+    variant: str = "en-GB"
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CoverLetterOut(BaseModel):
+    id: str
+    preset_id: Optional[str] = None
+    job_title: Optional[str] = None
+    company: Optional[str] = None
+    job_description: str
+    current_version: CoverLetterVersionOut
+    versions: List[CoverLetterVersionOut] = []
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CoverLetterCreateRequest(BaseModel):
+    preset_id: Optional[str] = None
+    job_title: Optional[str] = "Professional"
+    company: Optional[str] = "Hiring Organization"
+    job_description: str
+    style: str = "professional"  # "professional" | "human"
+    variant: str = "en-GB"       # "en-GB" | "en-US"
+
+class CoverLetterRegenerateRequest(BaseModel):
+    current_text: str = Field(..., min_length=30)
+    change_request: str = Field(..., min_length=2, max_length=1000)
+    style: str = "professional"
+    variant: str = "en-GB"
+
+class TextPolishRequest(BaseModel):
+    text: str = Field(..., min_length=10, max_length=20000)
+    style: str = "professional"  # "professional" | "human"
+    variant: str = "en-GB"       # "en-GB" | "en-US"
+    mode: str = "fix"            # "fix" | "restyle"
+
+class TextPolishChange(BaseModel):
+    before: str
+    after: str
+    reason: str
+
+class TextPolishResponse(BaseModel):
+    text: str
+    changes: List[TextPolishChange] = []
+    skipped: Optional[str] = None
+
+class CvImportStartResponse(BaseModel):
+    job_id: str
+    message: str = "CV upload accepted. Processing started in background."
+

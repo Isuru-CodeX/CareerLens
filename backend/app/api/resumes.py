@@ -193,6 +193,8 @@ def list_resumes(
         Resume.user_id == current_user.id,
         Resume.is_archived == False
     ).order_by(Resume.created_at.desc()).all()
+    for r in resumes:
+        r.can_preview = bool(r.file_type.lower() == "pdf" or r.preview_path or (r.file_name or "").lower().endswith(".pdf"))
     return resumes
 
 @router.get("/{resume_id}", response_model=ResumeOut)
@@ -207,6 +209,7 @@ def get_resume(
     ).first()
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
+    resume.can_preview = bool(resume.file_type.lower() == "pdf" or resume.preview_path or (resume.file_name or "").lower().endswith(".pdf"))
     return resume
 
 @router.post("/{resume_id}/parse", response_model=ResumeOut)
@@ -391,12 +394,14 @@ def download_analysis_pdf(
         headers={"Content-Disposition": f"attachment; filename=CareerLens_Analysis_{analysis.id[:8]}.pdf"}
     )
 
-@router.get("/{resume_id}/download")
-def download_resume_file(
+@router.get("/{resume_id}/file")
+def get_resume_file(
     resume_id: str,
+    disposition: str = "inline",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    from urllib.parse import quote
     resume = db.query(Resume).filter(
         Resume.id == resume_id,
         Resume.user_id == current_user.id
@@ -412,11 +417,40 @@ def download_resume_file(
         else:
             raise HTTPException(status_code=404, detail="File not found on storage.")
 
+    is_pdf = resume.file_type.lower() == "pdf" or (resume.file_name or "").lower().endswith(".pdf")
+
+    if disposition == "inline" and not is_pdf:
+        if resume.preview_path and os.path.exists(resume.preview_path):
+            file_path = resume.preview_path
+            is_pdf = True
+        else:
+            disposition = "attachment"
+
+    media_type = "application/pdf" if is_pdf else "application/octet-stream"
+    disp_header = "inline" if disposition == "inline" else "attachment"
+    safe_name = resume.file_name
+
+    headers = {
+        "Content-Disposition": f"{disp_header}; filename*=UTF-8''{quote(safe_name)}",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, no-store",
+    }
+    if is_pdf and disposition == "inline":
+        headers["Content-Security-Policy"] = "sandbox"
+
     return FileResponse(
         path=file_path,
-        filename=resume.file_name,
-        media_type="application/octet-stream"
+        media_type=media_type,
+        headers=headers
     )
+
+@router.get("/{resume_id}/download")
+def download_resume_file(
+    resume_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return get_resume_file(resume_id=resume_id, disposition="attachment", current_user=current_user, db=db)
 
 @router.delete("/{resume_id}")
 def delete_resume(

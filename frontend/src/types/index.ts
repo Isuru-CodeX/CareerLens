@@ -30,6 +30,11 @@ export interface CareerProfile {
   education_history: any[];
   work_history: any[];
   phone?: string | null;
+  address_line1?: string | null;
+  city?: string | null;
+  region?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
   linkedin_url?: string | null;
   github_url?: string | null;
   portfolio_url?: string | null;
@@ -59,9 +64,12 @@ export interface Resume {
   user_id: string;
   title: string;
   target_role: string | null;
+  role_category?: string | null;
   file_name: string;
   file_size: number;
   file_type: string;
+  sha256?: string | null;
+  can_preview?: boolean;
   raw_text?: string;
   created_at: string;
   updated_at: string;
@@ -313,4 +321,84 @@ export interface DashboardData {
   recent_activities?: UserActivity[];
   experience_summary?: ExperienceSummary | null;
 }
+
+// ==========================================
+// CV Auto-Fill & Upgrade Types
+// ==========================================
+
+export interface ProfileExperience {
+  id: string;
+  job_title: string;
+  company: string;
+  industry: string;
+  start_year: number;
+  start_month?: number | null;
+  end_year?: number | null;
+  end_month?: number | null;
+  is_current: boolean;
+  description?: string;
+  highlights: string[];
+  source: 'cv' | 'manual';
+  years_count: number;
+  created_at: string;
+}
+
+export interface ProfileSkill {
+  id: string;
+  name: string;
+  source: 'cv' | 'manual';
+  created_at: string;
+}
+
+export interface Preset {
+  id: string;
+  name: string;
+  target_role?: string | null;
+  include_manual: boolean;
+  resume_count: number;
+  resume_ids: string[];
+  created_at: string;
+}
+
+export interface CoverLetterVersion {
+  id: string;
+  version_no: number;
+  body: string;
+  change_request?: string | null;
+  notes: string[];
+  style: 'professional' | 'human';
+  variant: 'en-GB' | 'en-US';
+  created_at: string;
+}
+
+export interface CoverLetterRecord {
+  id: string;
+  preset_id?: string | null;
+  job_title?: string | null;
+  company?: string | null;
+  job_description: string;
+  current_version: CoverLetterVersion;
+  versions: CoverLetterVersion[];
+  created_at: string;
+}
+
+export interface TextPolishChange {
+  before: string;
+  after: string;
+  reason: string;
+}
+
+export interface TextPolishResponse {
+  text: string;
+  changes: TextPolishChange[];
+  skipped?: string | null;
+}
+
+export type CvImportStepId = 'upload' | 'read' | 'analyze' | 'verify' | 'photo' | 'save';
+
+export type CvImportProgressEvent =
+  | { type: 'step'; step: CvImportStepId; status: 'active' | 'done'; detail?: string }
+  | { type: 'done'; summary: { resumeId: string; fieldsFilled: number; experiencesAdded: number; skillsAdded: number; photoAdded: boolean } }
+  | { type: 'error'; code: string; message: string; extra?: { cvEmail: string; accountEmail: string } };
+
 

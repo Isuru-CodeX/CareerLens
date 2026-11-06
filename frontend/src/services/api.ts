@@ -14,7 +14,13 @@ import {
   UserActivityPage,
   UserActivityStats,
   ResumeExperience,
-  ExperienceSummary
+  ExperienceSummary,
+  ProfileExperience,
+  ProfileSkill,
+  Preset,
+  CoverLetterRecord,
+  CoverLetterVersion,
+  TextPolishResponse
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -440,6 +446,188 @@ class ApiService {
   // Dashboard
   async getDashboard(): Promise<DashboardData> {
     return this.request<DashboardData>('/dashboard');
+  }
+
+  // ==========================================
+  // Feature 1, 2, 7: CV Import & Live SSE
+  // ==========================================
+  async importCv(file: File): Promise<{ job_id: string; message: string }> {
+    const formData = new FormData();
+    formData.append('cv', file);
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/cv/import`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to start CV import.');
+    }
+    return res.json();
+  }
+
+  getImportEventsUrl(jobId: string): string {
+    return `${API_BASE_URL}/cv/import/${jobId}/events`;
+  }
+
+  async getImportStatus(jobId: string): Promise<{ jobId: string; done: boolean; events: any[] }> {
+    return this.request<{ jobId: string; done: boolean; events: any[] }>(`/cv/import/${jobId}/status`);
+  }
+
+  // ==========================================
+  // Feature 3: Profile Experiences & Skills
+  // ==========================================
+  async getProfileExperiences(): Promise<ProfileExperience[]> {
+    return this.request<ProfileExperience[]>('/profile/experiences');
+  }
+
+  async createProfileExperience(data: {
+    job_title: string;
+    company: string;
+    industry?: string;
+    start_year: number;
+    start_month?: number | null;
+    end_year?: number | null;
+    end_month?: number | null;
+    is_current?: boolean;
+    description?: string;
+    highlights?: string[];
+  }): Promise<ProfileExperience> {
+    return this.request<ProfileExperience>('/profile/experiences', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateProfileExperience(id: string, data: Partial<ProfileExperience>): Promise<ProfileExperience> {
+    return this.request<ProfileExperience>(`/profile/experiences/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteProfileExperience(id: string): Promise<void> {
+    await this.request<void>(`/profile/experiences/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getProfileSkills(): Promise<ProfileSkill[]> {
+    return this.request<ProfileSkill[]>('/profile/skills');
+  }
+
+  async addProfileSkills(names: string[]): Promise<ProfileSkill[]> {
+    return this.request<ProfileSkill[]>('/profile/skills', {
+      method: 'POST',
+      body: JSON.stringify({ names })
+    });
+  }
+
+  async deleteProfileSkill(id: string): Promise<void> {
+    await this.request<void>(`/profile/skills/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ==========================================
+  // Feature 4: Multi-CV Memory & Presets
+  // ==========================================
+  async getPresets(): Promise<Preset[]> {
+    return this.request<Preset[]>('/presets');
+  }
+
+  async createPreset(data: {
+    name: string;
+    target_role?: string | null;
+    include_manual?: boolean;
+    resume_ids?: string[];
+  }): Promise<Preset> {
+    return this.request<Preset>('/presets', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updatePreset(id: string, data: Partial<Preset>): Promise<Preset> {
+    return this.request<Preset>(`/presets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deletePreset(id: string): Promise<void> {
+    await this.request<void>(`/presets/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getPresetContext(presetId: string): Promise<any> {
+    return this.request<any>(`/presets/${presetId}/context`);
+  }
+
+  // ==========================================
+  // Feature 5: Resume File View & Download
+  // ==========================================
+  getResumeFileUrl(id: string, disposition: 'inline' | 'attachment' = 'inline'): string {
+    return `${API_BASE_URL}/resumes/${id}/file?disposition=${disposition}`;
+  }
+
+  // ==========================================
+  // Feature 6: Cover Letters & Regeneration
+  // ==========================================
+  async createCoverLetterRecord(data: {
+    preset_id?: string | null;
+    job_title?: string;
+    company?: string;
+    job_description: string;
+    style?: string;
+    variant?: string;
+  }): Promise<CoverLetterRecord> {
+    return this.request<CoverLetterRecord>('/cover-letters', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async regenerateCoverLetter(
+    letterId: string,
+    data: {
+      current_text: string;
+      change_request: string;
+      style?: string;
+      variant?: string;
+    }
+  ): Promise<CoverLetterRecord> {
+    return this.request<CoverLetterRecord>(`/cover-letters/${letterId}/regenerate`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getCoverLetterVersions(letterId: string): Promise<CoverLetterVersion[]> {
+    return this.request<CoverLetterVersion[]>(`/cover-letters/${letterId}/versions`);
+  }
+
+  // ==========================================
+  // Feature 8: Text Polish & Human Style
+  // ==========================================
+  async polishText(data: {
+    text: string;
+    style?: 'professional' | 'human';
+    variant?: 'en-GB' | 'en-US';
+    mode?: 'fix' | 'restyle';
+  }): Promise<TextPolishResponse> {
+    return this.request<TextPolishResponse>('/text/polish', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   }
 }
 
