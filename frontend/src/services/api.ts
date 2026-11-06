@@ -340,6 +340,7 @@ class ApiService {
     github_url?: string;
     portfolio_url?: string;
     other_links?: { label: string; url: string }[];
+    include_project_links_body?: boolean;
   }) {
     return this.request<{
       cover_letter: string;

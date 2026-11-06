@@ -87,16 +87,16 @@ def generate_cover_letter(
     # Retrieve user career profile for contact & professional links
     profile = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
 
-    final_name = req.candidate_name or current_user.full_name or candidate_name
-    final_email = req.email or current_user.email
-    final_phone = req.phone or (profile.phone if profile else None)
-    final_linkedin = req.linkedin_url or (profile.linkedin_url if profile else None)
-    final_github = req.github_url or (profile.github_url if profile else None)
-    final_portfolio = req.portfolio_url or (profile.portfolio_url if profile else None)
-    final_other_links = req.other_links if req.other_links is not None else (profile.other_links if profile else [])
+    final_name = req.candidate_name if req.candidate_name is not None else (current_user.full_name or candidate_name)
+    final_email = req.email if req.email is not None else current_user.email
+    final_phone = req.phone
+    final_linkedin = req.linkedin_url
+    final_github = req.github_url
+    final_portfolio = req.portfolio_url
+    final_other_links = req.other_links
 
     result = AIService.generate_cover_letter(
-        resume_name=final_name,
+        resume_name=final_name or "Candidate",
         resume_summary=summary,
         resume_skills=skills,
         recent_experience=experience_highlight,
@@ -108,7 +108,8 @@ def generate_cover_letter(
         linkedin_url=final_linkedin,
         github_url=final_github,
         portfolio_url=final_portfolio,
-        other_links=final_other_links
+        other_links=final_other_links,
+        include_project_links_body=(req.include_project_links_body is not False)
     )
 
     draft = GeneratedDraft(

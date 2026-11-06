@@ -235,6 +235,7 @@ class CoverLetterRequest(BaseModel):
     github_url: Optional[str] = None
     portfolio_url: Optional[str] = None
     other_links: Optional[List[Dict[str, str]]] = None
+    include_project_links_body: Optional[bool] = True
 
 class CoverLetterResponse(BaseModel):
     cover_letter: str

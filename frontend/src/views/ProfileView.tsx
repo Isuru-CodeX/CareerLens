@@ -24,6 +24,7 @@ import { useTheme } from '../context/useTheme';
 import { api } from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
+import { AvatarCropModal } from '../components/AvatarCropModal';
 
 // Custom clean icons for professional profiles
 const LinkedinIcon = () => (
@@ -45,10 +46,12 @@ export const ProfileView: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Avatar upload state
+  // Avatar upload & crop state
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarSuccess, setAvatarSuccess] = useState<string | null>(null);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Contact info & social links
@@ -155,7 +158,7 @@ export const ProfileView: React.FC = () => {
     setOtherLinks(otherLinks.filter((_, i) => i !== index));
   };
 
-  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -168,24 +171,47 @@ export const ProfileView: React.FC = () => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setAvatarError('Image exceeds the 5 MB file size limit.');
+    if (file.size > 12 * 1024 * 1024) {
+      setAvatarError('Image exceeds the 12 MB file size limit.');
       return;
     }
 
+    const previewUrl = URL.createObjectURL(file);
+    setCropImageSrc(previewUrl);
+    setCropModalOpen(true);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    setCropModalOpen(false);
+    if (cropImageSrc) {
+      URL.revokeObjectURL(cropImageSrc);
+      setCropImageSrc(null);
+    }
+
     setAvatarLoading(true);
+    setAvatarError(null);
+    setAvatarSuccess(null);
     try {
-      const res = await api.uploadAvatar(file);
+      const res = await api.uploadAvatar(croppedFile);
       await refreshUser();
       setAvatarSuccess(res.message || 'Profile photo updated successfully!');
-      setTimeout(() => setAvatarSuccess(null), 3000);
+      setTimeout(() => setAvatarSuccess(null), 3500);
     } catch (err: any) {
       setAvatarError(err.message || 'Failed to upload photo.');
     } finally {
       setAvatarLoading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    }
+  };
+
+  const handleCloseCropModal = () => {
+    setCropModalOpen(false);
+    if (cropImageSrc) {
+      URL.revokeObjectURL(cropImageSrc);
+      setCropImageSrc(null);
     }
   };
 
@@ -828,6 +854,16 @@ export const ProfileView: React.FC = () => {
         onConfirm={handleDeleteAccount}
         onCancel={() => setDeleteAccountModalOpen(false)}
       />
+
+      {/* Avatar Crop & Reposition Modal */}
+      {cropModalOpen && cropImageSrc && (
+        <AvatarCropModal
+          key={cropImageSrc}
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+          onClose={handleCloseCropModal}
+        />
+      )}
     </div>
   );
 };

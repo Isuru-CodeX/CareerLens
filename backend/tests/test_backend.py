@@ -186,7 +186,7 @@ def test_ai_service():
     assert "Spearheaded" in res["improved"]
     assert len(res["changes"]) > 0
 
-    # 2. Cover Letter with Contact Info & Social Links
+    # 2. Cover Letter with Contact Info & Social Links (Template 1: GitHub + Portfolio)
     cl = AIService.generate_cover_letter(
         resume_name="Alex Developer",
         resume_summary="Experienced engineer",
@@ -199,7 +199,8 @@ def test_ai_service():
         candidate_phone="+1 (555) 019-2834",
         linkedin_url="https://linkedin.com/in/alex",
         github_url="https://github.com/alex",
-        portfolio_url="https://alex.dev"
+        portfolio_url="https://alex.dev",
+        include_project_links_body=True
     )
     assert "Stripe" in cl["cover_letter"]
     assert "Alex Developer" in cl["cover_letter"]
@@ -208,6 +209,37 @@ def test_ai_service():
     assert "linkedin.com/in/alex" in cl["cover_letter"]
     assert "github.com/alex" in cl["cover_letter"]
     assert "alex.dev" in cl["cover_letter"]
+    assert "explore my development projects and technical work through my GitHub profile and portfolio" in cl["cover_letter"]
+
+    # Template 2: GitHub only
+    cl_gh = AIService.generate_cover_letter(
+        resume_name="Isuru Rathnayaka",
+        resume_summary="Software Engineering undergraduate",
+        resume_skills=["Java", "JavaScript", "React"],
+        recent_experience="Academic software projects",
+        job_description="Junior Developer",
+        company_name="Acme Corp",
+        job_title="Software Engineer",
+        github_url="https://github.com/Isuru-CodeX",
+        include_project_links_body=True
+    )
+    assert "explore some of my development projects and review my code through my GitHub profile" in cl_gh["cover_letter"]
+    assert "https://github.com/Isuru-CodeX" in cl_gh["cover_letter"]
+
+    # Template 3: Without links body
+    cl_no_links = AIService.generate_cover_letter(
+        resume_name="Jane Doe",
+        resume_summary="Software Engineer",
+        resume_skills=["Python"],
+        recent_experience="Backend dev",
+        job_description="Developer",
+        company_name="TechCo",
+        job_title="Backend Dev",
+        github_url="https://github.com/janedoe",
+        include_project_links_body=False
+    )
+    assert "explore my development projects" not in cl_no_links["cover_letter"]
+    assert "TechCo" in cl_no_links["cover_letter"]
 
     # 3. Interview prep
     prep = AIService.generate_interview_questions("Python developer job description")
@@ -415,10 +447,17 @@ def test_avatar_upload_and_removal():
     assert r_me.status_code == 200
     assert r_me.json()["avatar_url"] is not None
 
-    # 4. Fetch the avatar image
+    # 4. Fetch the avatar image (both authenticated and public URL)
     r_img = client.get("/api/users/me/avatar/image", headers=headers)
     assert r_img.status_code == 200
     assert r_img.headers["content-type"] == "image/png"
+
+    # Verify public access without auth header using the avatar_url path
+    public_url = upload_data["avatar_url"]
+    assert public_url.startswith("/api/users/avatar/")
+    r_pub = client.get(public_url)
+    assert r_pub.status_code == 200
+    assert r_pub.headers["content-type"] == "image/png"
 
     # 5. Delete avatar
     r_del = client.delete("/api/users/me/avatar", headers=headers)

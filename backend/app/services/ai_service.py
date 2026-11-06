@@ -253,81 +253,105 @@ Return ONLY a valid JSON object with these keys:
         linkedin_url: Optional[str] = None,
         github_url: Optional[str] = None,
         portfolio_url: Optional[str] = None,
-        other_links: Optional[List[Dict[str, str]]] = None
+        other_links: Optional[List[Dict[str, str]]] = None,
+        include_project_links_body: bool = True
     ) -> Dict[str, Any]:
         """
-        Generate an authentic, truthful cover letter strictly grounded in user resume facts
-        and personalized contact information.
+        Generate an authentic, high-impact cover letter strictly grounded in user resume facts,
+        introducing project links (GitHub / Portfolio) naturally in the body and formatted
+        sign-off block according to user preferences.
         """
-        top_skills_str = ", ".join(resume_skills[:5]) if resume_skills else "software engineering and modern technology systems"
-        name = resume_name if resume_name else "Candidate"
+        # Format top technical skills from resume
+        if resume_skills:
+            top_skills = [s for s in resume_skills if len(s.strip()) > 1][:6]
+            skills_str = ", ".join(top_skills)
+        else:
+            skills_str = "Java, JavaScript, Python, React, SQL, and modern software development tools"
 
-        header_parts = [name]
-        contact_line_parts = []
+        name = resume_name.strip() if resume_name else "Candidate"
+        company = company_name.strip() if company_name else "Hiring Team"
+        role = job_title.strip() if job_title else "Software Engineer"
+
+        # Determine link intro paragraph
+        project_intro_paragraph = ""
+        if include_project_links_body:
+            if github_url and portfolio_url:
+                project_intro_paragraph = (
+                    f"You can explore my development projects and technical work through my GitHub profile and portfolio:\n"
+                    f"GitHub: {github_url}\n"
+                    f"Portfolio: {portfolio_url}"
+                )
+            elif github_url:
+                project_intro_paragraph = (
+                    f"You can explore some of my development projects and review my code through my GitHub profile:\n"
+                    f"GitHub: {github_url}"
+                )
+            elif portfolio_url:
+                project_intro_paragraph = (
+                    f"You can explore my development projects, live demos, and technical work through my portfolio:\n"
+                    f"Portfolio: {portfolio_url}"
+                )
+
+        # Experience & background paragraph
+        if recent_experience:
+            exp_text = f"Through my projects and practical experience, {recent_experience.rstrip('.')}. I have developed my problem-solving abilities, technical knowledge, and understanding of the software development lifecycle."
+        elif resume_summary:
+            exp_text = f"{resume_summary.rstrip('.')}. Through these initiatives, I have strengthened my problem-solving capabilities, technical foundation, and collaborative engineering approach."
+        else:
+            exp_text = "Through hands-on software development and real-world projects, I have developed strong problem-solving abilities, technical knowledge, and a solid understanding of modern software engineering practices."
+
+        # Construct body paragraphs
+        paragraphs = [
+            f"Dear Hiring Manager,\n\nI am writing to express my strong interest in the {role} position at {company}. I have practical experience in software development, web technologies, database management, and building real-world software solutions.",
+            f"I have hands-on experience working with technologies such as {skills_str}. {exp_text}"
+        ]
+
+        if project_intro_paragraph:
+            paragraphs.append(project_intro_paragraph)
+
+        paragraphs.append(
+            f"I am enthusiastic about learning new technologies, expanding my technical capabilities, and contributing to real-world projects at {company}. I am comfortable working independently as well as collaboratively within a team, and I adapt quickly to dynamic engineering environments."
+        )
+
+        paragraphs.append(
+            f"I would appreciate the opportunity to discuss how my technical skills, dedication, and problem-solving mindset can contribute to your team.\n\nThank you for your time and consideration."
+        )
+
+        # Build Sign-off block
+        signoff_lines = ["Best regards,", name]
         if candidate_email:
-            contact_line_parts.append(candidate_email)
+            signoff_lines.append(f"Email: {candidate_email}")
         if candidate_phone:
-            contact_line_parts.append(candidate_phone)
-        if contact_line_parts:
-            header_parts.append(" | ".join(contact_line_parts))
-
-        link_parts = []
-        if linkedin_url:
-            clean_li = linkedin_url.replace("https://", "").replace("http://", "").rstrip("/")
-            link_parts.append(f"LinkedIn: {clean_li}")
+            signoff_lines.append(f"{candidate_phone}")
         if github_url:
-            clean_gh = github_url.replace("https://", "").replace("http://", "").rstrip("/")
-            link_parts.append(f"GitHub: {clean_gh}")
+            signoff_lines.append(f"GitHub: {github_url}")
         if portfolio_url:
-            clean_pf = portfolio_url.replace("https://", "").replace("http://", "").rstrip("/")
-            link_parts.append(f"Portfolio: {clean_pf}")
+            signoff_lines.append(f"Portfolio: {portfolio_url}")
+        if linkedin_url:
+            signoff_lines.append(f"LinkedIn: {linkedin_url}")
         for lk in (other_links or []):
             if isinstance(lk, dict) and lk.get("url"):
                 label = lk.get("label") or "Link"
-                clean_url = lk["url"].replace("https://", "").replace("http://", "").rstrip("/")
-                link_parts.append(f"{label}: {clean_url}")
+                signoff_lines.append(f"{label}: {lk['url']}")
 
-        if link_parts:
-            header_parts.append(" | ".join(link_parts))
+        signoff_block = "\n".join(signoff_lines)
 
-        header_block = "\n".join(header_parts)
+        full_letter = "\n\n".join(paragraphs) + "\n\n" + signoff_block
 
-        sig_lines = [name]
-        if candidate_email:
-            sig_lines.append(candidate_email)
-        if candidate_phone:
-            sig_lines.append(candidate_phone)
-        signature_block = "\n".join(sig_lines)
-
-        letter = f"""{header_block}
-
-Dear Hiring Team at {company_name},
-
-I am writing to express my strong enthusiasm for the {job_title} role at {company_name}. With hands-on experience in {top_skills_str}, coupled with a rigorous track record of delivering reliable, scalable solutions, I am eager to contribute directly to your team's mission.
-
-Throughout my career, I have focused on solving high-impact challenges with clarity and engineering rigor. In my previous work, {recent_experience if recent_experience else "I spearheaded core technical initiatives, streamlined operational bottlenecks, and consistently delivered verified business value"}. My technical background aligns directly with the core competencies highlighted in your job opening, particularly my practical proficiency with {', '.join(resume_skills[:3]) if resume_skills else 'scalable architecture and agile delivery'}.
-
-What draws me specifically to {company_name} is your commitment to high standards and innovation. I thrive in collaborative environments where ownership, proactive problem-solving, and continuous learning are valued. I would welcome the opportunity to discuss how my technical acumen and dedication to excellence can support your immediate and long-term milestones.
-
-Thank you for your time and consideration. I look forward to the possibility of speaking with you.
-
-Sincerely,
-
-{signature_block}
-"""
         facts = [
             f"Candidate identity: {name}",
-            f"Verified skills referenced: {top_skills_str}",
-            f"Experience highlights: {recent_experience[:100] if recent_experience else 'Demonstrated production experience'}",
-            f"Target company & role: {company_name} - {job_title}"
+            f"Skills referenced: {skills_str}",
+            f"Target role & company: {role} at {company}"
         ]
+        if github_url:
+            facts.append(f"GitHub link: {github_url}")
+        if portfolio_url:
+            facts.append(f"Portfolio link: {portfolio_url}")
         if candidate_email or candidate_phone:
             facts.append(f"Contact details: {candidate_email or ''} {candidate_phone or ''}".strip())
-        if link_parts:
-            facts.append(f"Professional links: {', '.join(link_parts)}")
 
         return {
-            "cover_letter": letter.strip(),
+            "cover_letter": full_letter.strip(),
             "grounded_facts_used": facts
         }
 

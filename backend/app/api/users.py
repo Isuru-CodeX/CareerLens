@@ -76,8 +76,8 @@ async def upload_avatar(
     with open(dest_path, "wb") as f:
         f.write(contents)
 
-    # Store safe relative endpoint URL
-    avatar_url = f"/api/users/me/avatar/image?t={timestamp}"
+    # Store safe relative endpoint URL (accessible directly by <img> tags)
+    avatar_url = f"/api/users/avatar/{safe_filename}"
     current_user.avatar_path = dest_path
     current_user.avatar_url = avatar_url
     db.commit()
@@ -94,21 +94,53 @@ async def upload_avatar(
         "message": "Profile image uploaded and updated successfully."
     }
 
-@router.get("/me/avatar/image")
-def get_user_avatar(
-    current_user: User = Depends(get_current_user)
-):
-    if not current_user.avatar_path or not os.path.exists(current_user.avatar_path):
-        raise HTTPException(status_code=404, detail="No profile image uploaded.")
+@router.get("/avatar/{filename}")
+def serve_avatar_image(filename: str):
+    """
+    Publicly serve user avatars by safe filename so <img> tags render cleanly
+    without requiring Authorization headers.
+    """
+    safe_name = os.path.basename(filename)
+    avatars_dir = os.path.join(settings.RESOLVED_UPLOAD_DIR, "avatars")
+    filepath = os.path.join(avatars_dir, safe_name)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Avatar image not found.")
 
-    ext = os.path.splitext(current_user.avatar_path)[1].lower()
+    ext = os.path.splitext(filepath)[1].lower()
     media_type = "image/jpeg"
     if ext == ".png":
         media_type = "image/png"
     elif ext == ".webp":
         media_type = "image/webp"
 
-    return FileResponse(current_user.avatar_path, media_type=media_type)
+    return FileResponse(filepath, media_type=media_type)
+
+@router.get("/me/avatar/image")
+def get_user_avatar(
+    token: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    target_user = current_user
+    if token:
+        from app.core.security import decode_access_token
+        payload = decode_access_token(token)
+        if payload and payload.get("sub"):
+            u = db.query(User).filter(User.id == payload.get("sub")).first()
+            if u:
+                target_user = u
+
+    if not target_user or not target_user.avatar_path or not os.path.exists(target_user.avatar_path):
+        raise HTTPException(status_code=404, detail="No profile image uploaded.")
+
+    ext = os.path.splitext(target_user.avatar_path)[1].lower()
+    media_type = "image/jpeg"
+    if ext == ".png":
+        media_type = "image/png"
+    elif ext == ".webp":
+        media_type = "image/webp"
+
+    return FileResponse(target_user.avatar_path, media_type=media_type)
 
 @router.delete("/me/avatar")
 def remove_avatar(
