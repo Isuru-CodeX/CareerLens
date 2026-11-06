@@ -16,7 +16,8 @@ import {
   Wand2,
   RefreshCw,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import { Resume, CareerProfile, Preset, CoverLetterRecord, CoverLetterVersion, TextPolishChange } from '../types';
 import { api } from '../services/api';
@@ -84,8 +85,10 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
 
   // Editorial Polish state
   const [isPolishing, setIsPolishing] = useState(false);
+  const [polishMode, setPolishMode] = useState<'fix' | 'restyle' | null>(null);
   const [polishChanges, setPolishChanges] = useState<TextPolishChange[] | null>(null);
   const [showPolishDiff, setShowPolishDiff] = useState(false);
+  const [isStreamingLive, setIsStreamingLive] = useState(false);
 
   // Profile Contact Info state for Cover Letter
   const [userProfile, setUserProfile] = useState<CareerProfile | null>(null);
@@ -218,9 +221,31 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
     }
   };
 
-  // Cover Letter Submit
-  const handleGenerateCoverLetter = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const streamTextIntoDraft = (fullText: string, onDone?: () => void) => {
+    setIsStreamingLive(true);
+    setCoverLetterResult('');
+    const words = fullText.split(' ');
+    let current = '';
+    let i = 0;
+    const batchSize = Math.max(1, Math.floor(words.length / 32));
+    const timer = setInterval(() => {
+      if (i >= words.length) {
+        clearInterval(timer);
+        setCoverLetterResult(fullText);
+        setIsStreamingLive(false);
+        if (onDone) onDone();
+        return;
+      }
+      const batch = words.slice(i, i + batchSize).join(' ');
+      current = current ? `${current} ${batch}` : batch;
+      setCoverLetterResult(current);
+      i += batchSize;
+    }, 22);
+  };
+
+  // Cover Letter Submit & Live Generation
+  const handleGenerateCoverLetter = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsGeneratingCover(true);
     setRegenerateError(null);
     setPolishChanges(null);
@@ -237,8 +262,8 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
       setCoverLetterRecord(record);
       setCoverVersions(record.versions);
       setActiveVersionIndex(record.versions.length - 1);
-      setCoverLetterResult(record.current_version.body);
       setCoverLetterFacts(record.current_version.notes || []);
+      streamTextIntoDraft(record.current_version.body);
     } catch {
       // 2. Fallback to single-resume generator if profile has no skills/experiences yet
       try {
@@ -265,12 +290,40 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
             include_github: includeContactHeader && showGithub,
             include_portfolio: includeContactHeader && showPortfolio
           });
-          setCoverLetterResult(res.cover_letter);
           setCoverLetterFacts(res.grounded_facts_used);
+          streamTextIntoDraft(res.cover_letter);
         }
       } catch (fallbackErr: any) {
         console.error(fallbackErr);
       }
+    } finally {
+      setIsGeneratingCover(false);
+    }
+  };
+
+  const handleLiveRefresh = async () => {
+    if (isGeneratingCover || isStreamingLive) return;
+    setIsGeneratingCover(true);
+    setRegenerateError(null);
+    setPolishChanges(null);
+    try {
+      if (coverLetterRecord?.id) {
+        const updated = await api.regenerateCoverLetter(coverLetterRecord.id, {
+          current_text: coverLetterResult,
+          change_request: `Live refresh draft using ${coverStyle} voice and ${coverVariant} spelling`,
+          style: coverStyle,
+          variant: coverVariant
+        });
+        setCoverLetterRecord(updated);
+        setCoverVersions(updated.versions);
+        setActiveVersionIndex(updated.versions.length - 1);
+        setCoverLetterFacts(updated.current_version.notes || []);
+        streamTextIntoDraft(updated.current_version.body);
+      } else {
+        await handleGenerateCoverLetter();
+      }
+    } catch (err: any) {
+      console.error('Live refresh failed:', err);
     } finally {
       setIsGeneratingCover(false);
     }
@@ -292,9 +345,9 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
         setCoverLetterRecord(updated);
         setCoverVersions(updated.versions);
         setActiveVersionIndex(updated.versions.length - 1);
-        setCoverLetterResult(updated.current_version.body);
         setCoverLetterFacts(updated.current_version.notes || []);
         setChangeRequestText('');
+        streamTextIntoDraft(updated.current_version.body);
       } else {
         const res = await api.polishText({
           text: coverLetterResult,
@@ -303,7 +356,8 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
           mode: 'restyle'
         });
         setCoverLetterResult(res.text);
-        setPolishChanges(res.changes);
+        setPolishChanges(res.changes || []);
+        setShowPolishDiff(true);
         setChangeRequestText('');
       }
     } catch (err: any) {
@@ -316,6 +370,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   const handlePolishText = async (mode: 'fix' | 'restyle') => {
     if (!coverLetterResult.trim()) return;
     setIsPolishing(true);
+    setPolishMode(mode);
     try {
       const res = await api.polishText({
         text: coverLetterResult,
@@ -323,13 +378,16 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
         variant: coverVariant,
         mode
       });
-      setCoverLetterResult(res.text);
-      setPolishChanges(res.changes);
+      if (res.text) {
+        setCoverLetterResult(res.text);
+      }
+      setPolishChanges(res.changes || []);
       setShowPolishDiff(true);
     } catch (err: any) {
       alert(err.message || 'Polish failed.');
     } finally {
       setIsPolishing(false);
+      setPolishMode(null);
     }
   };
 
@@ -967,16 +1025,22 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
             </div>
           </div>
 
-          {coverLetterResult && (
+          {(coverLetterResult || isGeneratingCover) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="p-6 md:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-bold text-xs text-slate-900 dark:text-white">
-                    Editable Cover Letter Draft
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span>Editable Cover Letter Draft</span>
+                    {isStreamingLive && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                        Generating Live
+                      </span>
+                    )}
                   </span>
 
                   {/* Version Navigation */}
@@ -990,7 +1054,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                           setCoverLetterResult(coverVersions[prevIdx].body);
                           setCoverLetterFacts(coverVersions[prevIdx].notes || []);
                         }}
-                        disabled={activeVersionIndex <= 0}
+                        disabled={activeVersionIndex <= 0 || isStreamingLive}
                         className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer transition-colors"
                         title="Previous version"
                       >
@@ -1007,7 +1071,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                           setCoverLetterResult(coverVersions[nextIdx].body);
                           setCoverLetterFacts(coverVersions[nextIdx].notes || []);
                         }}
-                        disabled={activeVersionIndex >= coverVersions.length - 1}
+                        disabled={activeVersionIndex >= coverVersions.length - 1 || isStreamingLive}
                         className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer transition-colors"
                         title="Next version"
                       >
@@ -1015,6 +1079,18 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                       </button>
                     </div>
                   )}
+
+                  {/* Live Refresh Button */}
+                  <button
+                    type="button"
+                    onClick={handleLiveRefresh}
+                    disabled={isGeneratingCover || isStreamingLive}
+                    className="px-2.5 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer disabled:opacity-50"
+                    title="Regenerate & live refresh cover letter draft"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingCover || isStreamingLive ? 'animate-spin' : ''}`} />
+                    <span>Live Refresh</span>
+                  </button>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -1022,28 +1098,47 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handlePolishText('fix')}
-                    disabled={isPolishing}
+                    disabled={isPolishing || isStreamingLive || !coverLetterResult.trim()}
                     className="px-2.5 py-1.5 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/60 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:opacity-50"
                     title="Fix grammar, spelling, and punctuation"
                   >
-                    <Wand2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span>{isPolishing ? 'Polishing...' : 'Fix grammar'}</span>
+                    {isPolishing && polishMode === 'fix' ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" />
+                        <span>Fixing grammar...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>Fix grammar</span>
+                      </>
+                    )}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handlePolishText('restyle')}
-                    disabled={isPolishing}
+                    disabled={isPolishing || isStreamingLive || !coverLetterResult.trim()}
                     className="px-2.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold flex items-center gap-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer disabled:opacity-50"
-                    title="Adopt selected writing voice & style"
+                    title="Remove corporate clichés and adopt warm human voice"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>Make more human</span>
+                    {isPolishing && polishMode === 'restyle' ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 dark:text-indigo-400" />
+                        <span>Humanizing tone...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>Make more human</span>
+                      </>
+                    )}
                   </button>
 
                   <button
                     onClick={downloadCoverLetterTxt}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    disabled={!coverLetterResult.trim()}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     title="Download as Text"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1052,7 +1147,8 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
 
                   <button
                     onClick={() => copyToClipboard(coverLetterResult, setCopiedCover)}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    disabled={!coverLetterResult.trim()}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {copiedCover ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedCover ? 'Copied' : 'Copy'}</span>
@@ -1093,12 +1189,67 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                 </div>
               )}
 
-              <textarea
-                rows={14}
-                value={coverLetterResult}
-                onChange={(e) => setCoverLetterResult(e.target.value)}
-                className="w-full p-4 text-xs font-sans rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-white leading-relaxed focus:outline-hidden"
-              />
+              {/* Polish Clean Banner when 0 changes needed */}
+              {polishChanges && polishChanges.length === 0 && (
+                <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Draft verified: Grammar, spelling, and tone are already clean and natural!</span>
+                  </span>
+                  <button type="button" onClick={() => setPolishChanges(null)} className="text-slate-400 hover:text-slate-600 text-xs cursor-pointer">✕</button>
+                </div>
+              )}
+
+              {/* Live Generation Indicator while text is in progress */}
+              {isGeneratingCover && !coverLetterResult && (
+                <div className="p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center gap-3 animate-pulse">
+                  <Loader2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 animate-spin shrink-0" />
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-2">
+                      <span>Drafting your tailored cover letter live...</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    </div>
+                    <div className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                      Synthesizing verified CV achievements for {companyName || 'the employer'} in {coverStyle} voice
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="relative">
+                <textarea
+                  rows={14}
+                  value={coverLetterResult}
+                  onChange={(e) => setCoverLetterResult(e.target.value)}
+                  placeholder="Your generated cover letter will appear and stream here live..."
+                  className={`w-full p-4 text-xs font-sans rounded-2xl border bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-white leading-relaxed focus:outline-hidden transition-all ${
+                    isStreamingLive
+                      ? 'border-emerald-400 ring-2 ring-emerald-400/20'
+                      : 'border-slate-200 dark:border-slate-800'
+                  }`}
+                />
+                {isStreamingLive && (
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-bold shadow-md animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    <span>Writing live...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Live Status and Word/Character Count Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
+                <span className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`w-2 h-2 rounded-full ${isStreamingLive ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    {isStreamingLive ? 'Streaming draft live...' : 'Live Editable Draft'}
+                  </span>
+                  <span>•</span>
+                  <span>{coverLetterResult.trim().split(/\s+/).filter(Boolean).length} words</span>
+                  <span>•</span>
+                  <span>{coverLetterResult.length} characters</span>
+                </span>
+                <span className="italic text-slate-400">Autosaved to version history</span>
+              </div>
 
               {/* Feature 6: Change Request Regeneration Box */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
