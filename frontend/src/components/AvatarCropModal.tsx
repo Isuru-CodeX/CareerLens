@@ -5,7 +5,8 @@ import {
   RotateCw,
   Check,
   X,
-  Move
+  Move,
+  RotateCcw
 } from 'lucide-react';
 
 interface AvatarCropModalProps {
@@ -13,6 +14,10 @@ interface AvatarCropModalProps {
   onCropComplete: (croppedFile: File) => void;
   onClose: () => void;
 }
+
+const VIEWPORT_SIZE = 260; // Preview circle diameter in px
+const OUTPUT_SIZE = 400;   // High-res output avatar diameter in px
+const OUTPUT_RATIO = OUTPUT_SIZE / VIEWPORT_SIZE;
 
 export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
   imageSrc,
@@ -22,11 +27,28 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+
+  // Measure natural dimensions once image loads
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setNaturalSize({
+      width: img.naturalWidth || VIEWPORT_SIZE,
+      height: img.naturalHeight || VIEWPORT_SIZE
+    });
+  };
+
+  // Base fit so that at scale=1.0 (100%), the image neatly covers the circular viewport
+  const baseFit = naturalSize
+    ? Math.max(VIEWPORT_SIZE / naturalSize.width, VIEWPORT_SIZE / naturalSize.height)
+    : 1;
+  const baseW = naturalSize ? naturalSize.width * baseFit : VIEWPORT_SIZE;
+  const baseH = naturalSize ? naturalSize.height * baseFit : VIEWPORT_SIZE;
 
   // Handle Drag / Pan
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -76,52 +98,56 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Mouse wheel zoom
+  // Mouse wheel zoom (allows 20% to 350%)
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 0.08 : -0.08;
-    setScale((prev) => Math.min(Math.max(0.5, prev + zoomFactor), 3.5));
+    setScale((prev) => Math.min(Math.max(0.2, Number((prev + zoomFactor).toFixed(2))), 3.5));
   };
 
-  // Perform crop to 400x400 canvas
+  // Reset all adjustments
+  const handleReset = () => {
+    setScale(1);
+    setRotation(0);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  // Perform crop to 400x400 canvas - guaranteed pixel-perfect match with preview
   const handleApplyCrop = () => {
     if (!imageRef.current) return;
     const img = imageRef.current;
 
     const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 400;
+    canvas.width = OUTPUT_SIZE;
+    canvas.height = OUTPUT_SIZE;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Viewport diameter is 260px in our modal preview
-    const viewportDiameter = 260;
-    const outputScale = 400 / viewportDiameter;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     ctx.save();
-    // Center of canvas
-    ctx.translate(200, 200);
+    // 1. Move origin to canvas center
+    ctx.translate(OUTPUT_SIZE / 2, OUTPUT_SIZE / 2);
+
+    // 2. Apply drag translation scaled to canvas resolution
+    ctx.translate(position.x * OUTPUT_RATIO, position.y * OUTPUT_RATIO);
+
+    // 3. Apply rotation around center
     ctx.rotate((rotation * Math.PI) / 180);
 
-    // Apply offset and scale scaled up to 400x400
-    const finalX = position.x * outputScale;
-    const finalY = position.y * outputScale;
-    const finalScale = scale * outputScale;
+    // 4. Apply user zoom scale
+    ctx.scale(scale, scale);
 
-    const imgWidth = img.naturalWidth;
-    const imgHeight = img.naturalHeight;
-
-    // Fit initial image into viewport
-    const baseFit = Math.min(viewportDiameter / imgWidth, viewportDiameter / imgHeight);
-    const drawWidth = imgWidth * baseFit * finalScale;
-    const drawHeight = imgHeight * baseFit * finalScale;
-
+    // 5. Draw image centered
+    const canvasDrawW = baseW * OUTPUT_RATIO;
+    const canvasDrawH = baseH * OUTPUT_RATIO;
     ctx.drawImage(
       img,
-      finalX - drawWidth / 2,
-      finalY - drawHeight / 2,
-      drawWidth,
-      drawHeight
+      -canvasDrawW / 2,
+      -canvasDrawH / 2,
+      canvasDrawW,
+      canvasDrawH
     );
     ctx.restore();
 
@@ -140,7 +166,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs"
+        className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs"
         onClick={onClose}
       />
 
@@ -152,12 +178,12 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
               Reposition & Crop Profile Photo
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Drag to reposition, use slider to zoom in/out
+              Drag to position, use slider or pills to zoom in & out
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -172,26 +198,31 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleMouseUp}
             onWheel={handleWheel}
-            className="relative w-[260px] h-[260px] rounded-full overflow-hidden border-2 border-indigo-500 shadow-xl bg-slate-950 flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
-            title="Click and drag to reposition image. Scroll to zoom."
+            style={{ width: `${VIEWPORT_SIZE}px`, height: `${VIEWPORT_SIZE}px` }}
+            className="relative rounded-full overflow-hidden border-2 border-indigo-500 shadow-2xl bg-slate-950 flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+            title="Click and drag to reposition image. Scroll or use slider to zoom."
           >
             <img
               ref={imageRef}
               src={imageSrc}
               alt="Crop preview"
+              onLoad={handleImageLoad}
               draggable={false}
               style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-                transformOrigin: 'center center',
+                width: `${baseW}px`,
+                height: `${baseH}px`,
                 maxWidth: 'none',
+                maxHeight: 'none',
+                transform: `translate(${position.x}px, ${position.y}px) rotate(${rotation}deg) scale(${scale})`,
+                transformOrigin: 'center center',
                 userSelect: 'none'
               }}
-              className="pointer-events-none transition-transform duration-75 ease-out"
+              className="pointer-events-none transition-transform duration-75 ease-out shrink-0"
             />
 
-            {/* Circular focus indicator grid */}
-            <div className="absolute inset-0 pointer-events-none rounded-full border border-white/20 shadow-inner flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
+            {/* Circular focus indicator guide */}
+            <div className="absolute inset-0 pointer-events-none rounded-full border border-white/25 shadow-inner flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-white/40 ring-4 ring-white/10" />
             </div>
           </div>
         </div>
@@ -199,23 +230,34 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
         {/* Drag Helper Notice */}
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
           <Move className="w-3.5 h-3.5 text-indigo-500" />
-          <span>Click & drag inside circle to center your face</span>
+          <span>Click & drag inside the circle to center your face</span>
         </div>
 
-        {/* Zoom Controls Slider */}
-        <div className="space-y-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60">
+        {/* Zoom Controls & Presets */}
+        <div className="space-y-2.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60">
           <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300">
             <span className="font-semibold text-[11px]">Zoom Level</span>
-            <span className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400">
-              {Math.round(scale * 100)}%
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                {Math.round(scale * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-[10px] text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 cursor-pointer"
+                title="Reset zoom and position"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => setScale((s) => Math.max(0.5, s - 0.15))}
-              className="p-1 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              onClick={() => setScale((s) => Math.max(0.2, Number((s - 0.1).toFixed(2))))}
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               title="Zoom out"
             >
               <ZoomOut className="w-4 h-4" />
@@ -223,8 +265,8 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
 
             <input
               type="range"
-              min="0.5"
-              max="3.0"
+              min="0.2"
+              max="3.5"
               step="0.05"
               value={scale}
               onChange={(e) => setScale(parseFloat(e.target.value))}
@@ -233,8 +275,8 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
 
             <button
               type="button"
-              onClick={() => setScale((s) => Math.min(3.0, s + 0.15))}
-              className="p-1 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              onClick={() => setScale((s) => Math.min(3.5, Number((s + 0.1).toFixed(2))))}
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               title="Zoom in"
             >
               <ZoomIn className="w-4 h-4" />
@@ -243,11 +285,37 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
             <button
               type="button"
               onClick={() => setRotation((r) => (r + 90) % 360)}
-              className="p-1 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ml-1 border border-slate-200 dark:border-slate-700"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ml-1 border border-slate-200 dark:border-slate-700 cursor-pointer"
               title="Rotate 90°"
             >
               <RotateCw className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* Quick Zoom Presets */}
+          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-200/60 dark:border-slate-700/40">
+            <span className="text-[10px] text-slate-400 font-medium">Quick Zoom:</span>
+            <div className="flex items-center gap-1.5">
+              {[
+                { label: '50%', value: 0.5 },
+                { label: '100% (Fit)', value: 1.0 },
+                { label: '150%', value: 1.5 },
+                { label: '200%', value: 2.0 }
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setScale(preset.value)}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-colors cursor-pointer ${
+                    Math.abs(scale - preset.value) < 0.04
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
