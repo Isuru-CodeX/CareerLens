@@ -20,6 +20,8 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=True)
     appearance_preference = Column(String(20), default="system")  # "system", "light", "dark"
+    avatar_path = Column(String(500), nullable=True)
+    avatar_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
@@ -34,6 +36,7 @@ class User(Base):
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
     drafts = relationship("GeneratedDraft", back_populates="user", cascade="all, delete-orphan")
+    activities = relationship("UserActivity", back_populates="user", cascade="all, delete-orphan", order_by="desc(UserActivity.created_at)")
 
 class CareerProfile(Base):
     __tablename__ = "career_profiles"
@@ -81,6 +84,7 @@ class Resume(Base):
     skills = relationship("ResumeSkill", back_populates="resume", cascade="all, delete-orphan")
     matches = relationship("JobMatch", back_populates="resume", cascade="all, delete-orphan")
     analyses = relationship("AnalysisRun", back_populates="resume", cascade="all, delete-orphan")
+    experiences = relationship("ResumeExperience", back_populates="resume", cascade="all, delete-orphan", order_by="ResumeExperience.start_year.desc()")
 
 class ResumeVersion(Base):
     __tablename__ = "resume_versions"
@@ -308,4 +312,47 @@ class AuditLog(Base):
     timestamp = Column(DateTime, default=get_utc_now)
     
     user = relationship("User", back_populates="audit_logs")
+
+class UserActivity(Base):
+    __tablename__ = "user_activities"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    event_type = Column(String(50), nullable=False)
+    description = Column(String(255), nullable=False)
+    entity_type = Column(String(50), nullable=True)
+    entity_id = Column(String(36), nullable=True)
+    activity_metadata = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=get_utc_now)
+    
+    user = relationship("User", back_populates="activities")
+
+class ResumeExperience(Base):
+    __tablename__ = "resume_experiences"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    resume_id = Column(String(36), ForeignKey("resumes.id", ondelete="CASCADE"), index=True, nullable=False)
+    job_title = Column(String(255), nullable=True)
+    company = Column(String(255), nullable=False)
+    employment_type = Column(String(50), default="full_time")  # full_time, part_time, internship, freelance, contract, self_employment, volunteer, unknown
+    experience_category = Column(String(50), default="professional_employment")  # professional_employment, internship, freelance, volunteer, academic_project, personal_project
+    start_date_str = Column(String(100), nullable=True)
+    end_date_str = Column(String(100), nullable=True)
+    start_year = Column(Integer, nullable=True)
+    start_month = Column(Integer, nullable=True)
+    end_year = Column(Integer, nullable=True)
+    end_month = Column(Integer, nullable=True)
+    is_current = Column(Boolean, default=False)
+    duration_months = Column(Integer, default=0)
+    responsibilities = Column(JSON, default=list)  # list of strings
+    location = Column(String(255), nullable=True)
+    source_evidence = Column(Text, nullable=True)
+    extraction_confidence = Column(Float, default=0.85)
+    needs_user_verification = Column(Boolean, default=False)
+    verified_by_user = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+    
+    resume = relationship("Resume", back_populates="experiences")
+
 

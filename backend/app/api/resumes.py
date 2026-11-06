@@ -16,6 +16,8 @@ from app.schemas.schemas import (
 from app.services.parsing_service import ParsingService
 from app.services.analysis_service import AnalysisService
 from app.services.pdf_service import PDFService
+from app.services.activity_service import record_user_activity
+from app.services.experience_intelligence_service import ExperienceIntelligenceService
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
@@ -159,9 +161,27 @@ async def upload_resume(
         if not current_user.profile.github_url and c_info.get("github"):
             current_user.profile.github_url = c_info["github"]
 
+    # Automatically extract structured experiences for Experience Intelligence
+    try:
+        ExperienceIntelligenceService.extract_and_save_experiences(db, resume)
+    except Exception:
+        pass
+
     db.commit()
     db.refresh(resume)
     log_audit(db, current_user.id, "RESUME_UPLOADED", {"filename": file.filename, "resume_id": resume.id})
+
+    record_user_activity(
+        db, current_user.id, "resume_uploaded",
+        f"Uploaded resume '{resume.title}'",
+        entity_type="resume", entity_id=resume.id
+    )
+    record_user_activity(
+        db, current_user.id, "resume_analyzed",
+        f"Analyzed resume '{resume.title}' (ATS Score: {analysis_res['overall_score']}%)",
+        entity_type="resume", entity_id=resume.id
+    )
+
     return resume
 
 @router.get("", response_model=List[ResumeOut])
@@ -314,6 +334,13 @@ def analyse_resume(
     db.commit()
     db.refresh(analysis)
     log_audit(db, current_user.id, "ANALYSIS_RUN_EXECUTED", {"resume_id": resume.id, "score": analysis.overall_score})
+
+    record_user_activity(
+        db, current_user.id, "resume_analyzed",
+        f"Ran ATS analysis on '{resume.title}' (Score: {result['overall_score']}%)",
+        entity_type="resume", entity_id=resume.id
+    )
+
     return analysis
 
 @router.get("/{resume_id}/analyses", response_model=List[AnalysisRunOut])

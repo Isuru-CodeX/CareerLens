@@ -382,5 +382,138 @@ def test_job_url_extraction():
     assert len(data["job_description"]) > 100
     assert len(data["job_title"]) > 0
 
+def test_avatar_upload_and_removal():
+    reg = client.post("/api/auth/register", json={
+        "email": "avatar_tester@careerlens.ai",
+        "password": "Password123!",
+        "full_name": "Avatar Tester"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Invalid file format returns 400
+    r_bad = client.post(
+        "/api/users/me/avatar",
+        files={"file": ("test.txt", b"plain text is not an image", "text/plain")},
+        headers=headers
+    )
+    assert r_bad.status_code == 400
+
+    # 2. Upload valid dummy PNG
+    dummy_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+    r_upload = client.post(
+        "/api/users/me/avatar",
+        files={"file": ("avatar.png", dummy_png, "image/png")},
+        headers=headers
+    )
+    assert r_upload.status_code == 200
+    upload_data = r_upload.json()
+    assert "avatar_url" in upload_data
+
+    # 3. Retrieve user profile to check avatar_url
+    r_me = client.get("/api/users/me", headers=headers)
+    assert r_me.status_code == 200
+    assert r_me.json()["avatar_url"] is not None
+
+    # 4. Fetch the avatar image
+    r_img = client.get("/api/users/me/avatar/image", headers=headers)
+    assert r_img.status_code == 200
+    assert r_img.headers["content-type"] == "image/png"
+
+    # 5. Delete avatar
+    r_del = client.delete("/api/users/me/avatar", headers=headers)
+    assert r_del.status_code == 200
+
+    r_img_after = client.get("/api/users/me/avatar/image", headers=headers)
+    assert r_img_after.status_code == 404
+
+def test_activity_logging_and_pagination():
+    reg = client.post("/api/auth/register", json={
+        "email": "activity_user@careerlens.ai",
+        "password": "Password123!",
+        "full_name": "Activity User"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Profile update generates activity
+    client.put("/api/users/profile", json={"phone": "+1 555 123 4567"}, headers=headers)
+
+    # Activity endpoint returns the recorded activity
+    r_act = client.get("/api/activity?limit=10&page=1", headers=headers)
+    assert r_act.status_code == 200
+    data = r_act.json()
+    assert data["total"] >= 1
+    assert any(item["event_type"] == "profile_updated" for item in data["items"])
+
+def test_experience_intelligence_engine_and_verification():
+    reg = client.post("/api/auth/register", json={
+        "email": "exp_tester@careerlens.ai",
+        "password": "Password123!",
+        "full_name": "Experience Tester"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    cv_text = """
+    Jane Developer
+    jane.developer@example.com
+
+    WORK EXPERIENCE
+    Senior Full Stack Engineer
+    Acme Tech Ltd | Jan 2023 - Present
+    - Architected scalable React and Python microservices.
+    - Mentored 4 junior engineers and improved sprint velocity.
+
+    Software Engineer
+    Beta Solutions | June 2021 - December 2022
+    - Developed enterprise REST APIs using Node.js and PostgreSQL.
+
+    INTERNSHIP
+    Software Development Intern
+    Startup Hub | Jan 2021 - May 2021
+    - Built responsive frontend components.
+
+    ACADEMIC PROJECTS
+    University Capstone: Smart Traffic
+    Jan 2020 - Dec 2020
+    - Machine learning model for traffic prediction.
+    """
+
+    r_up = client.post(
+        "/api/resumes/upload",
+        files={"file": ("jane_cv.txt", cv_text.encode("utf-8"), "text/plain")},
+        data={"title": "Jane Resume", "target_role": "Full Stack Engineer"},
+        headers=headers
+    )
+    assert r_up.status_code == 200
+    resume_id = r_up.json()["id"]
+
+    # Retrieve parsed experiences
+    r_exp = client.get(f"/api/resumes/{resume_id}/experiences", headers=headers)
+    assert r_exp.status_code == 200
+    exp_data = r_exp.json()
+    assert len(exp_data["experiences"]) >= 2
+    summary = exp_data["summary"]
+    assert summary["professional_duration_months"] > 0
+    assert summary["non_overlapping_roles_count"] >= 1
+
+    # Verify an experience item
+    first_exp_id = exp_data["experiences"][0]["id"]
+    r_ver = client.post(f"/api/resumes/{resume_id}/experiences/{first_exp_id}/verify", headers=headers)
+    assert r_ver.status_code == 200
+    assert r_ver.json()["verified_by_user"] is True
+    assert r_ver.json()["needs_user_verification"] is False
+
+    # Check dashboard includes experience summary and recent activity
+    r_dash = client.get("/api/dashboard", headers=headers)
+    assert r_dash.status_code == 200
+    dash_data = r_dash.json()
+    assert "recent_activities" in dash_data
+    assert len(dash_data["recent_activities"]) > 0
+    assert "experience_summary" in dash_data
+    assert dash_data["experience_summary"] is not None
+
+
 
 

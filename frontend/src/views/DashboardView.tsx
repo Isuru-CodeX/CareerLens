@@ -11,7 +11,10 @@ import {
   TrendingUp,
   AlertCircle,
   Lightbulb,
-  Plus
+  Plus,
+  Award,
+  History,
+  User as UserIcon
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { DashboardData } from '../types';
@@ -23,6 +26,45 @@ interface DashboardViewProps {
   onNavigate: (view: string, extra?: any) => void;
   onOpenUpload: () => void;
 }
+
+const getRelativeTime = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
+
+const getActivityIcon = (eventType: string) => {
+  switch (eventType) {
+    case 'resume_uploaded':
+    case 'resume_updated':
+      return <FileText className="w-4 h-4 text-blue-500" />;
+    case 'resume_analyzed':
+      return <TrendingUp className="w-4 h-4 text-indigo-500" />;
+    case 'job_description_added':
+      return <Briefcase className="w-4 h-4 text-amber-500" />;
+    case 'job_match_completed':
+      return <Target className="w-4 h-4 text-emerald-500" />;
+    case 'cover_letter_generated':
+      return <Sparkles className="w-4 h-4 text-purple-500" />;
+    case 'interview_practice_completed':
+      return <CheckCircle2 className="w-4 h-4 text-teal-500" />;
+    case 'application_status_changed':
+      return <Briefcase className="w-4 h-4 text-blue-600" />;
+    case 'profile_updated':
+    case 'avatar_updated':
+      return <UserIcon className="w-4 h-4 text-pink-500" />;
+    default:
+      return <Clock className="w-4 h-4 text-slate-400" />;
+  }
+};
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigate,
@@ -71,6 +113,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       fetchDashboard();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleActivityClick = (activity: { entity_type?: string | null }) => {
+    switch (activity.entity_type) {
+      case 'resume':
+        onNavigate('resumes');
+        break;
+      case 'job_match':
+      case 'job_description':
+        onNavigate('matcher');
+        break;
+      case 'application':
+        onNavigate('applications');
+        break;
+      case 'cover_letter':
+      case 'interview':
+        onNavigate('writer');
+        break;
+      case 'profile':
+      case 'user':
+        onNavigate('profile');
+        break;
+      default:
+        break;
     }
   };
 
@@ -449,6 +516,146 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Experience Intelligence Summary */}
+      {data.experience_summary && (
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/20 border border-blue-100 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-blue-600 text-white shadow-xs">
+                <Award className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Experience Intelligence Overview
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Deduplicated career timeline parsed from your active resume
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => onNavigate('resumes')}
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            >
+              <span>Verify timeline</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
+                Professional Tenure
+              </span>
+              <span className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-0.5 block">
+                {data.experience_summary.professional_duration_formatted}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                {data.experience_summary.non_overlapping_roles_count} non-overlapping roles
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
+                Relevant Total
+              </span>
+              <span className="text-base font-extrabold text-indigo-600 dark:text-indigo-400 mt-0.5 block">
+                {data.experience_summary.relevant_experience_formatted}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                Inclusive of internships & freelance
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
+                Overlap Deduplicated
+              </span>
+              <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                {data.experience_summary.overlap_months_adjusted > 0
+                  ? `${data.experience_summary.overlap_months_adjusted} mos`
+                  : '0 mos'}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                Parallel dates consolidated
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
+                Academic & Projects
+              </span>
+              <span className="text-base font-extrabold text-slate-700 dark:text-slate-300 mt-0.5 block">
+                {data.experience_summary.academic_projects_count + data.experience_summary.personal_projects_count}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                Kept distinct from employment
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recent User Activity Feed */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+              <History className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                Recent Activity
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Audit trail of your recent resume actions, job matches, and application movements
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-semibold text-slate-400 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800">
+            Live updates
+          </span>
+        </div>
+
+        {!data.recent_activities || data.recent_activities.length === 0 ? (
+          <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-400">
+            No recent activity recorded yet. Upload a CV or run a job match to get started!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {data.recent_activities.map((act) => (
+              <div
+                key={act.id}
+                onClick={() => handleActivityClick(act)}
+                className={`p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 flex items-start gap-3 transition-colors ${
+                  act.entity_type ? 'hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer' : ''
+                }`}
+                title={`Recorded on ${new Date(act.created_at).toLocaleString()}`}
+              >
+                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 shrink-0">
+                  {getActivityIcon(act.event_type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-slate-900 dark:text-white line-clamp-1">
+                    {act.description}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                      {getRelativeTime(act.created_at)}
+                    </span>
+                    {act.entity_type && (
+                      <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                        View details &rarr;
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

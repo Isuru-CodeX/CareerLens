@@ -12,6 +12,7 @@ from app.schemas.schemas import (
     ApplicationCreate, ApplicationUpdate, ApplicationOut, ApplicationStats,
     ReminderCreate, ReminderOut
 )
+from app.services.activity_service import record_user_activity
 
 router = APIRouter(prefix="/applications", tags=["Application Tracker"])
 
@@ -86,6 +87,13 @@ def create_application(
     db.commit()
     db.refresh(app)
     log_audit(db, current_user.id, "APPLICATION_CREATED", {"company": app.company, "role": app.role})
+
+    record_user_activity(
+        db, current_user.id, "application_status_changed",
+        f"Added job application for '{app.role}' at {app.company} (Status: {app.stage})",
+        entity_type="application", entity_id=app.id
+    )
+
     return app
 
 @router.get("/stats", response_model=ApplicationStats)
@@ -168,6 +176,14 @@ def update_application(
 
     db.commit()
     db.refresh(app)
+
+    if stage_changed:
+        record_user_activity(
+            db, current_user.id, "application_status_changed",
+            f"Updated application status for '{app.role}' at {app.company} to {app.stage}",
+            entity_type="application", entity_id=app.id
+        )
+
     return app
 
 @router.delete("/{app_id}")

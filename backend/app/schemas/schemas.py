@@ -30,8 +30,13 @@ class UserOut(UserBase):
     appearance_preference: str
     is_active: bool
     created_at: datetime
+    avatar_url: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
+
+class AvatarUploadResponse(BaseModel):
+    avatar_url: str
+    message: str = "Profile image updated successfully."
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -332,6 +337,93 @@ class ApplicationStats(BaseModel):
     rejections: int
     response_rate_percent: float
 
+# Activity Schemas
+class UserActivityOut(BaseModel):
+    id: str
+    user_id: str
+    event_type: str
+    description: str
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    activity_metadata: Dict[str, Any] = {}
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class UserActivityPageOut(BaseModel):
+    items: List[UserActivityOut]
+    total: int
+    page: int
+    limit: int
+
+# Experience Intelligence Schemas
+class ResumeExperienceBase(BaseModel):
+    job_title: Optional[str] = None
+    company: str
+    employment_type: str = "full_time"
+    experience_category: str = "professional_employment"
+    start_date_str: Optional[str] = None
+    end_date_str: Optional[str] = None
+    start_year: Optional[int] = None
+    start_month: Optional[int] = None
+    end_year: Optional[int] = None
+    end_month: Optional[int] = None
+    is_current: bool = False
+    responsibilities: List[str] = []
+    location: Optional[str] = None
+    source_evidence: Optional[str] = None
+    extraction_confidence: float = 0.85
+    needs_user_verification: bool = False
+    verified_by_user: bool = False
+
+class ResumeExperienceCreate(ResumeExperienceBase):
+    pass
+
+class ResumeExperienceUpdate(BaseModel):
+    job_title: Optional[str] = None
+    company: Optional[str] = None
+    employment_type: Optional[str] = None
+    experience_category: Optional[str] = None
+    start_date_str: Optional[str] = None
+    end_date_str: Optional[str] = None
+    start_year: Optional[int] = None
+    start_month: Optional[int] = None
+    end_year: Optional[int] = None
+    end_month: Optional[int] = None
+    is_current: Optional[bool] = None
+    responsibilities: Optional[List[str]] = None
+    location: Optional[str] = None
+    source_evidence: Optional[str] = None
+    verified_by_user: Optional[bool] = None
+
+class ResumeExperienceOut(ResumeExperienceBase):
+    id: str
+    resume_id: str
+    duration_months: int
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ExperienceSummaryOut(BaseModel):
+    professional_duration_months: int
+    professional_duration_formatted: str
+    internship_duration_months: int
+    internship_duration_formatted: str
+    freelance_duration_months: int
+    freelance_duration_formatted: str
+    academic_projects_count: int
+    personal_projects_count: int
+    overlap_months_adjusted: int
+    non_overlapping_roles_count: int
+    calculation_basis: str
+    relevant_experience_duration_months: int
+    relevant_experience_formatted: str
+
+class ResumeExperienceListOut(BaseModel):
+    experiences: List[ResumeExperienceOut]
+    summary: ExperienceSummaryOut
+
 # Dashboard Schemas
 class DashboardData(BaseModel):
     user: UserOut
@@ -342,6 +434,8 @@ class DashboardData(BaseModel):
     application_stats: ApplicationStats
     upcoming_reminders: List[ReminderOut] = []
     skill_recommendations: List[Dict[str, Any]] = []
+    recent_activities: List[UserActivityOut] = []
+    experience_summary: Optional[ExperienceSummaryOut] = None
 
 # Data Export
 class DataExportOut(BaseModel):

@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.api import auth, users, resumes, jobs, ai, applications, dashboard
+from app.api import auth, users, resumes, jobs, ai, applications, dashboard, experiences, activity
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,6 +28,15 @@ async def lifespan(app: FastAPI):
                 ]:
                     if col_name not in existing_cols:
                         conn.execute(text(f"ALTER TABLE career_profiles ADD COLUMN {col_name} {col_type}"))
+                conn.commit()
+
+            res_u = conn.execute(text("PRAGMA table_info(users)"))
+            existing_u_cols = [row[1] for row in res_u.fetchall()]
+            if existing_u_cols:
+                if "avatar_path" not in existing_u_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN avatar_path VARCHAR(500)"))
+                if "avatar_url" not in existing_u_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500)"))
                 conn.commit()
 
             res_jm = conn.execute(text("PRAGMA table_info(job_matches)"))
@@ -81,6 +90,8 @@ app.include_router(jobs.router, prefix=settings.API_V1_STR)
 app.include_router(ai.router, prefix=settings.API_V1_STR)
 app.include_router(applications.router, prefix=settings.API_V1_STR)
 app.include_router(dashboard.router, prefix=settings.API_V1_STR)
+app.include_router(experiences.router, prefix=settings.API_V1_STR)
+app.include_router(activity.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

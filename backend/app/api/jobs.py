@@ -13,6 +13,7 @@ from app.services.matching_service import MatchingService
 from app.services.job_extractor_service import JobExtractorService
 from app.services.deep_match.service import DeepMatchService, to_legacy
 from app.services.deep_match.heuristics_v2 import jd_years
+from app.services.activity_service import record_user_activity
 
 logger = logging.getLogger("careerlens.jobs")
 
@@ -61,6 +62,13 @@ def parse_and_save_job_description(
     db.commit()
     db.refresh(jd)
     log_audit(db, current_user.id, "JOB_DESCRIPTION_ANALYZED", {"jd_id": jd.id, "title": jd.title})
+
+    record_user_activity(
+        db, current_user.id, "job_description_added",
+        f"Added job description '{jd.title}' ({jd.company})",
+        entity_type="job_description", entity_id=jd.id
+    )
+
     return jd
 
 @router.get("/job-descriptions", response_model=List[JobDescriptionOut])
@@ -173,6 +181,13 @@ async def match_resume(
     db.commit()
     db.refresh(job_match)
     log_audit(db, current_user.id, "JOB_MATCH_PERFORMED", {"match_id": job_match.id, "score": job_match.overall_score})
+
+    record_user_activity(
+        db, current_user.id, "job_match_completed",
+        f"Completed job match for '{target_title or 'Target Role'}' at '{target_company or 'Company'}' (Score: {job_match.overall_score}%)",
+        entity_type="job_match", entity_id=job_match.id
+    )
+
     return job_match
 
 @router.get("/matches", response_model=List[JobMatchOut])

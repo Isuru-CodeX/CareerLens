@@ -8,6 +8,7 @@ from app.schemas.schemas import (
     InterviewQuestionsRequest, InterviewQuestionsResponse
 )
 from app.services.ai_service import AIService
+from app.services.activity_service import record_user_activity
 
 router = APIRouter(prefix="/ai", tags=["AI Writing Assistant"])
 
@@ -130,6 +131,13 @@ def generate_cover_letter(
     db.commit()
 
     log_audit(db, current_user.id, "COVER_LETTER_GENERATED", {"resume_id": resume.id})
+
+    record_user_activity(
+        db, current_user.id, "cover_letter_generated",
+        f"Generated targeted cover letter for '{req.job_title or 'Target Role'}' at '{req.company_name or 'Hiring Team'}'",
+        entity_type="cover_letter", entity_id=draft.id
+    )
+
     return result
 
 @router.post("/interview-prep", response_model=InterviewQuestionsResponse)
@@ -156,5 +164,12 @@ def generate_interview_prep(
     )
 
     log_audit(db, current_user.id, "INTERVIEW_PREP_GENERATED")
+
+    record_user_activity(
+        db, current_user.id, "interview_practice_completed",
+        f"Generated interview prep questions for '{req.target_role or 'Interview Preparation'}'",
+        entity_type="interview", entity_id=req.resume_id
+    )
+
     return {"questions": questions}
 

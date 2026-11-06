@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   Download,
@@ -14,7 +14,10 @@ import {
   Link2,
   Plus,
   ExternalLink,
-  X
+  X,
+  Camera,
+  Upload,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { useTheme } from '../context/useTheme';
@@ -36,11 +39,17 @@ const GithubIcon = () => (
 );
 
 export const ProfileView: React.FC = () => {
-  const { user, updateUserAppearance, logout } = useAuth();
+  const { user, updateUserAppearance, logout, refreshUser } = useAuth();
   const { mode, resolvedTheme } = useTheme();
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Avatar upload state
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarSuccess, setAvatarSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Contact info & social links
   const [phone, setPhone] = useState('');
@@ -146,6 +155,56 @@ export const ProfileView: React.FC = () => {
     setOtherLinks(otherLinks.filter((_, i) => i !== index));
   };
 
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarError(null);
+    setAvatarSuccess(null);
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      setAvatarError('Please upload a valid image (JPEG, PNG, or WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Image exceeds the 5 MB file size limit.');
+      return;
+    }
+
+    setAvatarLoading(true);
+    try {
+      const res = await api.uploadAvatar(file);
+      await refreshUser();
+      setAvatarSuccess(res.message || 'Profile photo updated successfully!');
+      setTimeout(() => setAvatarSuccess(null), 3000);
+    } catch (err: any) {
+      setAvatarError(err.message || 'Failed to upload photo.');
+    } finally {
+      setAvatarLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setAvatarLoading(true);
+    setAvatarError(null);
+    setAvatarSuccess(null);
+    try {
+      const res = await api.deleteAvatar();
+      await refreshUser();
+      setAvatarSuccess(res.message || 'Profile photo removed.');
+      setTimeout(() => setAvatarSuccess(null), 3000);
+    } catch (err: any) {
+      setAvatarError(err.message || 'Failed to remove photo.');
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
   const handleExportData = async () => {
     setIsExporting(true);
     try {
@@ -185,6 +244,94 @@ export const ProfileView: React.FC = () => {
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
           Manage your career target parameters, contact information, appearance preferences, and exercise GDPR data export and deletion rights.
         </p>
+      </div>
+
+      {/* 0. Profile Photo / Avatar Section */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+            <Camera className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Profile Photo & Avatar
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Personalize your account with a clear professional headshot. Supported formats: JPEG, PNG, WebP (max 5 MB).
+            </p>
+          </div>
+        </div>
+
+        {avatarError && (
+          <div className="flex items-center gap-2 p-3 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-700 dark:text-red-300">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{avatarError}</span>
+          </div>
+        )}
+
+        {avatarSuccess && (
+          <div className="flex items-center gap-2 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-700 dark:text-emerald-300">
+            <Check className="w-4 h-4 shrink-0" />
+            <span>{avatarSuccess}</span>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 pt-1">
+          <div className="relative group shrink-0">
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.full_name || 'User avatar'}
+                className="w-20 h-20 rounded-full object-cover border-2 border-indigo-500/80 shadow-md ring-4 ring-indigo-50 dark:ring-indigo-950/50"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-md ring-4 ring-slate-100 dark:ring-slate-800">
+                {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
+            {avatarLoading && (
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2 text-center sm:text-left flex-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleAvatarFileSelect}
+              className="hidden"
+            />
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarLoading}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>{user?.avatar_url ? 'Change Photo' : 'Upload Photo'}</span>
+              </button>
+
+              {user?.avatar_url && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  disabled={avatarLoading}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-950/40 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 text-xs font-medium transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove</span>
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              Optimal resolution 400x400px. Maximum upload size 5 MB.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* 1. Contact Information & Professional Links Section */}

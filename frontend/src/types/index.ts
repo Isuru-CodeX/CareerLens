@@ -6,6 +6,7 @@ export interface User {
   email: string;
   full_name: string | null;
   appearance_preference: AppearanceMode;
+  avatar_url?: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -209,6 +210,65 @@ export interface ApplicationStats {
   response_rate_percent: number;
 }
 
+export interface UserActivity {
+  id: string;
+  user_id: string;
+  event_type: string;
+  description: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface UserActivityPage {
+  items: UserActivity[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ResumeExperience {
+  id: string;
+  resume_id: string;
+  job_title: string;
+  company: string;
+  employment_type: string;
+  experience_category: string;
+  start_date_str?: string | null;
+  end_date_str?: string | null;
+  start_year?: number | null;
+  start_month?: number | null;
+  end_year?: number | null;
+  end_month?: number | null;
+  is_current: boolean;
+  duration_months: number;
+  responsibilities?: string[];
+  location?: string | null;
+  source_evidence?: string | null;
+  extraction_confidence: number;
+  needs_user_verification: boolean;
+  verified_by_user: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ExperienceSummary {
+  professional_duration_months: number;
+  professional_duration_formatted: string;
+  internship_duration_months: number;
+  internship_duration_formatted: string;
+  freelance_duration_months: number;
+  freelance_duration_formatted: string;
+  academic_projects_count: number;
+  personal_projects_count: number;
+  overlap_months_adjusted: number;
+  non_overlapping_roles_count: number;
+  calculation_basis: string;
+  relevant_experience_duration_months: number;
+  relevant_experience_formatted: string;
+}
+
 export interface DashboardData {
   user: User;
   resumes_count: number;
@@ -223,5 +283,7 @@ export interface DashboardData {
     learning_resource: string;
     priority: string;
   }[];
+  recent_activities?: UserActivity[];
+  experience_summary?: ExperienceSummary | null;
 }
 

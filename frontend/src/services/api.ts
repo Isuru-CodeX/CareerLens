@@ -10,7 +10,10 @@ import {
   ApplicationStats,
   DashboardData,
   Reminder,
-  AppearanceMode
+  AppearanceMode,
+  UserActivityPage,
+  ResumeExperience,
+  ExperienceSummary
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -134,6 +137,80 @@ class ApiService {
     });
     this.setToken(null);
     return res;
+  }
+
+  // Profile Avatar
+  async uploadAvatar(file: File): Promise<{ avatar_url: string; message: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request<{ avatar_url: string; message: string }>('/users/me/avatar', {
+      method: 'POST',
+      body: formData
+    });
+  }
+
+  async deleteAvatar(): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/users/me/avatar', {
+      method: 'DELETE'
+    });
+  }
+
+  getAvatarImageUrl(): string {
+    return `${API_BASE_URL}/users/me/avatar/image`;
+  }
+
+  // Activity Feed
+  async getActivity(limit: number = 10, page: number = 1): Promise<UserActivityPage> {
+    return this.request<UserActivityPage>(`/activity?limit=${limit}&page=${page}`);
+  }
+
+  // Experience Intelligence Engine
+  async getExperiences(
+    resumeId: string,
+    includeInternships: boolean = true
+  ): Promise<{ experiences: ResumeExperience[]; summary: ExperienceSummary }> {
+    return this.request<{ experiences: ResumeExperience[]; summary: ExperienceSummary }>(
+      `/resumes/${resumeId}/experiences?include_internships=${includeInternships}`
+    );
+  }
+
+  async addExperience(resumeId: string, data: Partial<ResumeExperience>): Promise<ResumeExperience> {
+    return this.request<ResumeExperience>(`/resumes/${resumeId}/experiences`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateExperience(
+    resumeId: string,
+    expId: string,
+    data: Partial<ResumeExperience>
+  ): Promise<ResumeExperience> {
+    return this.request<ResumeExperience>(`/resumes/${resumeId}/experiences/${expId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteExperience(resumeId: string, expId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/resumes/${resumeId}/experiences/${expId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async verifyExperience(resumeId: string, expId: string): Promise<ResumeExperience> {
+    return this.request<ResumeExperience>(`/resumes/${resumeId}/experiences/${expId}/verify`, {
+      method: 'POST'
+    });
+  }
+
+  async reparseExperiences(
+    resumeId: string
+  ): Promise<{ experiences: ResumeExperience[]; summary: ExperienceSummary }> {
+    return this.request<{ experiences: ResumeExperience[]; summary: ExperienceSummary }>(
+      `/resumes/${resumeId}/experiences/reparse`,
+      { method: 'POST' }
+    );
   }
 
   // Resumes

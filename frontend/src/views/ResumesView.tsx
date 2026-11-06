@@ -13,12 +13,14 @@ import {
   Printer,
   Calendar,
   Layers,
-  FileCheck
+  FileCheck,
+  Award
 } from 'lucide-react';
 import { Resume } from '../types';
 import { api } from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
+import { ExperienceIntelligencePanel } from '../components/ExperienceIntelligencePanel';
 import { useAuth } from '../context/useAuth';
 
 interface ResumesViewProps {
@@ -313,11 +315,22 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                 </button>
 
                 <button
+                  onClick={() => {
+                    setActiveResumeForEdit(r);
+                    setEditSectionType('experience');
+                  }}
+                  className="py-2 px-3 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/60 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Award className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Experience Timeline</span>
+                </button>
+
+                <button
                   onClick={() => openEditor(r)}
-                  className="col-span-2 py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
-                  <span>Review & Correct Extracted Fields</span>
+                  <span>Edit Fields</span>
                 </button>
               </div>
             </motion.div>
@@ -490,7 +503,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
             />
 
             <motion.div
-              className="relative w-full max-w-3xl max-h-[90vh] rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-2xl z-10 flex flex-col"
+              className={`relative w-full ${editSectionType === 'experience' ? 'max-w-4xl' : 'max-w-3xl'} max-h-[90vh] rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-2xl z-10 flex flex-col`}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -498,7 +511,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
               <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                    Review & Correct Extracted Fields
+                    {editSectionType === 'experience' ? 'Experience Intelligence & Verification' : 'Review & Correct Extracted Fields'}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Document: {activeResumeForEdit.title} (Original file remains immutable)
@@ -514,7 +527,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
 
               {/* Section Selector Tabs */}
               <div className="flex flex-wrap gap-2 my-4">
-                {['summary', 'skills', 'experience', 'preview'].map((sec) => (
+                {['experience', 'summary', 'skills', 'preview'].map((sec) => (
                   <button
                     key={sec}
                     onClick={() => {
@@ -526,25 +539,37 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                         const sk = activeResumeForEdit.sections?.find((s) => s.section_type === 'skills');
                         const names = (sk?.structured_data?.items || []).map((i: any) => i.name || i).join(', ');
                         setEditedContent(names);
-                      } else if (sec === 'experience') {
-                        const exp = activeResumeForEdit.sections?.find((s) => s.section_type === 'experience');
-                        setEditedContent(JSON.stringify(exp?.structured_data?.items || [], null, 2));
                       }
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-colors ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-colors flex items-center gap-1.5 ${
                       editSectionType === sec
                         ? 'bg-blue-600 text-white shadow-xs'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                     }`}
                   >
-                    {sec === 'preview' ? 'Theme-Neutral Print Preview' : sec}
+                    {sec === 'experience' ? (
+                      <>
+                        <Award className="w-3.5 h-3.5" />
+                        <span>Experience Timeline</span>
+                      </>
+                    ) : sec === 'preview' ? (
+                      'Print Preview'
+                    ) : (
+                      sec
+                    )}
                   </button>
                 ))}
               </div>
 
               {/* Content Editor */}
               <div className="flex-1 overflow-y-auto min-h-[250px] p-2">
-                {editSectionType === 'preview' ? (
+                {editSectionType === 'experience' ? (
+                  <ExperienceIntelligencePanel
+                    resumeId={activeResumeForEdit.id}
+                    resumeTitle={activeResumeForEdit.title}
+                    onExperiencesUpdated={fetchResumes}
+                  />
+                ) : editSectionType === 'preview' ? (
                   <div className="p-6 rounded-2xl bg-white text-slate-900 border border-slate-300 shadow-inner resume-paper space-y-4 text-xs font-sans">
                     <div className="flex justify-between items-center pb-2 border-b border-slate-300 no-print">
                       <span className="font-bold text-slate-600 uppercase text-[10px]">
@@ -589,17 +614,19 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                   <div className="flex gap-2">
                     <button
                       onClick={() => setActiveResumeForEdit(null)}
-                      className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800"
+                      className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 cursor-pointer"
                     >
                       Close
                     </button>
-                    <button
-                      onClick={handleSaveSection}
-                      disabled={isSavingSection}
-                      className="px-4 py-2 text-xs font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-xs"
-                    >
-                      {isSavingSection ? 'Saving...' : 'Verify & Save Correction'}
-                    </button>
+                    {editSectionType !== 'experience' && (
+                      <button
+                        onClick={handleSaveSection}
+                        disabled={isSavingSection}
+                        className="px-4 py-2 text-xs font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-xs cursor-pointer"
+                      >
+                        {isSavingSection ? 'Saving...' : 'Verify & Save Correction'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

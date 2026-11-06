@@ -1,12 +1,13 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.models import (
-    User, Resume, AnalysisRun, JobMatch, Application, Reminder, CareerProfile
+    User, Resume, AnalysisRun, JobMatch, Application, Reminder, CareerProfile, UserActivity, ResumeExperience
 )
-from app.schemas.schemas import DashboardData, ApplicationStats
+from app.schemas.schemas import DashboardData, ApplicationStats, ExperienceSummaryOut
+from app.services.experience_intelligence_service import ExperienceIntelligenceService
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -107,6 +108,23 @@ def get_dashboard_data(
             }
         ])
 
+    # 7. Recent User Activities
+    activities = db.query(UserActivity).filter(
+        UserActivity.user_id == current_user.id
+    ).order_by(UserActivity.created_at.desc()).limit(8).all()
+
+    # 8. Experience Intelligence Summary (from newest active resume)
+    exp_summary: Optional[ExperienceSummaryOut] = None
+    if resumes:
+        primary_resume = resumes[0]
+        experiences = db.query(ResumeExperience).filter(
+            ResumeExperience.resume_id == primary_resume.id
+        ).all()
+        if not experiences and primary_resume.raw_text:
+            experiences = ExperienceIntelligenceService.extract_and_save_experiences(db, primary_resume)
+        if experiences:
+            exp_summary = ExperienceSummaryOut(**ExperienceIntelligenceService.get_experience_summary(experiences))
+
     return DashboardData(
         user=current_user,
         resumes_count=len(resumes),
@@ -115,6 +133,8 @@ def get_dashboard_data(
         recent_matches=matches,
         application_stats=app_stats,
         upcoming_reminders=reminders,
-        skill_recommendations=skill_recs[:4]
+        skill_recommendations=skill_recs[:4],
+        recent_activities=activities,
+        experience_summary=exp_summary
     )
 
