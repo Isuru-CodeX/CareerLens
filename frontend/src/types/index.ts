@@ -1,3 +1,4 @@
+import type { DeepReport } from './deepMatch';
 export type AppearanceMode = 'system' | 'light' | 'dark';
 
 export interface User {
@@ -133,6 +134,8 @@ export interface JobMatch {
   partial_skills: PartialSkill[];
   match_explanations: string[];
   recommendations: string[];
+  analysis?: DeepReport | null;
+  engine?: string | null;
   created_at: string;
   disclaimer: string;
 }

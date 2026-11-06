@@ -165,6 +165,8 @@ class JobMatch(Base):
     partial_skills = Column(JSON, default=list)
     match_explanations = Column(JSON, default=list)
     recommendations = Column(JSON, default=list)
+    analysis = Column(JSON, nullable=True)          # full Deep Match report (new)
+    engine = Column(String(20), nullable=True)      # "llm" | "heuristic" (new)
     created_at = Column(DateTime, default=get_utc_now)
     
     user = relationship("User", back_populates="job_matches")

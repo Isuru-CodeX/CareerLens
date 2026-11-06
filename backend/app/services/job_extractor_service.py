@@ -270,3 +270,4 @@ class JobExtractorService:
             "source_url": url,
             "source_domain": domain
         }
+

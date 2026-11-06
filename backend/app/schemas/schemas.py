@@ -194,6 +194,8 @@ class JobMatchOut(BaseModel):
     partial_skills: List[Dict[str, Any]] = []
     match_explanations: List[str] = []
     recommendations: List[str] = []
+    analysis: Optional[Dict[str, Any]] = None
+    engine: Optional[str] = None
     created_at: datetime
     disclaimer: str = (
         "Match scores represent semantic and keyword alignment heuristic guidance only, not a guaranteed employer ATS result."

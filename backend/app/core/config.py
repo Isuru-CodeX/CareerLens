@@ -42,7 +42,12 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage"))
     MAX_UPLOAD_SIZE_MB: int = 10
     
-    # AI integration
+    # AI integration (set ONE provider key; keys stay on the server, never in the frontend)
+    LLM_ENABLED: bool = os.getenv("LLM_ENABLED", "True").lower() in ("true", "1")
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "anthropic")          # anthropic | openai | gemini
+    LLM_MODEL_FAST: str = os.getenv("LLM_MODEL_FAST", "claude-haiku-5-5")   # cheap model: job-post extraction
+    LLM_MODEL_DEEP: str = os.getenv("LLM_MODEL_DEEP", "claude-sonnet-5-5")  # strong model: evidence judgement
+    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 

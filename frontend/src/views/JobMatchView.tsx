@@ -15,6 +15,8 @@ import { Resume, JobMatch } from '../types';
 import { api } from '../services/api';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
+import { DeepMatchPanel } from '../components/deepmatch/DeepMatchPanel';
+import { AnalysisProgress } from '../components/deepmatch/AnalysisProgress';
 
 interface JobMatchViewProps {
   initialResumeId?: string;
@@ -380,8 +382,35 @@ Preferred:
         </form>
       </div>
 
+      {/* Analysis Progress */}
+      {isMatching && (
+        <div className="p-6 rounded-3xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/60 shadow-xs space-y-3 animate-fade-in">
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <h4 className="font-bold text-sm">Deep Match Engine Processing</h4>
+          </div>
+          <AnalysisProgress running={isMatching} />
+        </div>
+      )}
+
       {/* Match Results */}
-      {matchResult && (
+      {matchResult && matchResult.analysis && (
+        <div className="space-y-6">
+          <DeepMatchPanel
+            report={matchResult.analysis}
+            onTailor={() =>
+              onNavigate('ai', {
+                tab: 'rewrite',
+                jobDescription: jobText,
+                targetRole: jobTitle
+              })
+            }
+          />
+        </div>
+      )}
+
+      {/* Fallback Legacy Results if no deep analysis object present */}
+      {matchResult && !matchResult.analysis && (
         <div className="space-y-6">
           {/* Top Score Spotlight */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

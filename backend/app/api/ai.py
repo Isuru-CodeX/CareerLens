@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit
-from app.models.models import User, Resume, AIUsageRecord, GeneratedDraft
+from app.models.models import User, Resume, AIUsageRecord, GeneratedDraft, CareerProfile
 from app.schemas.schemas import (
     RewriteRequest, RewriteResponse, CoverLetterRequest, CoverLetterResponse,
     InterviewQuestionsRequest, InterviewQuestionsResponse

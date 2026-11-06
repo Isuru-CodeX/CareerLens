@@ -29,6 +29,15 @@ async def lifespan(app: FastAPI):
                     if col_name not in existing_cols:
                         conn.execute(text(f"ALTER TABLE career_profiles ADD COLUMN {col_name} {col_type}"))
                 conn.commit()
+
+            res_jm = conn.execute(text("PRAGMA table_info(job_matches)"))
+            existing_jm_cols = [row[1] for row in res_jm.fetchall()]
+            if existing_jm_cols:
+                if "analysis" not in existing_jm_cols:
+                    conn.execute(text("ALTER TABLE job_matches ADD COLUMN analysis JSON"))
+                if "engine" not in existing_jm_cols:
+                    conn.execute(text("ALTER TABLE job_matches ADD COLUMN engine VARCHAR(20)"))
+                conn.commit()
         except Exception:
             pass
     yield

@@ -10,6 +10,8 @@ from app.schemas.schemas import (
 )
 from app.services.matching_service import MatchingService
 from app.services.job_extractor_service import JobExtractorService
+from app.services.deep_match.service import DeepMatchService, to_legacy
+from app.services.deep_match.heuristics_v2 import jd_years
 
 router = APIRouter(tags=["Job Descriptions & Matching"])
 
@@ -48,8 +50,8 @@ def parse_and_save_job_description(
         raw_text=data.raw_text,
         required_skills=extracted["required"],
         preferred_skills=extracted["preferred"],
-        experience_level="Mid - Senior",
-        salary_range="Competitive"
+        experience_level=(f"{int(y)}+ years" if (y := jd_years(data.raw_text)) else None),
+        salary_range=None   # never invent pay; Deep Match only reports pay the post states
     )
     db.add(jd)
     db.commit()
@@ -108,17 +110,9 @@ def match_resume(
     else:
         raise HTTPException(status_code=400, detail="Either job_description_id or job_text must be provided.")
 
-    # Candidate skills
-    skills_section = next((s for s in resume.sections if s.section_type == "skills"), None)
-    candidate_skills = []
-    if skills_section and skills_section.structured_data:
-        candidate_skills = skills_section.structured_data.get("items", [])
-
-    match_result = MatchingService.match_resume_to_job(
-        resume_text=resume.raw_text or "",
-        resume_skills=candidate_skills,
-        job_text=job_text
-    )
+    # Deep Match: LLM judgement + grounding + deterministic scoring (falls back to the improved basic engine)
+    report = DeepMatchService().analyze(resume_text=resume.raw_text or "", job_text=job_text)
+    match_result = to_legacy(report)
 
     job_match = JobMatch(
         user_id=current_user.id,
@@ -133,7 +127,9 @@ def match_resume(
         missing_skills=match_result["missing_skills"],
         partial_skills=match_result["partial_skills"],
         match_explanations=match_result["match_explanations"],
-        recommendations=match_result["recommendations"]
+        recommendations=match_result["recommendations"],
+        analysis=report,
+        engine=report["engine"]
     )
     db.add(job_match)
     db.commit()
