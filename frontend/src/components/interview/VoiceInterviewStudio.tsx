@@ -70,6 +70,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
 
   // Recording & Speech State
   const [isRecording, setIsRecording] = useState(false);
+  const [isVoiceDetected, setIsVoiceDetected] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -100,11 +101,11 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   const [pastSessions, setPastSessions] = useState<InterviewSessionSummary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Refs for Continuous Speech Recognition & Media Stream
+  // Refs for Continuous Speech Recognition (no mediaDevice hardware lock)
   const recognitionRef = useRef<any>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
   const isRecordingIntentRef = useRef(false);
-  const baseTranscriptRef = useRef('');
+  const initialTextRef = useRef('');
+  const sessionFinalRef = useRef('');
   const timerIntervalRef = useRef<any>(null);
 
   // Load past sessions
@@ -178,7 +179,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     }
   };
 
-  // Initialize and toggle Web Speech Recognition with anti-drop silence guards
+  // Initialize and toggle Web Speech Recognition with auto-restart and live interim transcription
   const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
@@ -187,87 +188,109 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     }
   };
 
-  const startRecording = async () => {
+  const startRecording = () => {
     stopTTS();
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       alert(
-        'Speech Recognition is not supported by your browser. You can still type your answers directly in the response box!'
+        'Speech Recognition is not supported by this browser. Please use Google Chrome or type your answer in the box.'
       );
       return;
     }
 
     try {
-      // 1. Explicitly request & hold audio track from mediaDevices to prevent immediate browser disconnects
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      // Abort any old recognition instance before creating fresh one
+      if (recognitionRef.current) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaStreamRef.current = stream;
-        } catch (mediaErr: any) {
-          console.warn('Microphone permission check warning:', mediaErr);
-          if (mediaErr.name === 'NotAllowedError' || mediaErr.name === 'PermissionDeniedError') {
-            alert('Microphone access was denied. Please allow microphone permissions in your browser address bar.');
-            return;
-          }
-        }
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
       }
 
-      // 2. Configure continuous recognition instance
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
 
       isRecordingIntentRef.current = true;
-      baseTranscriptRef.current = transcript.trim();
+      // Capture any text currently in the box so spoken words append smoothly
+      initialTextRef.current = transcript.trim();
+      sessionFinalRef.current = '';
 
       recognition.onstart = () => {
         setIsRecording(true);
       };
 
+      recognition.onspeechstart = () => {
+        setIsVoiceDetected(true);
+      };
+
+      recognition.onspeechend = () => {
+        setIsVoiceDetected(false);
+      };
+
       recognition.onresult = (event: any) => {
-        let interim = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const res = event.results[i];
-          if (res.isFinal) {
-            baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + res[0].transcript).replace(/\s+/g, ' ').trim();
+        let currentFinal = '';
+        let currentInterim = '';
+
+        for (let i = 0; i < event.results.length; i++) {
+          const item = event.results[i];
+          if (item.isFinal) {
+            currentFinal += item[0].transcript + ' ';
           } else {
-            interim += res[0].transcript;
+            currentInterim += item[0].transcript;
           }
         }
-        const fullCurrent = (baseTranscriptRef.current + ' ' + interim).replace(/\s+/g, ' ').trim();
-        setTranscript(fullCurrent);
+
+        sessionFinalRef.current = currentFinal.trim();
+
+        const base = initialTextRef.current;
+        const liveText = [base, sessionFinalRef.current, currentInterim.trim()]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ');
+
+        setTranscript(liveText);
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition warning/error:', event.error);
+        console.warn('Speech recognition warning/event:', event.error);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           isRecordingIntentRef.current = false;
           setIsRecording(false);
-          alert('Microphone access was denied. Please allow microphone permissions in your browser.');
+          setIsVoiceDetected(false);
+          alert('Microphone access was denied. Please allow microphone permissions in your browser address bar.');
           stopRecording();
           return;
         }
-        // Do NOT stop recording on 'no-speech' or 'aborted' or network drops!
-        // onend will fire and restart recognition seamlessly so listening stays active!
+        // Normal transient non-fatal events ('no-speech', 'audio-capture', 'network') are recovered smoothly by onend
       };
 
       recognition.onend = () => {
-        // If user is still recording, auto-restart to prevent Chrome's 1-second silence drop!
+        setIsVoiceDetected(false);
+        // If candidate hasn't pressed "Stop Recording", seamlessly resume listening
         if (isRecordingIntentRef.current) {
-          try {
-            recognition.start();
-          } catch {
-            setTimeout(() => {
-              if (isRecordingIntentRef.current && recognitionRef.current) {
-                try {
-                  recognitionRef.current.start();
-                } catch {}
-              }
-            }, 120);
+          if (sessionFinalRef.current) {
+            initialTextRef.current = [initialTextRef.current, sessionFinalRef.current]
+              .filter(Boolean)
+              .join(' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            sessionFinalRef.current = '';
           }
+
+          setTimeout(() => {
+            if (isRecordingIntentRef.current && recognitionRef.current) {
+              try {
+                recognitionRef.current.start();
+              } catch (e: any) {
+                console.warn('Speech recognition restart handled:', e);
+              }
+            }
+          }, 100);
         } else {
           setIsRecording(false);
         }
@@ -286,24 +309,34 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       console.error('Failed to initialize speech recognition:', err);
       isRecordingIntentRef.current = false;
       setIsRecording(false);
+      setIsVoiceDetected(false);
     }
   };
 
   const stopRecording = () => {
     isRecordingIntentRef.current = false;
     setIsRecording(false);
+    setIsVoiceDetected(false);
+
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
       } catch {}
       recognitionRef.current = null;
     }
-    if (mediaStreamRef.current) {
-      try {
-        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      } catch {}
-      mediaStreamRef.current = null;
+
+    // Commit any active final text
+    if (sessionFinalRef.current) {
+      const fullFinal = [initialTextRef.current, sessionFinalRef.current]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      initialTextRef.current = fullFinal;
+      sessionFinalRef.current = '';
+      setTranscript(fullFinal);
     }
+
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
@@ -414,6 +447,8 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
 
       // Clear for next turn
       setTranscript('');
+      initialTextRef.current = '';
+      sessionFinalRef.current = '';
       setElapsedSeconds(0);
     } catch (err: any) {
       alert(err.message || 'Failed to evaluate answer');
@@ -431,6 +466,8 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       setCurrentTurn(nextQ.turn);
       setLatestTurnEval(null);
       setTranscript('');
+      initialTextRef.current = '';
+      sessionFinalRef.current = '';
       setElapsedSeconds(0);
 
       if (ttsEnabled && nextQ.question) {
@@ -1103,16 +1140,21 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                   value={transcript}
                   onChange={(e) => {
                     setTranscript(e.target.value);
-                    baseTranscriptRef.current = e.target.value;
+                    initialTextRef.current = e.target.value;
+                    sessionFinalRef.current = '';
                   }}
                   placeholder="Click 'Record Answer' below to speak your response aloud, or type your answer here..."
                   className="w-full p-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm leading-relaxed focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                 />
 
                 {isRecording && (
-                  <div className="absolute right-3 top-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-300 text-[11px] font-bold animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-rose-500" />
-                    <span>Listening...</span>
+                  <div className="absolute right-3 top-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-300 text-[11px] font-bold shadow-xs">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        isVoiceDetected ? 'bg-emerald-500 scale-125 transition-transform' : 'bg-rose-500 animate-pulse'
+                      }`}
+                    />
+                    <span>{isVoiceDetected ? 'Receiving Voice...' : 'Listening (Speak now)...'}</span>
                   </div>
                 )}
               </div>
@@ -1145,7 +1187,11 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                   {transcript.trim() && (
                     <button
                       type="button"
-                      onClick={() => setTranscript('')}
+                      onClick={() => {
+                        setTranscript('');
+                        initialTextRef.current = '';
+                        sessionFinalRef.current = '';
+                      }}
                       className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 text-xs font-semibold cursor-pointer"
                     >
                       Clear
