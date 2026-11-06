@@ -38,3 +38,4 @@ def record_user_activity(
     except Exception as e:
         logger.warning(f"Failed to record user activity ({event_type}): {e}")
         return None
+

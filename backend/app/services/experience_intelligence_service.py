@@ -536,3 +536,4 @@ class ExperienceIntelligenceService:
         for r in records:
             db.refresh(r)
         return records
+

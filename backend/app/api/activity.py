@@ -28,3 +28,4 @@ def get_user_activity(
         "page": page,
         "limit": limit
     }
+
