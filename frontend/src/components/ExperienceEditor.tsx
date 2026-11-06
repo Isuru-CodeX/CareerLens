@@ -106,7 +106,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
             </h3>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Auto-filled from imported CVs and manually editable. Years calculate automatically.
+            Manage your work experience history manually. Years calculate automatically.
           </p>
         </div>
 
@@ -123,7 +123,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
       {items.length === 0 ? (
         <div className="text-center p-8 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 space-y-2">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            No work experience roles logged yet. Import a CV to auto-fill or add your roles manually.
+            No work experience roles logged yet. Add your roles manually using the button below.
           </p>
           <button
             type="button"

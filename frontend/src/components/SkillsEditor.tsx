@@ -48,14 +48,14 @@ export const SkillsEditor: React.FC<SkillsEditorProps> = ({
         </h3>
       </div>
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        Skills explicitly extracted from your CVs and manually managed. Aliases like &quot;js&quot; and &quot;node js&quot; are automatically normalized.
+        Add and manage your verified skills manually. Aliases like &quot;js&quot; and &quot;node js&quot; are automatically normalized.
       </p>
 
       {/* Skills Chips */}
       <div className="flex flex-wrap gap-2 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 min-h-[50px] items-center">
         {skills.length === 0 ? (
           <span className="text-xs text-slate-400 dark:text-slate-500 italic">
-            No verified skills added yet. Type below or import a CV to populate.
+            No verified skills added yet. Type below and press Enter to add.
           </span>
         ) : (
           skills.map((s) => (

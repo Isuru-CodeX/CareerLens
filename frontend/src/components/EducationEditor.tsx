@@ -74,7 +74,7 @@ export const EducationEditor: React.FC<EducationEditorProps> = ({ items, onChang
             </h3>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Auto-filled from imported CVs. Select presets to structure university degrees, diplomas, or certifications.
+            Manage your academic credentials and education history manually. Select presets for university degrees, diplomas, or certifications.
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export const EducationEditor: React.FC<EducationEditorProps> = ({ items, onChang
         <div className="text-center p-8 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 space-y-2">
           <GraduationCap className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            No education entries yet. Import your CV to auto-fill or add your academic history manually.
+            No education entries yet. Add your academic history manually using the preset buttons above.
           </p>
           <button
             type="button"

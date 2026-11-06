@@ -94,7 +94,7 @@ async def import_existing_resume(
     db: Session = Depends(get_db)
 ):
     """
-    Triggers the automated profile auto-fill pipeline from an already uploaded resume in the user's library.
+    Triggers document re-parsing pipeline for an already uploaded resume in the user's library.
     """
     resume = db.query(Resume).filter(
         Resume.id == resume_id,
@@ -139,7 +139,7 @@ async def import_existing_resume(
 
     return {
         "job_id": job_id,
-        "message": f"Auto-fill pipeline initiated for '{resume.title or 'Resume'}'."
+        "message": f"Document parsing pipeline initiated for '{resume.title or 'Resume'}'."
     }
 
 @router.get("/import/{job_id}/events")
