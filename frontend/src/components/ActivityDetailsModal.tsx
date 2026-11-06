@@ -274,3 +274,4 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
     </div>
   );
 };
+
