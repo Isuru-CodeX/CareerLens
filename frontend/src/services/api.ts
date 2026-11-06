@@ -782,6 +782,15 @@ class ApiService {
     return this.request<InterviewSessionSummary[]>('/interviews/sessions');
   }
 
+  async transcribeAudio(audioBlob: Blob): Promise<{ transcript: string; words_count: number; status: string }> {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'interview_answer.wav');
+    return this.request('/interviews/transcribe', {
+      method: 'POST',
+      body: formData
+    });
+  }
+
   async getInterviewSession(sessionId: string): Promise<{
     id: string;
     role_title: string;

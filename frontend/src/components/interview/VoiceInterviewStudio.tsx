@@ -48,6 +48,39 @@ const FORMAT_OPTIONS = [
   { id: 'leadership', label: '👑 Leadership & Delivery', desc: 'Mentorship, roadmapping, cross-functional stakeholder management.' }
 ];
 
+function encodeWav(samples: Float32Array, sampleRate: number): Blob {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // Mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++, offset += 2) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
 export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   resumes = [],
   presets = [],
@@ -71,6 +104,9 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   // Recording & Speech State
   const [isRecording, setIsRecording] = useState(false);
   const [isVoiceDetected, setIsVoiceDetected] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [engineStatus, setEngineStatus] = useState<string>('idle');
+  const [isTranscribingBackend, setIsTranscribingBackend] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -101,12 +137,17 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   const [pastSessions, setPastSessions] = useState<InterviewSessionSummary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Refs for Continuous Speech Recognition (no mediaDevice hardware lock)
+  // Refs for Dual Audio Capture: Web Speech API & Direct AudioContext PCM WAV Recorder
   const recognitionRef = useRef<any>(null);
   const isRecordingIntentRef = useRef(false);
   const initialTextRef = useRef('');
   const sessionFinalRef = useRef('');
   const timerIntervalRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Float32Array[]>([]);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Load past sessions
   const loadPastSessions = async () => {
@@ -179,7 +220,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     }
   };
 
-  // Initialize and toggle Web Speech Recognition with auto-restart and live interim transcription
+  // Initialize and toggle Web Speech Recognition + AudioContext dual-pipeline
   const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
@@ -188,20 +229,88 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     }
   };
 
-  const startRecording = () => {
+  const startRecording = async () => {
     stopTTS();
+    setEngineStatus('starting');
+    setIsRecording(true);
+    isRecordingIntentRef.current = true;
+    initialTextRef.current = transcript.trim();
+    sessionFinalRef.current = '';
+    audioChunksRef.current = [];
+    setAudioLevel(0);
+
+    // 1. Initialize AudioContext & Microphone for Real-Time Sound Visualizer & PCM WAV Backup
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = stream;
+
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          const audioCtx = new AudioContextClass();
+          audioContextRef.current = audioCtx;
+
+          const source = audioCtx.createMediaStreamSource(stream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 256;
+          analyserRef.current = analyser;
+
+          // ScriptProcessor to buffer mono PCM samples for server transcription backup
+          const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+          processor.onaudioprocess = (e) => {
+            if (!isRecordingIntentRef.current) return;
+            const channelData = e.inputBuffer.getChannelData(0);
+            audioChunksRef.current.push(new Float32Array(channelData));
+          };
+
+          source.connect(analyser);
+          analyser.connect(processor);
+          processor.connect(audioCtx.destination);
+
+          // Audio level visualizer loop
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          const checkVolume = () => {
+            if (!isRecordingIntentRef.current) return;
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+              sum += dataArray[i];
+            }
+            const avg = sum / dataArray.length;
+            const level = Math.min(100, Math.round((avg / 128) * 100));
+            setAudioLevel(level);
+            setIsVoiceDetected(level > 12);
+            animationFrameRef.current = requestAnimationFrame(checkVolume);
+          };
+          animationFrameRef.current = requestAnimationFrame(checkVolume);
+        }
+      }
+    } catch (micErr: any) {
+      console.warn('Microphone AudioContext error:', micErr);
+      if (micErr.name === 'NotAllowedError' || micErr.name === 'PermissionDeniedError') {
+        alert('Microphone access was denied. Please allow microphone access in your browser address bar.');
+        stopRecording();
+        return;
+      }
+    }
+
+    // 2. Start elapsed timer
+    if (!timerIntervalRef.current) {
+      timerIntervalRef.current = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+
+    // 3. Start Browser Real-Time Speech Recognition (Live typing)
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert(
-        'Speech Recognition is not supported by this browser. Please use Google Chrome or type your answer in the box.'
-      );
+      setEngineStatus('audio_backup_active');
       return;
     }
 
     try {
-      // Abort any old recognition instance before creating fresh one
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
@@ -215,13 +324,8 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       recognition.lang = 'en-US';
       recognition.maxAlternatives = 1;
 
-      isRecordingIntentRef.current = true;
-      // Capture any text currently in the box so spoken words append smoothly
-      initialTextRef.current = transcript.trim();
-      sessionFinalRef.current = '';
-
       recognition.onstart = () => {
-        setIsRecording(true);
+        setEngineStatus('listening');
       };
 
       recognition.onspeechstart = () => {
@@ -229,10 +333,11 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       };
 
       recognition.onspeechend = () => {
-        setIsVoiceDetected(false);
+        // Voice pause
       };
 
       recognition.onresult = (event: any) => {
+        setEngineStatus('typing_live');
         let currentFinal = '';
         let currentInterim = '';
 
@@ -257,21 +362,19 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition warning/event:', event.error);
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          isRecordingIntentRef.current = false;
-          setIsRecording(false);
-          setIsVoiceDetected(false);
-          alert('Microphone access was denied. Please allow microphone permissions in your browser address bar.');
-          stopRecording();
-          return;
+        console.warn('Speech recognition status:', event.error);
+        if (event.error === 'network') {
+          setEngineStatus('network_offline');
+        } else if (event.error === 'not-allowed') {
+          setEngineStatus('permission_denied');
+        } else if (event.error === 'audio-capture') {
+          setEngineStatus('no_mic_detected');
+        } else {
+          setEngineStatus(`status_${event.error}`);
         }
-        // Normal transient non-fatal events ('no-speech', 'audio-capture', 'network') are recovered smoothly by onend
       };
 
       recognition.onend = () => {
-        setIsVoiceDetected(false);
-        // If candidate hasn't pressed "Stop Recording", seamlessly resume listening
         if (isRecordingIntentRef.current) {
           if (sessionFinalRef.current) {
             initialTextRef.current = [initialTextRef.current, sessionFinalRef.current]
@@ -290,33 +393,33 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 console.warn('Speech recognition restart handled:', e);
               }
             }
-          }, 100);
-        } else {
-          setIsRecording(false);
+          }, 150);
         }
       };
 
       recognitionRef.current = recognition;
-      recognition.start();
-
-      // Start elapsed timer
-      if (!timerIntervalRef.current) {
-        timerIntervalRef.current = setInterval(() => {
-          setElapsedSeconds((prev) => prev + 1);
-        }, 1000);
+      try {
+        recognition.start();
+      } catch (startErr) {
+        console.warn('Speech recognition initial start caught:', startErr);
       }
     } catch (err) {
-      console.error('Failed to initialize speech recognition:', err);
-      isRecordingIntentRef.current = false;
-      setIsRecording(false);
-      setIsVoiceDetected(false);
+      console.warn('Failed to initialize speech recognition:', err);
+      setEngineStatus('audio_backup_active');
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     isRecordingIntentRef.current = false;
     setIsRecording(false);
     setIsVoiceDetected(false);
+    setAudioLevel(0);
+    setEngineStatus('idle');
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
 
     if (recognitionRef.current) {
       try {
@@ -325,21 +428,69 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       recognitionRef.current = null;
     }
 
-    // Commit any active final text
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    // Commit any active final text from Web Speech
+    let currentText = transcript.trim();
     if (sessionFinalRef.current) {
-      const fullFinal = [initialTextRef.current, sessionFinalRef.current]
+      currentText = [initialTextRef.current, sessionFinalRef.current]
         .filter(Boolean)
         .join(' ')
         .replace(/\s+/g, ' ')
         .trim();
-      initialTextRef.current = fullFinal;
+      initialTextRef.current = currentText;
       sessionFinalRef.current = '';
-      setTranscript(fullFinal);
+      setTranscript(currentText);
     }
 
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
+    // Snapshot audio chunks and close audio stream
+    const recordedChunks = [...audioChunksRef.current];
+    audioChunksRef.current = [];
+
+    const audioCtx = audioContextRef.current;
+    if (audioCtx) {
+      try {
+        await audioCtx.close();
+      } catch {}
+      audioContextRef.current = null;
+    }
+
+    if (mediaStreamRef.current) {
+      try {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch {}
+      mediaStreamRef.current = null;
+    }
+
+    // If live Web Speech produced no words (e.g. Chrome Google Speech cloud blocked or network issue),
+    // automatically invoke backend AI audio transcription so the candidate's speech is NEVER lost!
+    if (!currentText && recordedChunks.length > 0) {
+      setIsTranscribingBackend(true);
+      try {
+        let totalSamples = 0;
+        for (const chunk of recordedChunks) totalSamples += chunk.length;
+        const merged = new Float32Array(totalSamples);
+        let offset = 0;
+        for (const chunk of recordedChunks) {
+          merged.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        const sampleRate = audioCtx ? audioCtx.sampleRate : 44100;
+        const wavBlob = encodeWav(merged, sampleRate);
+        const result = await api.transcribeAudio(wavBlob);
+        if (result && result.transcript) {
+          setTranscript(result.transcript);
+          initialTextRef.current = result.transcript;
+        }
+      } catch (transcribeErr: any) {
+        console.warn('Backend audio transcription fallback error:', transcribeErr);
+      } finally {
+        setIsTranscribingBackend(false);
+      }
     }
   };
 
@@ -349,6 +500,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       stopTTS();
       stopRecording();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Compute live metrics for HUD
@@ -1117,6 +1269,24 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                       {liveWpm} WPM
                     </strong>
                   </div>
+
+                  {isRecording && (
+                    <>
+                      <span>•</span>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800">
+                        <span className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-300">MIC:</span>
+                        <div className="flex items-end gap-0.5 h-3 w-7">
+                          <span className="w-1 bg-emerald-500 rounded-xs transition-all duration-75" style={{ height: `${Math.max(20, Math.min(100, audioLevel * 1.5))}%` }} />
+                          <span className="w-1 bg-emerald-500 rounded-xs transition-all duration-75" style={{ height: `${Math.max(20, Math.min(100, audioLevel * 2.0))}%` }} />
+                          <span className="w-1 bg-emerald-500 rounded-xs transition-all duration-75" style={{ height: `${Math.max(20, Math.min(100, audioLevel * 1.2))}%` }} />
+                          <span className="w-1 bg-emerald-500 rounded-xs transition-all duration-75" style={{ height: `${Math.max(20, Math.min(100, audioLevel * 1.8))}%` }} />
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                          {audioLevel > 10 ? `${audioLevel}%` : 'Speak...'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1132,6 +1302,26 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* Status alerts if browser speech engine is offline */}
+              {isTranscribingBackend && (
+                <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 flex items-center gap-3 text-xs text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs animate-pulse">
+                  <Loader2 className="w-4 h-4 animate-spin text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <div>
+                    <p className="font-bold">AI Speech-to-Text Processing</p>
+                    <p className="text-[11px] text-indigo-600/80 dark:text-indigo-400/80 font-normal">
+                      Transcribing your recorded answer from high-definition audio... This takes just a couple seconds.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {engineStatus === 'network_offline' && isRecording && (
+                <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <span className="font-bold">ℹ️ Note:</span>
+                  <span>Browser live speech cloud is unreachable (network/firewall). Direct audio is recording continuously and will be transcribed automatically when you stop!</span>
+                </div>
+              )}
 
               {/* Transcript Text Area (editable) */}
               <div className="relative">
@@ -1154,7 +1344,13 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                         isVoiceDetected ? 'bg-emerald-500 scale-125 transition-transform' : 'bg-rose-500 animate-pulse'
                       }`}
                     />
-                    <span>{isVoiceDetected ? 'Receiving Voice...' : 'Listening (Speak now)...'}</span>
+                    <span>
+                      {engineStatus === 'typing_live'
+                        ? 'Live Typing...'
+                        : isVoiceDetected
+                        ? `Voice Detected (${audioLevel}%)`
+                        : 'Listening (Speak now)...'}
+                    </span>
                   </div>
                 )}
               </div>

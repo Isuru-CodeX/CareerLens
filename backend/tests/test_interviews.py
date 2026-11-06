@@ -112,3 +112,23 @@ def test_full_interview_session_api_flow():
     assert len(sessions_list) >= 1
     assert sessions_list[0]["id"] == session_id
 
+    # 5. Test audio transcription endpoint
+    import io, wave
+    wav_buf = io.BytesIO()
+    with wave.open(wav_buf, 'wb') as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(16000)
+        wf.writeframes(b'\x00\x00' * 8000)
+    wav_buf.seek(0)
+
+    transcribe_resp = client.post(
+        "/api/interviews/transcribe",
+        headers={"Authorization": f"Bearer {token}"},
+        files={"file": ("test.wav", wav_buf.getvalue(), "audio/wav")}
+    )
+    assert transcribe_resp.status_code == 200
+    transcribe_data = transcribe_resp.json()
+    assert "transcript" in transcribe_data
+    assert "status" in transcribe_data
+

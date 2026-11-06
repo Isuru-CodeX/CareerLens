@@ -3,8 +3,10 @@ backend/app/api/interviews.py - Real-Time Voice AI Mock Interview Simulator API.
 Handles interactive turn-by-turn interview simulation, STAR scoring, speech metrics,
 and multimodal performance scorecards.
 """
+import io
+import logging
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -14,6 +16,7 @@ from app.services.interview_simulator_service import InterviewSimulatorService
 from app.services.activity_service import record_user_activity
 
 router = APIRouter(prefix="/interviews", tags=["Voice AI Mock Interview"])
+logger = logging.getLogger(__name__)
 
 class StartSessionRequest(BaseModel):
     role_title: str
@@ -292,5 +295,46 @@ def get_interview_session(
         "turns": session.turns or [],
         "scorecard": session.scorecard or {},
         "created_at": session.created_at.isoformat() if session.created_at else None
+    }
+
+
+@router.post("/transcribe")
+async def transcribe_interview_audio(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Server-side audio transcription backup.
+    Processes audio (WAV/PCM) using speech_recognition / Google Speech REST,
+    ensuring speech is transcribed even if browser Web Speech API encounters network or privacy blocks.
+    """
+    content = await file.read()
+    if not content or len(content) < 100:
+        return {"transcript": "", "words_count": 0, "status": "empty"}
+
+    transcript = ""
+    try:
+        import speech_recognition as sr
+
+        r = sr.Recognizer()
+        with sr.AudioFile(io.BytesIO(content)) as source:
+            audio_data = r.record(source)
+            try:
+                transcript = r.recognize_google(audio_data)
+            except sr.UnknownValueError:
+                logger.info("Speech recognition: no intelligible speech detected in audio")
+                transcript = ""
+            except sr.RequestError as e:
+                logger.warning(f"Google speech recognition request error: {e}")
+                transcript = ""
+    except Exception as e:
+        logger.warning(f"Server audio transcription error: {e}")
+        transcript = ""
+
+    words = [w for w in transcript.split() if w]
+    return {
+        "transcript": transcript,
+        "words_count": len(words),
+        "status": "success" if transcript else "no_speech_detected"
     }
 
