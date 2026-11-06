@@ -52,9 +52,9 @@ export const SkillsEditor: React.FC<SkillsEditorProps> = ({
       </p>
 
       {/* Skills Chips */}
-      <div className="flex flex-wrap gap-2 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/40 min-h-[50px] items-center">
+      <div className="flex flex-wrap gap-2 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 min-h-[50px] items-center">
         {skills.length === 0 ? (
-          <span className="text-xs text-slate-400 italic">
+          <span className="text-xs text-slate-400 dark:text-slate-500 italic">
             No verified skills added yet. Type below or import a CV to populate.
           </span>
         ) : (
@@ -63,8 +63,8 @@ export const SkillsEditor: React.FC<SkillsEditorProps> = ({
               key={s.id}
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold shadow-2xs transition-all ${
                 s.source === 'cv'
-                  ? 'bg-purple-50 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-900'
-                  : 'bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
+                  ? 'bg-purple-100/90 dark:bg-purple-950/80 text-purple-800 dark:text-purple-200 border border-purple-200/80 dark:border-purple-800/80'
+                  : 'bg-blue-100/90 dark:bg-blue-950/80 text-blue-800 dark:text-blue-200 border border-blue-200/80 dark:border-blue-800/80'
               }`}
               title={s.source === 'cv' ? 'Added from your CV' : 'Added manually'}
             >
@@ -72,7 +72,7 @@ export const SkillsEditor: React.FC<SkillsEditorProps> = ({
               <button
                 type="button"
                 onClick={() => onRemoveSkill(s.id)}
-                className="hover:text-red-500 rounded-full p-0.5 transition-colors cursor-pointer"
+                className="hover:text-red-500 dark:hover:text-red-400 rounded-full p-0.5 transition-colors cursor-pointer"
                 aria-label={`Remove ${s.name}`}
               >
                 <X className="w-3 h-3" />
@@ -91,7 +91,7 @@ export const SkillsEditor: React.FC<SkillsEditorProps> = ({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={adding}
-          className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
         />
         <button
           type="button"

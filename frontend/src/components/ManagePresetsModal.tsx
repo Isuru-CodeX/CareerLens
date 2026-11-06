@@ -152,7 +152,7 @@ export const ManagePresetsModal: React.FC<ManagePresetsModalProps> = ({
                   className={`p-3 rounded-2xl border transition-all flex items-center justify-between ${
                     editingPreset?.id === p.id
                       ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/30'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/40'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50'
                   }`}
                 >
                   <div>

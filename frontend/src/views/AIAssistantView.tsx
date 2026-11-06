@@ -630,7 +630,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 min-h-[18px] flex items-center">
                   Company Name
                 </label>
                 <input
@@ -643,7 +643,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 min-h-[18px] flex items-center">
                   Target Role Title
                 </label>
                 <input
