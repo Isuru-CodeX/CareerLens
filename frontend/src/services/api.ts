@@ -299,6 +299,24 @@ class ApiService {
     });
   }
 
+  async syncResumeToProfile(id: string): Promise<{
+    status: string;
+    message: string;
+    summary: {
+      photo_extracted: boolean;
+      phone_updated: boolean;
+      address_enriched: boolean;
+      industry_suggested: string | null;
+      education_added: number;
+      experiences_added: number;
+      skills_added: number;
+    };
+  }> {
+    return this.request(`/resumes/${id}/sync-to-profile`, {
+      method: 'POST'
+    });
+  }
+
   getResumeDownloadUrl(id: string): string {
     const token = this.getToken();
     const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';

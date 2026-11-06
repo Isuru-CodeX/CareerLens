@@ -276,8 +276,9 @@ def is_likely_portrait_photo(img: Image.Image) -> bool:
 
 def find_cv_photo(file_path: str, mime_type: str) -> Optional[bytes]:
     """
-    Feature 2: Detects and extracts candidate headshot profile photos from CV.
+    Detects and extracts candidate headshot profile photos from CV.
     Filters out icons, dark banners, and decorative background shapes.
+    Corrects CMYK inversions and broken alpha masks to prevent black screens.
     """
     ext = os.path.splitext(file_path)[1].lower()
     candidates: List[Image.Image] = []
@@ -289,11 +290,21 @@ def find_cv_photo(file_path: str, mime_type: str) -> Optional[bytes]:
             for page in reader.pages[:2]:
                 if hasattr(page, "images"):
                     for img_file in page.images:
+                        im = None
                         try:
-                            im = Image.open(io.BytesIO(img_file.data))
+                            if hasattr(img_file, "image") and img_file.image is not None:
+                                im = img_file.image
+                        except Exception:
+                            im = None
+                        if im is None:
+                            try:
+                                im = Image.open(io.BytesIO(img_file.data))
+                            except Exception:
+                                continue
+                        try:
                             w, h = im.size
                             ratio = w / float(h)
-                            if w >= 100 and h >= 100 and 0.6 <= ratio <= 1.6:
+                            if w >= 80 and h >= 80 and 0.55 <= ratio <= 1.7:
                                 if is_likely_portrait_photo(im):
                                     candidates.append(im)
                         except Exception:
@@ -308,7 +319,7 @@ def find_cv_photo(file_path: str, mime_type: str) -> Optional[bytes]:
                             im = Image.open(io.BytesIO(data))
                             w, h = im.size
                             ratio = w / float(h)
-                            if w >= 100 and h >= 100 and 0.6 <= ratio <= 1.6:
+                            if w >= 80 and h >= 80 and 0.55 <= ratio <= 1.7:
                                 if is_likely_portrait_photo(im):
                                     candidates.append(im)
                         except Exception:
@@ -323,7 +334,7 @@ def find_cv_photo(file_path: str, mime_type: str) -> Optional[bytes]:
     best_img: Optional[Image.Image] = None
     best_score = -1.0
 
-    for cand in candidates[:8]:
+    for cand in candidates[:10]:
         w, h = cand.size
         ratio = w / float(h)
         squareness = 1.0 - abs(1.0 - ratio)
@@ -341,20 +352,55 @@ def find_cv_photo(file_path: str, mime_type: str) -> Optional[bytes]:
 def normalize_avatar_image(img: Image.Image) -> bytes:
     """
     Square, 512px, EXIF-rotated, center-cropped, high-quality JPEG.
-    Safely composites transparent PNGs onto white canvas so they NEVER turn solid black.
+    Safely composites transparent PNGs onto white canvas and auto-corrects
+    inverted CMYK color separations so photos NEVER turn solid black.
     """
     img = ImageOps.exif_transpose(img)
 
+    # Handle CMYK images from Adobe/Canva print exports
+    if img.mode == "CMYK":
+        rgb_direct = img.convert("RGB")
+        try:
+            stat = ImageStat.Stat(rgb_direct)
+            mean_lum = sum(stat.mean) / len(stat.mean)
+            if mean_lum < 35.0:
+                inv = ImageOps.invert(rgb_direct)
+                stat_inv = ImageStat.Stat(inv)
+                if sum(stat_inv.mean) / len(stat_inv.mean) > mean_lum:
+                    img = inv
+                else:
+                    img = rgb_direct
+            else:
+                img = rgb_direct
+        except Exception:
+            img = rgb_direct
+
     # Handle transparency / alpha channels without creating a black background
-    if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
-        background = Image.new("RGB", img.size, (255, 255, 255))
+    elif img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
         im_rgba = img.convert("RGBA")
-        background.paste(im_rgba, mask=im_rgba.split()[3])
-        img = background
-    elif img.mode == "CMYK":
-        img = img.convert("RGB")
+        alpha = im_rgba.split()[3]
+        extrema = alpha.getextrema()
+        # If alpha mask is broken (all 0s), ignore the mask so it doesn't composite as solid black
+        if extrema == (0, 0) or extrema[1] == 0:
+            img = im_rgba.convert("RGB")
+        else:
+            background = Image.new("RGB", img.size, (255, 255, 255))
+            background.paste(im_rgba, mask=alpha)
+            img = background
     elif img.mode != "RGB":
         img = img.convert("RGB")
+
+    # Safety: check if resulting RGB is pitch black (e.g. inverted negative mask)
+    try:
+        stat_final = ImageStat.Stat(img)
+        avg_b = sum(stat_final.mean) / len(stat_final.mean)
+        if avg_b < 15.0:
+            inv_final = ImageOps.invert(img)
+            stat_inv = ImageStat.Stat(inv_final)
+            if sum(stat_inv.mean) / len(stat_inv.mean) > 60.0:
+                img = inv_final
+    except Exception:
+        pass
 
     w, h = img.size
     min_dim = min(w, h)

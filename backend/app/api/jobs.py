@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit
-from app.models.models import User, Resume, JobDescription, JobMatch
+from app.models.models import User, Resume, JobDescription, JobMatch, Preset, CareerProfile
 from app.schemas.schemas import (
     JobDescriptionCreate, JobDescriptionOut, MatchRequest, JobMatchOut,
     JobUrlExtractRequest, JobUrlExtractResponse
@@ -87,12 +87,64 @@ async def match_resume(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    resume = db.query(Resume).filter(
-        Resume.id == req.resume_id,
-        Resume.user_id == current_user.id
-    ).first()
-    if not resume:
-        raise HTTPException(status_code=404, detail="Resume not found.")
+    target_rid = (req.resume_id or "all").strip()
+    resume = None
+    resume_text = ""
+
+    if target_rid == "all":
+        all_resumes = db.query(Resume).filter(
+            Resume.user_id == current_user.id
+        ).order_by(Resume.created_at.desc()).all()
+        if not all_resumes:
+            raise HTTPException(status_code=404, detail="No resumes found in your library. Please upload a resume first.")
+        resume = all_resumes[0]
+        resume_text = "\n\n=== COMBINED CANDIDATE RESUME DOSSIER ===\n\n".join(
+            [f"[File: {r.file_name}]\n{r.raw_text or ''}" for r in all_resumes if r.raw_text]
+        )
+        # Also append verified profile skills
+        prof = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
+        if prof and prof.skills_list:
+            sk_names = [s.get("name") if isinstance(s, dict) else str(s) for s in prof.skills_list]
+            resume_text += f"\n\nVerified Profile Skills: {', '.join(sk_names)}"
+
+    elif target_rid.startswith("preset:"):
+        preset_id = target_rid.replace("preset:", "")
+        preset = db.query(Preset).filter(
+            Preset.id == preset_id,
+            Preset.user_id == current_user.id
+        ).first()
+        r_ids = [pr.resume_id for pr in preset.resumes] if (preset and preset.resumes) else []
+        target_resumes = db.query(Resume).filter(
+            Resume.id.in_(r_ids),
+            Resume.user_id == current_user.id
+        ).all() if r_ids else []
+        if not target_resumes:
+            target_resumes = db.query(Resume).filter(Resume.user_id == current_user.id).all()
+        if not target_resumes:
+            raise HTTPException(status_code=404, detail="No resumes found for this preset.")
+        resume = target_resumes[0]
+        resume_text = "\n\n=== PRESET CANDIDATE DOSSIER ===\n\n".join(
+            [f"[File: {r.file_name}]\n{r.raw_text or ''}" for r in target_resumes if r.raw_text]
+        )
+
+    elif target_rid.startswith("resume:"):
+        actual_id = target_rid.replace("resume:", "")
+        resume = db.query(Resume).filter(
+            Resume.id == actual_id,
+            Resume.user_id == current_user.id
+        ).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found.")
+        resume_text = resume.raw_text or ""
+
+    else:
+        resume = db.query(Resume).filter(
+            Resume.id == target_rid,
+            Resume.user_id == current_user.id
+        ).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found.")
+        resume_text = resume.raw_text or ""
 
     job_text = ""
     target_title = req.job_title
@@ -139,7 +191,7 @@ async def match_resume(
     try:
         # Deep Match: LLM judgement + grounding + deterministic scoring (falls back to the improved basic engine)
         report = DeepMatchService().analyze(
-            resume_text=resume.raw_text or "",
+            resume_text=resume_text or resume.raw_text or "",
             job_text=job_text,
             job_title=target_title,
             company=target_company
@@ -149,9 +201,9 @@ async def match_resume(
         logger.exception("Error in DeepMatchService analyze, attempting safe fallback")
         # Extreme fallback to ensure user never receives a 500 error
         from app.services.deep_match.heuristics_v2 import estimate_years
-        years = estimate_years(resume.raw_text or "")
+        years = estimate_years(resume_text or resume.raw_text or "")
         report = DeepMatchService()._heuristic_report(
-            resume_text=resume.raw_text or "",
+            resume_text=resume_text or resume.raw_text or "",
             job_text=job_text,
             years=years,
             job_title=target_title,

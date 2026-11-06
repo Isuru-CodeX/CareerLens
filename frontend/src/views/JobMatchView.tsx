@@ -88,7 +88,7 @@ Preferred:
         if (!isMounted) return;
         setResumes(list);
         setPresets(presetsList);
-        setSelectedResumeId(prev => prev || (list.length > 0 ? list[0].id : ''));
+        setSelectedResumeId(prev => prev || 'all');
         if (matches.length > 0) {
           setMatchResult(matches[0]);
         }
@@ -342,9 +342,9 @@ Preferred:
                 value={selectedPresetId}
                 onChange={(newId) => {
                   setSelectedPresetId(newId);
+                  setSelectedResumeId(newId);
                   if (newId.startsWith('resume:')) {
                     const rId = newId.replace('resume:', '');
-                    setSelectedResumeId(rId);
                     const chosen = resumes.find(r => r.id === rId);
                     if (chosen?.target_role && !jobTitle) {
                       setJobTitle(chosen.target_role);
@@ -352,20 +352,8 @@ Preferred:
                   } else if (newId.startsWith('preset:')) {
                     const pId = newId.replace('preset:', '');
                     const preset = presets.find(p => p.id === pId);
-                    if (preset && preset.resume_ids && preset.resume_ids.length > 0) {
-                      setSelectedResumeId(preset.resume_ids[0]);
-                    }
                     if (preset?.target_role && !jobTitle) {
                       setJobTitle(preset.target_role);
-                    }
-                  } else if (newId === 'all') {
-                    if (resumes.length > 0) {
-                      setSelectedResumeId(resumes[0].id);
-                    }
-                  } else {
-                    const preset = presets.find(p => p.id === newId);
-                    if (preset && preset.resume_ids && preset.resume_ids.length > 0) {
-                      setSelectedResumeId(preset.resume_ids[0]);
                     }
                   }
                 }}

@@ -112,8 +112,8 @@ PROTECTED_SKILL_SLASHES = {"ci/cd", "ui/ux", "tcp/ip", "pl/sql", "os/2", "i/o", 
 
 def split_compound_skills(raw_skills: List[str]) -> List[str]:
     """
-    Intelligently splits skills combined with commas, slashes, bullets, or pipes
-    (e.g. 'HTML/CSS', 'Java, PHP, JavaScript', 'Docker | Kubernetes')
+    Intelligently splits skills combined with commas, slashes, bullets, pipes, or 'and'
+    (e.g. 'HTML/CSS', 'Java, PHP, JavaScript and MySQL', 'Docker | Kubernetes', 'Frontend (React, Vue)')
     while preserving protected terms like 'CI/CD' and 'UI/UX'.
     """
     result: List[str] = []
@@ -126,8 +126,8 @@ def split_compound_skills(raw_skills: List[str]) -> List[str]:
         if not text:
             continue
 
-        # Split on commas, newlines, bullets, pipes, semicolons
-        parts = re.split(r"[,;\n•·|&]+", text)
+        # Split on commas, newlines, bullets, pipes, semicolons, parentheses, and the word 'and'
+        parts = re.split(r"[,;\n•·|&()]|\s+\band\b\s+", text, flags=re.IGNORECASE)
         for part in parts:
             p = part.strip()
             if not p:

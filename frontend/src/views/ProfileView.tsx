@@ -831,13 +831,13 @@ export const ProfileView: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           {/* Export JSON */}
-          <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/25 space-y-2 flex flex-col justify-between">
+          <div className="p-4 rounded-2xl border border-emerald-300 dark:border-emerald-600/40 bg-emerald-50/60 dark:bg-emerald-950/40 space-y-2 flex flex-col justify-between shadow-2xs">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 font-bold text-xs text-emerald-700 dark:text-emerald-400">
+              <div className="flex items-center gap-2 font-bold text-xs text-emerald-800 dark:text-emerald-300">
                 <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Download Machine-Readable Archive</span>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
                 Exports your user profile, uploaded resumes, parsed credentials, and application tracker logs into a single structured .JSON format.
               </p>
             </div>
@@ -845,7 +845,7 @@ export const ProfileView: React.FC = () => {
               type="button"
               onClick={handleExportData}
               disabled={isExporting}
-              className="mt-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-2 shadow-xs transition-colors disabled:opacity-50 self-start cursor-pointer"
+              className="mt-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50 self-start cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>{isExporting ? 'Exporting...' : 'Export Data (.JSON)'}</span>

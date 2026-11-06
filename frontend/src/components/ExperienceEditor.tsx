@@ -145,15 +145,15 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
             return (
               <article
                 key={e.id}
-                className="p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 shadow-xs space-y-3.5 relative"
+                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3.5 relative"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                      className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
                         e.source === 'cv'
-                          ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300'
-                          : 'bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200'
+                          ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
                       }`}
                     >
                       {e.source === 'cv' ? 'From CV' : 'Manual Entry'}
@@ -184,7 +184,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
                       value={e.job_title}
                       onChange={(ev) => patch(e.id, { job_title: ev.target.value })}
                       placeholder="e.g. Senior Software Engineer"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -198,7 +198,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
                       value={e.company}
                       onChange={(ev) => patch(e.id, { company: ev.target.value })}
                       placeholder="e.g. Acme Corp"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -210,7 +210,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
                     <select
                       value={e.industry || 'Other'}
                       onChange={(ev) => patch(e.id, { industry: ev.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     >
                       {INDUSTRIES.map((ind) => (
                         <option key={ind} value={ind}>
@@ -228,7 +228,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
                     <select
                       value={e.start_year}
                       onChange={(ev) => patch(e.id, { start_year: Number(ev.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     >
                       {YEARS.map((y) => (
                         <option key={y} value={y}>
@@ -247,7 +247,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
                       disabled={e.is_current}
                       value={e.end_year ?? e.start_year}
                       onChange={(ev) => patch(e.id, { end_year: Number(ev.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono disabled:opacity-40"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono disabled:opacity-40 focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     >
                       {YEARS.filter((y) => y >= e.start_year).map((y) => (
                         <option key={y} value={y}>
@@ -290,7 +290,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
                     value={e.description || ''}
                     onChange={(ev) => patch(e.id, { description: ev.target.value })}
                     placeholder="Brief 1-2 sentence overview of scope, team, or responsibilities..."
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs leading-relaxed"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs leading-relaxed focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -308,7 +308,7 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({
                       })
                     }
                     placeholder="Designed and launched cloud REST APIs&#10;Mentored junior engineers and led code reviews"
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs leading-relaxed font-mono"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs leading-relaxed font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </article>

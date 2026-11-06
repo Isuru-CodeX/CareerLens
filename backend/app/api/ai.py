@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit
-from app.models.models import User, Resume, AIUsageRecord, GeneratedDraft, CareerProfile
+from app.models.models import User, Resume, AIUsageRecord, GeneratedDraft, CareerProfile, Preset
 from app.schemas.schemas import (
     RewriteRequest, RewriteResponse, CoverLetterRequest, CoverLetterResponse,
     InterviewQuestionsRequest, InterviewQuestionsResponse
@@ -57,35 +57,91 @@ def generate_cover_letter(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    resume = db.query(Resume).filter(
-        Resume.id == req.resume_id,
-        Resume.user_id == current_user.id
-    ).first()
-    if not resume:
-        raise HTTPException(status_code=404, detail="Resume not found.")
+    target_rid = (req.resume_id or "all").strip()
+    target_resumes: List[Resume] = []
 
-    # Extract resume parts
+    if target_rid == "all":
+        target_resumes = db.query(Resume).filter(
+            Resume.user_id == current_user.id
+        ).order_by(Resume.created_at.desc()).all()
+        if not target_resumes:
+            raise HTTPException(status_code=404, detail="No resumes found in your library. Please upload a resume first.")
+
+    elif target_rid.startswith("preset:"):
+        preset_id = target_rid.replace("preset:", "")
+        preset = db.query(Preset).filter(
+            Preset.id == preset_id,
+            Preset.user_id == current_user.id
+        ).first()
+        r_ids = [pr.resume_id for pr in preset.resumes] if (preset and preset.resumes) else []
+        if r_ids:
+            target_resumes = db.query(Resume).filter(
+                Resume.id.in_(r_ids),
+                Resume.user_id == current_user.id
+            ).all()
+        if not target_resumes:
+            target_resumes = db.query(Resume).filter(Resume.user_id == current_user.id).all()
+        if not target_resumes:
+            raise HTTPException(status_code=404, detail="No resumes found for this preset.")
+
+    elif target_rid.startswith("resume:"):
+        actual_id = target_rid.replace("resume:", "")
+        single_r = db.query(Resume).filter(
+            Resume.id == actual_id,
+            Resume.user_id == current_user.id
+        ).first()
+        if not single_r:
+            raise HTTPException(status_code=404, detail="Resume not found.")
+        target_resumes = [single_r]
+
+    else:
+        single_r = db.query(Resume).filter(
+            Resume.id == target_rid,
+            Resume.user_id == current_user.id
+        ).first()
+        if not single_r:
+            raise HTTPException(status_code=404, detail="Resume not found.")
+        target_resumes = [single_r]
+
+    resume = target_resumes[0]
+
+    # Extract resume parts across targeted resumes
     candidate_name = current_user.full_name or "Candidate"
     skills = []
     summary = ""
     experience_highlight = ""
 
-    for s in resume.sections:
-        if s.section_type == "contact" and s.structured_data:
-            if s.structured_data.get("name"):
-                candidate_name = s.structured_data["name"]
-        elif s.section_type == "summary" and s.structured_data:
-            summary = s.structured_data.get("text", "")
-        elif s.section_type == "skills" and s.structured_data:
-            skills = [item.get("name") for item in s.structured_data.get("items", []) if isinstance(item, dict) and "name" in item]
-        elif s.section_type == "experience" and s.structured_data:
-            items = s.structured_data.get("items", [])
-            if items and isinstance(items[0], dict):
-                bullets = items[0].get("bullets", [])
-                experience_highlight = bullets[0] if bullets else items[0].get("title", "")
+    seen_skills = set()
+    for r in target_resumes:
+        for s in r.sections:
+            if s.section_type == "contact" and s.structured_data:
+                if s.structured_data.get("name") and not candidate_name:
+                    candidate_name = s.structured_data["name"]
+            elif s.section_type == "summary" and s.structured_data and not summary:
+                summary = s.structured_data.get("text", "")
+            elif s.section_type == "skills" and s.structured_data:
+                for item in s.structured_data.get("items", []):
+                    if isinstance(item, dict) and "name" in item:
+                        nm = item["name"]
+                        if nm and nm.lower() not in seen_skills:
+                            seen_skills.add(nm.lower())
+                            skills.append(nm)
+            elif s.section_type == "experience" and s.structured_data and not experience_highlight:
+                items = s.structured_data.get("items", [])
+                if items and isinstance(items[0], dict):
+                    bullets = items[0].get("bullets", [])
+                    experience_highlight = bullets[0] if bullets else items[0].get("title", "")
 
     # Retrieve user career profile for contact & professional links
     profile = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
+    if profile and profile.skills_list:
+        for sk in profile.skills_list:
+            nm = sk.get("name") if isinstance(sk, dict) else str(sk)
+            if nm and nm.lower() not in seen_skills:
+                seen_skills.add(nm.lower())
+                skills.append(nm)
+    if profile and profile.summary and not summary:
+        summary = profile.summary
 
     # Check overall contact header toggle
     if req.include_contact_header is False:

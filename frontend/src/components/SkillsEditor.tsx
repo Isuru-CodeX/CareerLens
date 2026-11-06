@@ -18,7 +18,7 @@ export const SkillsEditor: React.FC<SkillsEditorProps> = ({
 
   const handleAdd = async () => {
     const rawNames = draft
-      .split(',')
+      .split(/[,;/|•\n]+/)
       .map((s) => s.trim())
       .filter(Boolean);
     if (!rawNames.length || adding) return;

@@ -1,5 +1,6 @@
 import os
 import uuid
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Response
 from fastapi.responses import FileResponse
@@ -8,7 +9,8 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit
 from app.models.models import (
-    User, Resume, ResumeVersion, ParsedResumeSection, ResumeSkill, AnalysisRun, Recommendation
+    User, Resume, ResumeVersion, ParsedResumeSection, ResumeSkill, AnalysisRun, Recommendation,
+    CareerProfile, ProfileExperience, ProfileSkill, ExperienceSource, SkillSource
 )
 from app.schemas.schemas import (
     ResumeOut, ParsedSectionOut, ParsedSectionUpdate, AnalysisRunOut
@@ -18,6 +20,13 @@ from app.services.analysis_service import AnalysisService
 from app.services.pdf_service import PDFService
 from app.services.activity_service import record_user_activity
 from app.services.experience_intelligence_service import ExperienceIntelligenceService
+from app.services.cv_extraction_service import (
+    find_cv_photo, normalize_phone_number, CvDataSchema, heuristic_extract_cv, ExtractedContent
+)
+from app.services.location_service import enrich_address_data, suggest_industry_domain
+from app.services.years_service import split_compound_skills, canonical_skill
+
+logger = logging.getLogger("careerlens.resumes")
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
@@ -481,4 +490,222 @@ def delete_resume(
     db.commit()
     log_audit(db, current_user.id, "RESUME_DELETED", {"resume_id": resume_id})
     return {"message": "Resume successfully deleted."}
+
+@router.post("/{resume_id}/sync-to-profile")
+async def sync_resume_to_profile(
+    resume_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    profile = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
+    if not profile:
+        profile = CareerProfile(user_id=current_user.id)
+        db.add(profile)
+        db.flush()
+
+    parsed_dict = resume.parsed_json or {}
+    cv_data: Optional[CvDataSchema] = None
+    if parsed_dict:
+        try:
+            cv_data = CvDataSchema(**parsed_dict)
+        except Exception:
+            pass
+    if not cv_data and resume.raw_text:
+        cv_data = heuristic_extract_cv(ExtractedContent(text=resume.raw_text, links=[]))
+
+    summary_info = {
+        "photo_extracted": False,
+        "phone_updated": False,
+        "address_enriched": False,
+        "industry_suggested": None,
+        "education_added": 0,
+        "experiences_added": 0,
+        "skills_added": 0
+    }
+
+    # 1. Profile photo extraction (auto-crop, CMYK correct, non-black avatar)
+    if resume.file_path and os.path.exists(resume.file_path):
+        try:
+            photo_bytes = find_cv_photo(resume.file_path, resume.file_type)
+            if photo_bytes:
+                avatars_dir = os.path.join(settings.RESOLVED_UPLOAD_DIR, "avatars")
+                os.makedirs(avatars_dir, exist_ok=True)
+                avatar_filename = f"avatar_{current_user.id}_{uuid.uuid4().hex[:8]}.jpg"
+                avatar_disk_path = os.path.join(avatars_dir, avatar_filename)
+                with open(avatar_disk_path, "wb") as f_av:
+                    f_av.write(photo_bytes)
+                current_user.avatar_path = avatar_disk_path
+                current_user.avatar_url = f"/api/users/me/avatar?v={uuid.uuid4().hex[:6]}"
+                current_user.avatar_source = "cv"
+                summary_info["photo_extracted"] = True
+        except Exception as e:
+            logger.warning(f"Error extracting photo from CV {resume.id}: {e}")
+
+    # 2. Contact details: phone & address
+    if cv_data:
+        if cv_data.phone:
+            norm_phone = normalize_phone_number(cv_data.phone)
+            if norm_phone:
+                profile.phone = norm_phone
+                summary_info["phone_updated"] = True
+
+        # Address enrichment
+        addr_line = cv_data.address.line1 or ""
+        city = cv_data.address.city or ""
+        country = cv_data.address.country or ""
+        postal = cv_data.address.postalCode or ""
+        region = cv_data.address.region or ""
+
+        search_query = ", ".join(filter(bool, [addr_line, city, region, country]))
+        if search_query:
+            try:
+                enr = await enrich_address_data(
+                    raw_address_or_line1=addr_line,
+                    city=city,
+                    region=region,
+                    postal_code=postal,
+                    country=country
+                )
+                profile.address_line1 = addr_line or enr.get("address_line1")
+                profile.city = enr.get("city") or city
+                profile.region = enr.get("region") or region
+                profile.postal_code = enr.get("postal_code") or postal
+                profile.country = enr.get("country") or country
+                summary_info["address_enriched"] = True
+            except Exception:
+                profile.address_line1 = addr_line
+                profile.city = city
+                profile.region = region
+                profile.postal_code = postal
+                profile.country = country
+
+        # 3. Target Role & Industry Domain
+        if resume.target_role or cv_data.roleCategory:
+            target_role = resume.target_role or cv_data.roleCategory
+            profile.target_title = target_role
+            suggested_ind = suggest_industry_domain(target_role=target_role, skills=cv_data.skills)
+            profile.target_industry = suggested_ind
+            summary_info["industry_suggested"] = suggested_ind
+
+        # Links
+        if cv_data.links:
+            if cv_data.links.linkedin:
+                profile.linkedin_url = cv_data.links.linkedin
+            if cv_data.links.github:
+                profile.github_url = cv_data.links.github
+            if cv_data.links.portfolio:
+                profile.portfolio_url = cv_data.links.portfolio
+
+        # 4. Education History with preset mapping
+        if cv_data.education:
+            current_edus = profile.education_history or []
+            existing_signatures = {
+                f"{e.get('degree', '').lower().strip()}_{e.get('institution', '').lower().strip()}"
+                for e in current_edus if isinstance(e, dict)
+            }
+            new_edus = list(current_edus)
+            for item in cv_data.education:
+                sig = f"{item.degree.lower().strip()}_{item.institution.lower().strip()}"
+                if sig in existing_signatures:
+                    continue
+                deg_lower = item.degree.lower()
+                if any(k in deg_lower for k in ["diploma", "associate", "hnd"]):
+                    cat = "diploma"
+                elif any(k in deg_lower for k in ["school", "secondary", "high school"]):
+                    cat = "school"
+                elif any(k in deg_lower for k in ["course", "cert", "bootcamp"]):
+                    cat = "course"
+                else:
+                    cat = "university"
+
+                new_edus.append({
+                    "id": f"edu_{uuid.uuid4().hex[:8]}",
+                    "presetType": cat,
+                    "institution": item.institution,
+                    "degree": item.degree,
+                    "fieldOfStudy": item.fieldOfStudy or "",
+                    "startYear": item.startYear or 2021,
+                    "endYear": item.endYear or 2025,
+                    "grade": item.grade or "",
+                    "highlights": "\n".join(item.highlights) if isinstance(item.highlights, list) else str(item.highlights or "")
+                })
+                existing_signatures.add(sig)
+                summary_info["education_added"] += 1
+            profile.education_history = new_edus
+
+        # 5. Work Experience History
+        if cv_data.experience:
+            for exp in cv_data.experience:
+                existing = db.query(ProfileExperience).filter(
+                    ProfileExperience.user_id == current_user.id,
+                    ProfileExperience.job_title == exp.jobTitle,
+                    ProfileExperience.company == exp.company
+                ).first()
+                if not existing:
+                    exp_ind = exp.industry if exp.industry and exp.industry != "Other" else suggest_industry_domain(target_role=exp.jobTitle)
+                    new_exp = ProfileExperience(
+                        user_id=current_user.id,
+                        job_title=exp.jobTitle,
+                        company=exp.company,
+                        industry=exp_ind,
+                        start_year=exp.startYear,
+                        end_year=exp.endYear,
+                        is_current=exp.isCurrent,
+                        description=exp.description,
+                        highlights=exp.highlights,
+                        source="cv"
+                    )
+                    db.add(new_exp)
+                    db.flush()
+                    db.add(ExperienceSource(
+                        experience_id=new_exp.id,
+                        resume_id=resume.id
+                    ))
+                    summary_info["experiences_added"] += 1
+
+        # 6. Verified Skills (handling commas, slashes, and aliases)
+        all_skill_candidates = list(cv_data.skills)
+        expanded_skills = split_compound_skills(all_skill_candidates)
+        for sk_name in expanded_skills:
+            canon = canonical_skill(sk_name)
+            if not canon or len(canon) < 2:
+                continue
+            existing_sk = db.query(ProfileSkill).filter(
+                ProfileSkill.user_id == current_user.id,
+                ProfileSkill.name_normalized == canon.lower()
+            ).first()
+            if not existing_sk:
+                new_sk = ProfileSkill(
+                    user_id=current_user.id,
+                    name=canon,
+                    name_normalized=canon.lower(),
+                    source="cv"
+                )
+                db.add(new_sk)
+                db.flush()
+                db.add(SkillSource(
+                    skill_id=new_sk.id,
+                    resume_id=resume.id
+                ))
+                summary_info["skills_added"] += 1
+
+    record_user_activity(
+        db, current_user.id, "cv_imported_to_profile",
+        f"Imported CV '{resume.file_name}' into candidate profile",
+        entity_type="resume", entity_id=resume.id,
+        metadata=summary_info
+    )
+    db.commit()
+    return {
+        "status": "success",
+        "message": f"Successfully imported CV '{resume.file_name}' into your profile!",
+        "summary": summary_info
+    }
 

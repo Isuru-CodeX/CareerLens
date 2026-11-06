@@ -15,7 +15,10 @@ import {
   Layers,
   FileCheck,
   Award,
-  Eye
+  Eye,
+  UserCheck,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 import { Resume } from '../types';
 import { api } from '../services/api';
@@ -53,6 +56,23 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
   const [editedContent, setEditedContent] = useState<string>('');
   const [isSavingSection, setIsSavingSection] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Sync to Profile state
+  const [syncingResumeId, setSyncingResumeId] = useState<string | null>(null);
+  const [syncFeedback, setSyncFeedback] = useState<{ resumeId: string; message: string; summary: any } | null>(null);
+
+  const handleSyncToProfile = async (r: Resume) => {
+    setSyncingResumeId(r.id);
+    try {
+      const res = await api.syncResumeToProfile(r.id);
+      setSyncFeedback({ resumeId: r.id, message: res.message, summary: res.summary });
+      setTimeout(() => setSyncFeedback(null), 6000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to sync CV to profile.');
+    } finally {
+      setSyncingResumeId(null);
+    }
+  };
 
   const fetchResumes = useCallback(async () => {
     try {
@@ -309,7 +329,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => onNavigate('analysis', { resumeId: r.id })}
@@ -344,7 +364,48 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Edit Fields</span>
                   </button>
+
+                  {/* 1-Click Import CV Data to Profile Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSyncToProfile(r)}
+                    disabled={syncingResumeId === r.id}
+                    className="col-span-2 py-2 px-3 rounded-xl bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-950/50 dark:via-indigo-950/40 dark:to-purple-950/50 hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/60 dark:hover:to-indigo-900/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+                    title="Extract photo, education, experiences, skills & contact directly into your candidate profile"
+                  >
+                    {syncingResumeId === r.id ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600 dark:text-purple-400" />
+                        <span>Importing CV to Profile...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>Apply / Import CV into Profile</span>
+                      </>
+                    )}
+                  </button>
                 </div>
+
+                {/* Live Sync Confirmation */}
+                {syncFeedback?.resumeId === r.id && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-200 flex items-center justify-between animate-in fade-in">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>
+                        Imported! Added {syncFeedback.summary.education_added} edu, {syncFeedback.summary.experiences_added} roles, {syncFeedback.summary.skills_added} skills
+                        {syncFeedback.summary.photo_extracted ? ' & avatar' : ''}!
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSyncFeedback(null)}
+                      className="text-emerald-600 dark:text-emerald-400 font-bold ml-1 cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

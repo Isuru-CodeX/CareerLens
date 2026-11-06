@@ -260,3 +260,77 @@ def test_delete_profile_skill_api():
     current_ids = [s["id"] for s in list_resp.json()]
     assert skill_id not in current_ids
 
+def test_sync_resume_to_profile_and_combined_matching():
+    unique_email = f"synctest_{os.urandom(4).hex()}@careerlens.ai"
+    reg = client.post("/api/auth/register", json={
+        "email": unique_email,
+        "password": "Password123!",
+        "full_name": "Richard Sanchez"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Upload mock resume
+    cv_content = b"""Richard Sanchez
+Marketing Manager
+Phone: +123-456-7890
+Address: 123 Anywhere St., Any City
+Education:
+Master of Business Management, Wardiere University, 2029 - 2030, GPA: 3.8 / 4.0
+Bachelor of Business, Wardiere University, 2025 - 2029
+Skills:
+Project Management, Public Relations, Teamwork, SEO, Digital Marketing
+Experience:
+Marketing Manager at Borcelle Studio, 2026 - Present
+Led marketing campaigns and managed digital assets."""
+
+    upload_resp = client.post(
+        "/api/resumes/upload",
+        headers=headers,
+        files={"file": ("richard_sanchez.txt", cv_content, "text/plain")},
+        data={"title": "Richard Sanchez Resume", "target_role": "Marketing Manager"}
+    )
+    assert upload_resp.status_code == 200
+    resume_data = upload_resp.json()
+    resume_id = resume_data["id"]
+
+    # Call 1-click sync to profile
+    sync_resp = client.post(f"/api/resumes/{resume_id}/sync-to-profile", headers=headers)
+    assert sync_resp.status_code == 200
+    sync_json = sync_resp.json()
+    assert sync_json["status"] == "success"
+    assert sync_json["summary"]["skills_added"] >= 3
+    assert sync_json["summary"]["education_added"] >= 1
+
+    # Verify profile was populated
+    prof_resp = client.get("/api/users/profile", headers=headers)
+    assert prof_resp.status_code == 200
+    prof = prof_resp.json()
+    assert prof["target_title"] == "Marketing Manager"
+    assert "Marketing" in prof["target_industry"] or "Media" in prof["target_industry"]
+    assert len(prof["education_history"]) >= 1
+    assert prof["education_history"][0]["presetType"] == "university"
+
+    # Test Job Matcher with 'all' (All my CVs combined)
+    match_resp = client.post("/api/matches", headers=headers, json={
+        "resume_id": "all",
+        "job_title": "Marketing Director",
+        "company": "Borcelle Tech",
+        "job_text": "Seeking a Marketing Director with experience in Project Management, SEO, and Teamwork."
+    })
+    assert match_resp.status_code == 200
+    match_data = match_resp.json()
+    assert "overall_score" in match_data
+
+    # Test Cover Letter with 'all' (All my CVs combined)
+    cover_resp = client.post("/api/ai/cover-letter", headers=headers, json={
+        "resume_id": "all",
+        "company_name": "Borcelle Tech",
+        "job_title": "Marketing Director",
+        "job_description": "Seeking a Marketing Director with experience in Project Management, SEO, and Teamwork."
+    })
+    assert cover_resp.status_code == 200
+    cover_data = cover_resp.json()
+    assert "cover_letter" in cover_data
+
+
