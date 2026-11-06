@@ -277,12 +277,23 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
         resume_id: selectedResumeId
       });
 
-      setSessionId(data.session_id);
-      setCurrentTurn(1);
-      setCurrentQuestion(data.first_question);
+      const firstQ: InterviewQuestionItem =
+        data.first_question ||
+        (data as any).initial_question || {
+          question_id: 'q_default_1',
+          turn: 1,
+          question: `Could you walk me through your technical background and a challenging project you architected as a ${roleTitle}?`,
+          category: 'Behavioral & Architecture',
+          why_asked: `Evaluates communication clarity and hands-on execution for ${roleTitle}.`,
+          star_guidance: 'Structure your response using Situation, Task, Action, and measurable Results.'
+        };
 
-      if (ttsEnabled && data.first_question?.question) {
-        setTimeout(() => speakText(data.first_question.question), 400);
+      setSessionId(data.session_id);
+      setCurrentTurn(data.current_turn || (data as any).turn_no || 1);
+      setCurrentQuestion(firstQ);
+
+      if (ttsEnabled && firstQ.question) {
+        setTimeout(() => speakText(firstQ.question), 400);
       }
     } catch (err: any) {
       alert(err.message || 'Failed to initialize interview simulator');
@@ -309,6 +320,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     try {
       const result = await api.submitInterviewAnswer(sessionId, {
         turn_index: currentTurn,
+        question: currentQuestion.question,
         answer_text: answer,
         duration_seconds: duration
       });
@@ -331,7 +343,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
         star: result.star_evaluation,
         followUp: result.follow_up_prompt,
         nextQuestion: result.next_question,
-        isLastTurn: result.is_last_turn
+        isLastTurn: Boolean(result.is_last_turn || (result as any).is_final_turn || currentTurn >= totalQuestions)
       });
 
       // Clear for next turn
@@ -607,6 +619,15 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       )}
 
       {/* 2. ACTIVE INTERVIEW STAGE */}
+      {sessionId && !currentQuestion && (
+        <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            Preparing your interview stage...
+          </p>
+        </div>
+      )}
+
       {sessionId && currentQuestion && (
         <div className="p-6 md:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
           {/* Header Progress Bar */}

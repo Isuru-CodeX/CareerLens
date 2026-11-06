@@ -74,13 +74,15 @@ def test_full_interview_session_api_flow():
     session_id = session_data["session_id"]
     assert session_data["turn_no"] == 1
     assert "question" in session_data["initial_question"]
+    assert "question" in session_data["first_question"]
+    assert session_data["first_question"]["question"] == session_data["initial_question"]["question"]
 
-    # 2. Answer Turn 1
+    # 2. Answer Turn 1 using frontend field names (turn_index, answer_text)
     answer_text = "When I was at my previous company, we were facing a distributed deadlock issue in our Kafka processing pipeline. I was tasked with redesigning the consumer group partition rebalancing. I engineered an idempotent processing deduplication filter and configured backpressure thresholds. This reduced message re-processing latency by 74% and saved 120 engineering hours per quarter."
     ans_resp = client.post(f"/api/interviews/session/{session_id}/answer", headers=headers, json={
-        "turn_no": 1,
-        "question": session_data["initial_question"]["question"],
-        "transcript": answer_text,
+        "turn_index": 1,
+        "question": session_data["first_question"]["question"],
+        "answer_text": answer_text,
         "duration_seconds": 25.0
     })
     assert ans_resp.status_code == 200

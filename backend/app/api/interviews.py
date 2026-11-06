@@ -18,13 +18,17 @@ router = APIRouter(prefix="/interviews", tags=["Voice AI Mock Interview"])
 class StartSessionRequest(BaseModel):
     role_title: str
     company: Optional[str] = "Target Company"
+    format: Optional[str] = None
     format_type: Optional[str] = "mixed"  # "behavioral", "technical", "system_design", "mixed"
+    total_questions: Optional[int] = 4
     resume_id: Optional[str] = None
 
 class SubmitAnswerRequest(BaseModel):
-    turn_no: int
-    question: str
-    transcript: str
+    turn_no: Optional[int] = None
+    turn_index: Optional[int] = None
+    question: Optional[str] = None
+    transcript: Optional[str] = None
+    answer_text: Optional[str] = None
     duration_seconds: float = Field(default=30.0, ge=1.0)
 
 class CompleteSessionRequest(BaseModel):
@@ -36,10 +40,11 @@ def start_interview_session(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    fmt = req.format or req.format_type or "mixed"
     first_q = InterviewSimulatorService.generate_question(
         role_title=req.role_title,
         company=req.company or "the target firm",
-        format_type=req.format_type or "mixed",
+        format_type=fmt,
         turn_no=1
     )
 
@@ -47,7 +52,7 @@ def start_interview_session(
         user_id=current_user.id,
         role_title=req.role_title,
         company=req.company or "Target Company",
-        format_type=req.format_type or "mixed",
+        format_type=fmt,
         status="in_progress",
         turns=[{
             "turn": 1,
@@ -73,6 +78,9 @@ def start_interview_session(
         "company": session.company,
         "format_type": session.format_type,
         "turn_no": 1,
+        "current_turn": 1,
+        "total_questions": req.total_questions or 4,
+        "first_question": first_q,
         "initial_question": first_q
     }
 
@@ -90,21 +98,34 @@ def submit_interview_answer(
     if not session:
         raise HTTPException(status_code=404, detail="Interview session not found.")
 
+    turn_number = req.turn_no or req.turn_index or 1
+    answer_text = (req.transcript or req.answer_text or "").strip()
+
+    # Determine question text
+    question_text = req.question or ""
+    if not question_text and session.turns:
+        for t in reversed(session.turns):
+            if t.get("turn") == turn_number and t.get("question"):
+                question_text = t["question"]
+                break
+        if not question_text:
+            question_text = session.turns[-1].get("question", f"Question {turn_number}")
+
     # 1. Analyze speech metrics (WPM, fillers, pacing)
     speech_metrics = InterviewSimulatorService.analyze_speech_metrics(
-        transcript=req.transcript,
+        transcript=answer_text,
         duration_seconds=req.duration_seconds
     )
 
     # 2. Evaluate STAR adherence
     star_eval = InterviewSimulatorService.evaluate_star_adherence(
-        transcript=req.transcript,
-        question=req.question
+        transcript=answer_text,
+        question=question_text
     )
 
     # 3. Generate adaptive follow-up or next turn question
     turns_history = list(session.turns or [])
-    next_turn_no = req.turn_no + 1
+    next_turn_no = turn_number + 1
     next_question = None
 
     if next_turn_no <= 5:
@@ -129,9 +150,9 @@ def submit_interview_answer(
 
     # Record turn details
     turn_record = {
-        "turn": req.turn_no,
-        "question": req.question,
-        "transcript": req.transcript,
+        "turn": turn_number,
+        "question": question_text,
+        "transcript": answer_text,
         "duration_seconds": req.duration_seconds,
         "speech_metrics": speech_metrics,
         "star_evaluation": star_eval
@@ -141,7 +162,7 @@ def submit_interview_answer(
     updated_turns = []
     found = False
     for t in turns_history:
-        if t.get("turn") == req.turn_no:
+        if t.get("turn") == turn_number:
             updated_turns.append(turn_record)
             found = True
         else:
@@ -149,16 +170,31 @@ def submit_interview_answer(
     if not found:
         updated_turns.append(turn_record)
 
+    if next_question:
+        updated_turns.append({
+            "turn": next_turn_no,
+            "question": next_question["question"],
+            "why_asked": next_question.get("why_asked"),
+            "category": next_question.get("category"),
+            "star_guidance": next_question.get("star_guidance")
+        })
+
     session.turns = updated_turns
     db.commit()
 
+    is_last = next_question is None or next_turn_no > 5
+
     return {
         "session_id": session.id,
-        "turn_no": req.turn_no,
+        "turn_no": turn_number,
+        "turn_index": turn_number,
+        "duration_seconds": req.duration_seconds,
         "speech_metrics": speech_metrics,
         "star_evaluation": star_eval,
+        "follow_up_prompt": star_eval.get("follow_up_prompt"),
         "next_question": next_question,
-        "is_final_turn": next_turn_no > 5
+        "is_last_turn": is_last,
+        "is_final_turn": is_last
     }
 
 @router.post("/session/{session_id}/complete")

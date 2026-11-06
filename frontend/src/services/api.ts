@@ -748,6 +748,7 @@ class ApiService {
       turn_index: number;
       answer_text: string;
       duration_seconds: number;
+      question?: string;
     }
   ): Promise<{
     session_id: string;
