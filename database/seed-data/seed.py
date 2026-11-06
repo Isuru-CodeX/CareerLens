@@ -121,10 +121,6 @@ def run_seed():
         if existing:
             print("Demo user already exists. Ensuring profile credentials and presets are populated...")
             seed_profile_credentials(db, existing.id, is_demo=True)
-            # Also check if Isuru's account exists and seed credentials if needed
-            isuru = db.query(User).filter(User.email == "isururathnayaka999@gmail.com").first()
-            if isuru:
-                seed_profile_credentials(db, isuru.id, is_demo=False)
             db.commit()
             print("Profile credentials and presets verified!")
             return
