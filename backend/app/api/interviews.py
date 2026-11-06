@@ -4,7 +4,10 @@ Handles interactive turn-by-turn interview simulation, STAR scoring, speech metr
 and multimodal performance scorecards.
 """
 import io
+import os
 import logging
+import subprocess
+import tempfile
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from pydantic import BaseModel, Field
@@ -298,6 +301,38 @@ def get_interview_session(
     }
 
 
+def _audio_to_wav(content: bytes) -> bytes:
+    """
+    Converts any uploaded audio format (WebM, OGG, MP4, MP3) into 16kHz mono PCM WAV
+    using the bundled self-contained FFmpeg engine.
+    """
+    if content.startswith(b"RIFF") and b"WAVE" in content[:12]:
+        return content
+    try:
+        import imageio_ffmpeg
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        with tempfile.NamedTemporaryFile(suffix=".input", delete=False) as in_f:
+            in_f.write(content)
+            in_path = in_f.name
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as out_f:
+            out_path = out_f.name
+        try:
+            cmd = [ffmpeg_exe, "-y", "-i", in_path, "-ar", "16000", "-ac", "1", out_path]
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            with open(out_path, "rb") as f:
+                return f.read()
+        finally:
+            for p in [in_path, out_path]:
+                if os.path.exists(p):
+                    try:
+                        os.remove(p)
+                    except Exception:
+                        pass
+    except Exception as conv_err:
+        logger.warning(f"Audio conversion with FFmpeg failed: {conv_err}")
+        return content
+
+
 @router.post("/transcribe")
 async def transcribe_interview_audio(
     file: UploadFile = File(...),
@@ -305,22 +340,27 @@ async def transcribe_interview_audio(
 ):
     """
     Server-side audio transcription backup.
-    Processes audio (WAV/PCM) using speech_recognition / Google Speech REST,
+    Processes audio (WebM/WAV/PCM) using speech_recognition / Google Speech REST,
     ensuring speech is transcribed even if browser Web Speech API encounters network or privacy blocks.
     """
     content = await file.read()
-    if not content or len(content) < 100:
+    logger.info(f"Received audio file for transcription: size={len(content)} bytes")
+    if not content or len(content) < 500:
         return {"transcript": "", "words_count": 0, "status": "empty"}
 
+    wav_bytes = _audio_to_wav(content)
     transcript = ""
     try:
         import speech_recognition as sr
 
         r = sr.Recognizer()
-        with sr.AudioFile(io.BytesIO(content)) as source:
+        r.energy_threshold = 300
+        r.dynamic_energy_threshold = True
+        with sr.AudioFile(io.BytesIO(wav_bytes)) as source:
             audio_data = r.record(source)
             try:
-                transcript = r.recognize_google(audio_data)
+                transcript = r.recognize_google(audio_data, language="en-US")
+                logger.info(f"Google speech recognition transcribed: '{transcript[:60]}...'")
             except sr.UnknownValueError:
                 logger.info("Speech recognition: no intelligible speech detected in audio")
                 transcript = ""

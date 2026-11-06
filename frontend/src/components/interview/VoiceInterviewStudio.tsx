@@ -48,39 +48,6 @@ const FORMAT_OPTIONS = [
   { id: 'leadership', label: '👑 Leadership & Delivery', desc: 'Mentorship, roadmapping, cross-functional stakeholder management.' }
 ];
 
-function encodeWav(samples: Float32Array, sampleRate: number): Blob {
-  const buffer = new ArrayBuffer(44 + samples.length * 2);
-  const view = new DataView(buffer);
-
-  const writeString = (offset: number, string: string) => {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-
-  writeString(0, 'RIFF');
-  view.setUint32(4, 36 + samples.length * 2, true);
-  writeString(8, 'WAVE');
-  writeString(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, 1, true); // Mono
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  writeString(36, 'data');
-  view.setUint32(40, samples.length * 2, true);
-
-  let offset = 44;
-  for (let i = 0; i < samples.length; i++, offset += 2) {
-    const s = Math.max(-1, Math.min(1, samples[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-  }
-
-  return new Blob([buffer], { type: 'audio/wav' });
-}
-
 export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   resumes = [],
   presets = [],
@@ -137,16 +104,18 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   const [pastSessions, setPastSessions] = useState<InterviewSessionSummary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Refs for Dual Audio Capture: Web Speech API & Direct AudioContext PCM WAV Recorder
+  // Refs for Dual Audio Capture: Web Speech API & Native MediaRecorder
   const recognitionRef = useRef<any>(null);
   const isRecordingIntentRef = useRef(false);
+  const isWebSpeechAliveRef = useRef(true);
   const initialTextRef = useRef('');
   const sessionFinalRef = useRef('');
   const timerIntervalRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const audioChunksRef = useRef<Float32Array[]>([]);
-  const analyserRef = useRef<AnalyserNode | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordedBlobRef = useRef<Blob | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
   // Load past sessions
@@ -220,7 +189,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     }
   };
 
-  // Initialize and toggle Web Speech Recognition + AudioContext dual-pipeline
+  // Initialize and toggle Web Speech Recognition + MediaRecorder dual-pipeline
   const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
@@ -234,59 +203,82 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     setEngineStatus('starting');
     setIsRecording(true);
     isRecordingIntentRef.current = true;
+    isWebSpeechAliveRef.current = true;
     initialTextRef.current = transcript.trim();
     sessionFinalRef.current = '';
     audioChunksRef.current = [];
+    recordedBlobRef.current = null;
     setAudioLevel(0);
 
-    // 1. Initialize AudioContext & Microphone for Real-Time Sound Visualizer & PCM WAV Backup
+    // 1. Initialize MediaStream & Native MediaRecorder (Reliable browser standard)
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaStreamRef.current = stream;
 
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-          const audioCtx = new AudioContextClass();
-          audioContextRef.current = audioCtx;
+        // Start native MediaRecorder
+        if (typeof MediaRecorder !== 'undefined') {
+          let preferredMime = '';
+          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            preferredMime = 'audio/webm;codecs=opus';
+          } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+            preferredMime = 'audio/webm';
+          } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            preferredMime = 'audio/mp4';
+          }
 
-          const source = audioCtx.createMediaStreamSource(stream);
-          const analyser = audioCtx.createAnalyser();
-          analyser.fftSize = 256;
-          analyserRef.current = analyser;
+          const mr = preferredMime
+            ? new MediaRecorder(stream, { mimeType: preferredMime })
+            : new MediaRecorder(stream);
+          mediaRecorderRef.current = mr;
 
-          // ScriptProcessor to buffer mono PCM samples for server transcription backup
-          const processor = audioCtx.createScriptProcessor(4096, 1, 1);
-          processor.onaudioprocess = (e) => {
-            if (!isRecordingIntentRef.current) return;
-            const channelData = e.inputBuffer.getChannelData(0);
-            audioChunksRef.current.push(new Float32Array(channelData));
-          };
-
-          source.connect(analyser);
-          analyser.connect(processor);
-          processor.connect(audioCtx.destination);
-
-          // Audio level visualizer loop
-          const dataArray = new Uint8Array(analyser.frequencyBinCount);
-          const checkVolume = () => {
-            if (!isRecordingIntentRef.current) return;
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for (let i = 0; i < dataArray.length; i++) {
-              sum += dataArray[i];
+          mr.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+              audioChunksRef.current.push(e.data);
             }
-            const avg = sum / dataArray.length;
-            const level = Math.min(100, Math.round((avg / 128) * 100));
-            setAudioLevel(level);
-            setIsVoiceDetected(level > 12);
-            animationFrameRef.current = requestAnimationFrame(checkVolume);
           };
-          animationFrameRef.current = requestAnimationFrame(checkVolume);
+
+          mr.start(250);
+        }
+
+        // Initialize AudioContext purely for real-time sound volume visualizer
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioContextClass) {
+            const audioCtx = new AudioContextClass();
+            audioContextRef.current = audioCtx;
+            if (audioCtx.state === 'suspended') {
+              await audioCtx.resume();
+            }
+
+            const source = audioCtx.createMediaStreamSource(stream);
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+
+            source.connect(analyser);
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const checkVolume = () => {
+              if (!isRecordingIntentRef.current) return;
+              analyser.getByteFrequencyData(dataArray);
+              let sum = 0;
+              for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+              }
+              const avg = sum / dataArray.length;
+              const level = Math.min(100, Math.round((avg / 128) * 100));
+              setAudioLevel(level);
+              setIsVoiceDetected(level > 12);
+              animationFrameRef.current = requestAnimationFrame(checkVolume);
+            };
+            animationFrameRef.current = requestAnimationFrame(checkVolume);
+          }
+        } catch (ctxErr) {
+          console.warn('AudioContext volume meter init warning:', ctxErr);
         }
       }
     } catch (micErr: any) {
-      console.warn('Microphone AudioContext error:', micErr);
+      console.warn('Microphone access error:', micErr);
       if (micErr.name === 'NotAllowedError' || micErr.name === 'PermissionDeniedError') {
         alert('Microphone access was denied. Please allow microphone access in your browser address bar.');
         stopRecording();
@@ -301,7 +293,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       }, 1000);
     }
 
-    // 3. Start Browser Real-Time Speech Recognition (Live typing)
+    // 3. Start Browser Real-Time Web Speech Recognition (Live typing if supported)
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -326,14 +318,6 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
 
       recognition.onstart = () => {
         setEngineStatus('listening');
-      };
-
-      recognition.onspeechstart = () => {
-        setIsVoiceDetected(true);
-      };
-
-      recognition.onspeechend = () => {
-        // Voice pause
       };
 
       recognition.onresult = (event: any) => {
@@ -362,20 +346,25 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition status:', event.error);
-        if (event.error === 'network') {
+        console.warn('Speech recognition status/error:', event.error);
+        if (event.error === 'network' || event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          // Terminal failure: Disable Web Speech auto-restart to prevent flickering!
+          isWebSpeechAliveRef.current = false;
           setEngineStatus('network_offline');
-        } else if (event.error === 'not-allowed') {
-          setEngineStatus('permission_denied');
-        } else if (event.error === 'audio-capture') {
+          try {
+            recognition.abort();
+          } catch {}
+          recognitionRef.current = null;
+          return;
+        }
+        if (event.error === 'audio-capture') {
           setEngineStatus('no_mic_detected');
-        } else {
-          setEngineStatus(`status_${event.error}`);
         }
       };
 
       recognition.onend = () => {
-        if (isRecordingIntentRef.current) {
+        // ONLY restart if candidate is still recording AND Web Speech hasn't suffered a fatal network/permission error!
+        if (isRecordingIntentRef.current && isWebSpeechAliveRef.current) {
           if (sessionFinalRef.current) {
             initialTextRef.current = [initialTextRef.current, sessionFinalRef.current]
               .filter(Boolean)
@@ -386,14 +375,14 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
           }
 
           setTimeout(() => {
-            if (isRecordingIntentRef.current && recognitionRef.current) {
+            if (isRecordingIntentRef.current && isWebSpeechAliveRef.current && recognitionRef.current) {
               try {
                 recognitionRef.current.start();
               } catch (e: any) {
                 console.warn('Speech recognition restart handled:', e);
               }
             }
-          }, 150);
+          }, 300);
         }
       };
 
@@ -401,20 +390,22 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       try {
         recognition.start();
       } catch (startErr) {
-        console.warn('Speech recognition initial start caught:', startErr);
+        console.warn('Speech recognition start error:', startErr);
+        isWebSpeechAliveRef.current = false;
       }
     } catch (err) {
-      console.warn('Failed to initialize speech recognition:', err);
+      console.warn('Web Speech API unavailable:', err);
       setEngineStatus('audio_backup_active');
+      isWebSpeechAliveRef.current = false;
     }
   };
 
-  const stopRecording = async () => {
+  const stopRecording = () => {
     isRecordingIntentRef.current = false;
+    isWebSpeechAliveRef.current = false;
     setIsRecording(false);
     setIsVoiceDetected(false);
     setAudioLevel(0);
-    setEngineStatus('idle');
 
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -446,51 +437,75 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
       setTranscript(currentText);
     }
 
-    // Snapshot audio chunks and close audio stream
-    const recordedChunks = [...audioChunksRef.current];
-    audioChunksRef.current = [];
+    // Stop MediaRecorder and trigger server-side audio transcription
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== 'inactive') {
+      mr.onstop = async () => {
+        const chunks = [...audioChunksRef.current];
+        audioChunksRef.current = [];
+        const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
+        recordedBlobRef.current = blob;
 
-    const audioCtx = audioContextRef.current;
-    if (audioCtx) {
+        // Cleanup audio stream
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+          mediaStreamRef.current = null;
+        }
+        if (audioContextRef.current) {
+          try {
+            await audioContextRef.current.close();
+          } catch {}
+          audioContextRef.current = null;
+        }
+
+        // If Web Speech didn't type text or is empty, automatically transcribe from recorded audio
+        if (!currentText && blob.size > 800) {
+          setIsTranscribingBackend(true);
+          try {
+            const res = await api.transcribeAudio(blob);
+            if (res && res.transcript) {
+              setTranscript(res.transcript);
+              initialTextRef.current = res.transcript;
+            }
+          } catch (err: any) {
+            console.warn('Backend audio transcription fallback error:', err);
+          } finally {
+            setIsTranscribingBackend(false);
+          }
+        }
+      };
+
       try {
-        await audioCtx.close();
+        mr.stop();
       } catch {}
-      audioContextRef.current = null;
-    }
-
-    if (mediaStreamRef.current) {
-      try {
+      mediaRecorderRef.current = null;
+    } else {
+      if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      } catch {}
-      mediaStreamRef.current = null;
-    }
-
-    // If live Web Speech produced no words (e.g. Chrome Google Speech cloud blocked or network issue),
-    // automatically invoke backend AI audio transcription so the candidate's speech is NEVER lost!
-    if (!currentText && recordedChunks.length > 0) {
-      setIsTranscribingBackend(true);
-      try {
-        let totalSamples = 0;
-        for (const chunk of recordedChunks) totalSamples += chunk.length;
-        const merged = new Float32Array(totalSamples);
-        let offset = 0;
-        for (const chunk of recordedChunks) {
-          merged.set(chunk, offset);
-          offset += chunk.length;
-        }
-
-        const sampleRate = audioCtx ? audioCtx.sampleRate : 44100;
-        const wavBlob = encodeWav(merged, sampleRate);
-        const result = await api.transcribeAudio(wavBlob);
-        if (result && result.transcript) {
-          setTranscript(result.transcript);
-          initialTextRef.current = result.transcript;
-        }
-      } catch (transcribeErr: any) {
-        console.warn('Backend audio transcription fallback error:', transcribeErr);
-      } finally {
-        setIsTranscribingBackend(false);
+        mediaStreamRef.current = null;
       }
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+    }
+  };
+
+  const handleManualTranscribe = async () => {
+    if (!recordedBlobRef.current) return;
+    setIsTranscribingBackend(true);
+    try {
+      const res = await api.transcribeAudio(recordedBlobRef.current);
+      if (res && res.transcript) {
+        setTranscript(res.transcript);
+        initialTextRef.current = res.transcript;
+      } else {
+        alert('No clear speech was detected in the recorded audio. Please speak a bit louder or closer to your microphone.');
+      }
+    } catch (err: any) {
+      alert('Transcription error: ' + (err.message || 'Could not process audio'));
+    } finally {
+      setIsTranscribingBackend(false);
     }
   };
 
@@ -1380,6 +1395,19 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 </button>
 
                 <div className="flex items-center gap-2">
+                  {!transcript.trim() && recordedBlobRef.current && (
+                    <button
+                      type="button"
+                      onClick={handleManualTranscribe}
+                      disabled={isTranscribingBackend}
+                      className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                      title="Re-run AI speech-to-text on your last recorded audio"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{isTranscribingBackend ? 'Transcribing...' : 'Transcribe Audio with AI'}</span>
+                    </button>
+                  )}
+
                   {transcript.trim() && (
                     <button
                       type="button"
