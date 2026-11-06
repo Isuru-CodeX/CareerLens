@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Request, Query, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -9,9 +9,12 @@ from app.models.models import User, AuditLog
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 def get_current_user(
-    token: Optional[str] = Depends(oauth2_scheme),
+    request: Request,
+    token_bearer: Optional[str] = Depends(oauth2_scheme),
+    token_query: Optional[str] = Query(None, alias="token"),
     db: Session = Depends(get_db)
 ) -> User:
+    token = token_bearer or token_query or request.cookies.get("careerlens_token")
     if not token:
         demo_user = db.query(User).filter(User.email == "demo@careerlens.ai").first()
         if demo_user:

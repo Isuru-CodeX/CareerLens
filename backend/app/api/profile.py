@@ -238,3 +238,4 @@ def delete_profile_skill(
     db.delete(skill)
     db.commit()
     return None
+

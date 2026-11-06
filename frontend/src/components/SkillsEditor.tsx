@@ -106,3 +106,4 @@ export const SkillsEditor: React.FC<SkillsEditorProps> = ({
     </section>
   );
 };
+

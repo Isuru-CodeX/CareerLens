@@ -11,14 +11,18 @@ if (!(Test-Path "backend\venv")) {
     & backend\venv\Scripts\pip.exe install -r backend\requirements.txt
 }
 
-# Run seed data if database not present
-if (!(Test-Path "careerlens.db")) {
-    Write-Host "Seeding database with demo data..." -ForegroundColor Yellow
-    & backend\venv\Scripts\python.exe database\seed-data\seed.py
+# Check if frontend node_modules exists
+if (!(Test-Path "frontend\node_modules")) {
+    Write-Host "Installing frontend dependencies..." -ForegroundColor Yellow
+    npm --prefix frontend install
 }
 
+# Initialize database schema and verify seed data
+Write-Host "Verifying database and seeding data..." -ForegroundColor Yellow
+& backend\venv\Scripts\python.exe database\seed-data\seed.py
+
 Write-Host "Starting FastAPI Backend on http://localhost:8000..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; .\venv\Scripts\uvicorn.exe app.main:app --host 0.0.0.0 --port 8000 --reload"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; .\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
 
 Write-Host "Starting React Frontend on http://localhost:5173..." -ForegroundColor Green
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\frontend'; npm run dev"

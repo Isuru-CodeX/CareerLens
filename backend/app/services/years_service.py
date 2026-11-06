@@ -126,3 +126,4 @@ def total_years(periods: List[Tuple[int, Optional[int], bool]], today_year: Opti
 
     total += (cur_end - cur_start)
     return total
+

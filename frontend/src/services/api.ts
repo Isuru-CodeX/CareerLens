@@ -287,11 +287,15 @@ class ApiService {
   }
 
   getResumeDownloadUrl(id: string): string {
-    return `${API_BASE_URL}/resumes/${id}/download`;
+    const token = this.getToken();
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+    return `${API_BASE_URL}/resumes/${id}/download${tokenParam}`;
   }
 
   getAnalysisPdfUrl(resumeId: string, analysisId: string): string {
-    return `${API_BASE_URL}/resumes/${resumeId}/analyses/${analysisId}/pdf`;
+    const token = this.getToken();
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+    return `${API_BASE_URL}/resumes/${resumeId}/analyses/${analysisId}/pdf${tokenParam}`;
   }
 
   // Job Matching
@@ -576,7 +580,9 @@ class ApiService {
   // Feature 5: Resume File View & Download
   // ==========================================
   getResumeFileUrl(id: string, disposition: 'inline' | 'attachment' = 'inline'): string {
-    return `${API_BASE_URL}/resumes/${id}/file?disposition=${disposition}`;
+    const token = this.getToken();
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+    return `${API_BASE_URL}/resumes/${id}/file?disposition=${disposition}${tokenParam}`;
   }
 
   // ==========================================

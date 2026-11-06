@@ -5,18 +5,113 @@ from datetime import datetime, timezone, timedelta
 # Ensure backend root is on PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "backend")))
 
-from app.core.database import SessionLocal, Base, engine
+from app.core.database import SessionLocal, Base, engine, init_db
 from app.core.security import get_password_hash
 from app.models.models import (
     User, CareerProfile, Resume, ResumeVersion, ParsedResumeSection,
     ResumeSkill, JobDescription, JobMatch, AnalysisRun, Recommendation,
-    Application, ApplicationEvent, Reminder
+    Application, ApplicationEvent, Reminder,
+    ProfileExperience, ProfileSkill, Preset, PresetResume
 )
 from app.services.analysis_service import AnalysisService
 from app.services.matching_service import MatchingService
+from app.services.years_service import canonical_skill
+
+def seed_profile_credentials(db, user_id: str, is_demo: bool = True):
+    # Experiences
+    existing_exps = db.query(ProfileExperience).filter(ProfileExperience.user_id == user_id).all()
+    if not existing_exps:
+        if is_demo:
+            db.add_all([
+                ProfileExperience(
+                    user_id=user_id,
+                    job_title="Senior Software Engineer",
+                    company="Apex Cloud Systems",
+                    industry="Cloud Infrastructure, SaaS, AI Tools",
+                    start_year=2021,
+                    start_month=3,
+                    is_current=True,
+                    description="Architected event-driven microservices processing 45M daily requests with 99.99% uptime.",
+                    highlights=[
+                        "Spearheaded database query optimization across PostgreSQL, reducing p99 latency from 450ms to 65ms.",
+                        "Mentored a pod of 6 engineers and instituted automated end-to-end testing."
+                    ],
+                    source="manual"
+                ),
+                ProfileExperience(
+                    user_id=user_id,
+                    job_title="Full-Stack Developer",
+                    company="Nova Interactive",
+                    industry="Software, Internet & SaaS",
+                    start_year=2018,
+                    start_month=6,
+                    end_year=2021,
+                    end_month=2,
+                    is_current=False,
+                    description="Built interactive client-facing dashboards using React, TypeScript, and Tailwind CSS adopted by 25,000+ daily active users.",
+                    highlights=[
+                        "Designed RESTful API endpoints and implemented PostgreSQL database indexing strategies.",
+                        "Automated CI/CD pipeline deployments via GitHub Actions."
+                    ],
+                    source="manual"
+                )
+            ])
+        else:
+            db.add(ProfileExperience(
+                user_id=user_id,
+                job_title="Software Engineering Developer",
+                company="Independent & Academic Projects",
+                industry="Software, Internet & SaaS",
+                start_year=2023,
+                start_month=1,
+                is_current=True,
+                description="Hands-on experience in software development, web technologies, database management, and building real-world projects.",
+                highlights=[
+                    "Engineered applications with Java, PHP, JavaScript, HTML, CSS, and MySQL backends.",
+                    "Maintained open-source code repositories on GitHub and built portfolio solutions."
+                ],
+                source="manual"
+            ))
+        db.flush()
+
+    # Skills
+    existing_skills = db.query(ProfileSkill).filter(ProfileSkill.user_id == user_id).all()
+    if not existing_skills:
+        skill_names = (
+            ["Python", "TypeScript", "React", "FastAPI", "Docker", "PostgreSQL", "AWS", "Redis", "CI/CD", "Kubernetes", "GraphQL"]
+            if is_demo else
+            ["Java", "PHP", "JavaScript", "HTML", "CSS", "MySQL", "Python", "React", "Git"]
+        )
+        for s in skill_names:
+            canon = canonical_skill(s)
+            db.add(ProfileSkill(
+                user_id=user_id,
+                name=canon,
+                name_normalized=canon.lower(),
+                source="manual"
+            ))
+        db.flush()
+
+    # Presets
+    existing_presets = db.query(Preset).filter(Preset.user_id == user_id).all()
+    if not existing_presets:
+        preset_name = "Full-Stack Cloud & AI" if is_demo else "Software Engineering & Web"
+        target_role = "Senior Full-Stack Engineer" if is_demo else "Full Stack Software Engineer"
+        p_obj = Preset(
+            user_id=user_id,
+            name=preset_name,
+            target_role=target_role,
+            include_manual=True
+        )
+        db.add(p_obj)
+        db.flush()
+        resume = db.query(Resume).filter(Resume.user_id == user_id).first()
+        if resume:
+            db.add(PresetResume(preset_id=p_obj.id, resume_id=resume.id))
+        db.flush()
 
 def run_seed():
-    Base.metadata.create_all(bind=engine)
+    init_db()
     db = SessionLocal()
     
     try:
@@ -24,7 +119,14 @@ def run_seed():
         demo_email = "demo@careerlens.ai"
         existing = db.query(User).filter(User.email == demo_email).first()
         if existing:
-            print("Demo user already seeded.")
+            print("Demo user already exists. Ensuring profile credentials and presets are populated...")
+            seed_profile_credentials(db, existing.id, is_demo=True)
+            # Also check if Isuru's account exists and seed credentials if needed
+            isuru = db.query(User).filter(User.email == "isururathnayaka999@gmail.com").first()
+            if isuru:
+                seed_profile_credentials(db, isuru.id, is_demo=False)
+            db.commit()
+            print("Profile credentials and presets verified!")
             return
 
         print("Seeding demo user and career data...")
@@ -369,6 +471,7 @@ Preferred:
                 )
                 db.add(rem)
 
+        seed_profile_credentials(db, user.id, is_demo=True)
         db.commit()
         print("Database successfully seeded with demo user and comprehensive career data!")
 

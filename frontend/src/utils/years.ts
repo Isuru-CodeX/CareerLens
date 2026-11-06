@@ -75,3 +75,4 @@ export function totalYears(periods: Period[], today: number = currentYear()): nu
 
   return total;
 }
+
