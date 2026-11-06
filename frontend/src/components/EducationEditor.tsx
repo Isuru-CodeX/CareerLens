@@ -289,3 +289,4 @@ export const EducationEditor: React.FC<EducationEditorProps> = ({ items, onChang
     </section>
   );
 };
+

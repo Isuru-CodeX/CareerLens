@@ -17,12 +17,29 @@ if (!(Test-Path "frontend\node_modules")) {
     npm --prefix frontend install
 }
 
+# Check and release ports 8000 and 5173 if already occupied
+$ports = @(8000, 5173)
+foreach ($p in $ports) {
+    $connections = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue
+    if ($connections) {
+        foreach ($c in $connections) {
+            $pId = $c.OwningProcess
+            if ($pId -and $pId -ne 0) {
+                Write-Host "Releasing port $p (stopping existing PID: $pId)..." -ForegroundColor Yellow
+                Stop-Process -Id $pId -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+}
+Start-Sleep -Milliseconds 500
+
 # Initialize database schema and verify seed data
 Write-Host "Verifying database and seeding data..." -ForegroundColor Yellow
-& backend\venv\Scripts\python.exe database\seed-data\seed.py
+$pythonExe = Join-Path $PSScriptRoot "backend\venv\Scripts\python.exe"
+& $pythonExe database\seed-data\seed.py
 
 Write-Host "Starting FastAPI Backend on http://localhost:8000..." -ForegroundColor Green
-Start-Process powershell -WorkingDirectory "$PSScriptRoot\backend" -ArgumentList "-NoExit", "-Command", ".\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
+Start-Process powershell -WorkingDirectory "$PSScriptRoot\backend" -ArgumentList "-NoExit", "-Command", "& '$pythonExe' -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
 
 Write-Host "Starting React Frontend on http://localhost:5173..." -ForegroundColor Green
 Start-Process powershell -WorkingDirectory "$PSScriptRoot\frontend" -ArgumentList "-NoExit", "-Command", "npm run dev"
