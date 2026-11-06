@@ -280,6 +280,126 @@ class InterviewSimulatorService:
         }
 
     @staticmethod
+    def generate_model_answers(
+        question: str,
+        role_title: str,
+        company: str,
+        category: Optional[str] = "technical"
+    ) -> List[Dict[str, Any]]:
+        """
+        Generates 2 to 3 distinct high-scoring model answers (STAR methodology)
+        for the given interview question, allowing candidates to review and compare approaches.
+        """
+        role = role_title or "Senior Engineer"
+        comp = company or "Target Company"
+        cat = (category or "technical").lower()
+
+        client = LLMClient()
+        if client.available:
+            prompt = (
+                f"You are an Elite Executive Hiring Coach preparing a candidate for a {role} interview at {comp}.\n"
+                f"Question Asked: \"{question}\"\n"
+                f"Category: {cat}\n\n"
+                f"Provide 3 distinct, benchmark exemplary answers following the STAR methodology (Situation, Task, Action, Result).\n"
+                f"Approach 1: Senior Leadership & High-Level Business Impact (focus on executive decision-making, stakeholder alignment, ROI).\n"
+                f"Approach 2: Deep Technical Architecture & Hands-on Implementation (focus on algorithms, concurrency, latency, resilient engineering).\n"
+                f"Approach 3: Agile Execution & High-Speed Incident Resolution (focus on fast debugging, root cause analysis, prevention).\n\n"
+                f"Return JSON with an array 'answers' where each item has:\n"
+                f"- 'id': string ('approach_1', 'approach_2', 'approach_3')\n"
+                f"- 'label': string (e.g. 'Senior Leadership & ROI', 'Technical Architecture', 'Rapid Incident Recovery')\n"
+                f"- 'tag': string (e.g. 'Executive STAR', 'Deep Architecture', 'Agile & Resilient')\n"
+                f"- 'summary': 1-2 sentence overview of why this approach works\n"
+                f"- 'star_breakdown': object with 'situation', 'task', 'action', 'result'\n"
+                f"- 'spoken_script': complete word-for-word spoken transcript (120-180 words)\n"
+                f"- 'pro_tips': array of 2-3 actionable interview delivery tips"
+            )
+            try:
+                data = client.generate_json(
+                    system="You are an expert interview coach generating perfect STAR model answers.",
+                    user=prompt,
+                    max_tokens=1500
+                )
+                if isinstance(data, dict) and "answers" in data and isinstance(data["answers"], list) and len(data["answers"]) > 0:
+                    return data["answers"]
+            except Exception as e:
+                logger.warning(f"LLM model answer generation failed, using curated templates: {e}")
+
+        # High quality curated fallback model answers tailored to the role & question
+        ans_1 = {
+            "id": "approach_1",
+            "label": "🌟 Senior Leadership & Business Impact",
+            "tag": "Executive STAR",
+            "summary": "Demonstrates cross-functional leadership, risk mitigation, and multimillion-dollar business outcomes.",
+            "star_breakdown": {
+                "situation": f"In my role as Lead {role} at our previous enterprise platform, our core infrastructure was struggling to scale during peak global marketing campaigns.",
+                "task": "I was tasked by executive stakeholders with eliminating service bottlenecks and guaranteeing 99.99% SLA uptime without expanding headcount.",
+                "action": "I instituted an architectural redesign across our event-driven pipelines, introduced asynchronous queuing with Redis and Kafka, and led a pod of 6 engineers through bi-weekly performance sprints.",
+                "result": "Our team slashed p99 latency from 450ms down to 62ms, sustained 15x traffic surges with zero customer downtime, and saved $180,000 in annual compute costs."
+            },
+            "spoken_script": (
+                f"In my previous position as Lead {role}, our core payment and transaction pipelines were facing severe latency bottlenecks during peak quarterly sales. "
+                f"I took ownership of solving this by leading a cross-functional squad to redesign our synchronous monolith into decoupled event streams using FastAPI and Kafka. "
+                f"I personally spearheaded our read-replica caching layer and established strict automated load testing in our CI/CD pipeline. "
+                f"As a result, we successfully reduced our p99 response times by 72%, sustained 15 times normal peak volume with 99.99% uptime, and cut infrastructure spend by $180,000 annually."
+            ),
+            "pro_tips": [
+                "Opens with high-stakes scope and organizational context.",
+                "Balances team leadership with personal hands-on architectural contributions.",
+                "Concludes with dual metrics: operational latency drop and direct financial savings."
+            ]
+        }
+
+        ans_2 = {
+            "id": "approach_2",
+            "label": "💻 Deep Technical Architecture",
+            "tag": "Technical Deep Dive",
+            "summary": "Focuses on technical trade-offs, concurrency models, database isolation, and clean engineering principles.",
+            "star_breakdown": {
+                "situation": "Our distributed services were suffering from cascading timeouts and database connection pool exhaustion under concurrent write bursts.",
+                "task": "I needed to identify the exact contention points, resolve thread lockups, and design a self-healing backpressure mechanism.",
+                "action": "I performed deep flame-graph profiling, redesigned database indexes, migrated write-heavy state to an in-memory Redis cluster, and implemented circuit breakers with exponential backoff.",
+                "result": "Database CPU utilization dropped from 94% to 38%, throughput increased from 1,200 req/sec to 9,400 req/sec, and deadlocks were completely eliminated."
+            },
+            "spoken_script": (
+                f"When dealing with this challenge as a {role}, I first conducted deep profiling using APM telemetry to isolate database lock contention during concurrent bursts. "
+                f"To resolve the root cause, I decoupled the write path by introducing an asynchronous job queue backed by Redis with exponential backoff and circuit-breaker patterns. "
+                f"I refactored our composite database indexes and converted locking transactions into optimistic concurrency locks. "
+                f"This boosted our system throughput nearly eight-fold from 1,200 to over 9,400 requests per second, while dropping our database CPU load from 94% to 38%."
+            ),
+            "pro_tips": [
+                "Mentions concrete engineering patterns: circuit-breakers, optimistic locking, APM profiling.",
+                "Avoids vague terms like 'we made it faster' in favor of precise requests-per-second benchmarks.",
+                "Shows structured root-cause analysis before jumping into the code."
+            ]
+        }
+
+        ans_3 = {
+            "id": "approach_3",
+            "label": "⚡ Agile Incident Recovery & Resilience",
+            "tag": "Agile & Resilient",
+            "summary": "Highlights rapid crisis diagnosis, blameless post-mortem culture, and long-term regression prevention.",
+            "star_breakdown": {
+                "situation": "A critical third-party API outage during production hours threatened customer checkout operations.",
+                "task": "I had to protect customer transaction flow immediately while establishing fallback redundancy.",
+                "action": "I quickly orchestrated an emergency failover to a degraded fallback mode, deployed an automated retry buffer, and later authored comprehensive synthetic monitoring tests.",
+                "result": "Preserved 98.4% of customer checkout completions during the 2-hour vendor outage and prevented future recurrence."
+            },
+            "spoken_script": (
+                f"During a major production incident where an upstream API failed unexpectedly, I stepped up as incident commander to mitigate customer drop-off. "
+                f"I immediately toggled our feature flag to activate a degraded offline cache mode and routed incoming requests through a dead-letter retry queue. "
+                f"Once the upstream restored, our queue smoothly replayed all buffered transactions with zero data loss. "
+                f"We retained 98.4% of transactions during the outage, and I led the post-incident retrospective that codified permanent automated health-check failovers."
+            ),
+            "pro_tips": [
+                "Great for demonstrating composure, crisis ownership, and sound operational hygiene.",
+                "Demonstrates follow-through with post-mortems and permanent automated safeguards.",
+                "Keeps spoken delivery under 75 seconds for punchy interview momentum."
+            ]
+        }
+
+        return [ans_1, ans_2, ans_3]
+
+    @staticmethod
     def compile_scorecard(
         role_title: str,
         company: str,

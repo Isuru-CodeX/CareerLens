@@ -90,6 +90,10 @@ def test_full_interview_session_api_flow():
     assert ans_data["speech_metrics"]["wpm"] > 50
     assert ans_data["star_evaluation"]["overall_star_score"] >= 65
     assert ans_data["next_question"] is not None
+    assert "suitable_answers" in ans_data
+    assert len(ans_data["suitable_answers"]) >= 2
+    assert "spoken_script" in ans_data["suitable_answers"][0]
+    assert "star_breakdown" in ans_data["suitable_answers"][0]
 
     # 3. Complete Session
     complete_resp = client.post(f"/api/interviews/session/{session_id}/complete", headers=headers, json={

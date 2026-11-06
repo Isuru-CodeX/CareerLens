@@ -26,7 +26,8 @@ import {
   StarEvaluation,
   InterviewScorecard,
   InterviewSessionSummary,
-  InterviewTurnRecord
+  InterviewTurnRecord,
+  SuitableAnswer
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -756,6 +757,7 @@ class ApiService {
     duration_seconds: number;
     speech_metrics: SpeechMetrics;
     star_evaluation: StarEvaluation;
+    suitable_answers?: SuitableAnswer[];
     follow_up_prompt?: string | null;
     next_question?: InterviewQuestionItem | null;
     is_last_turn: boolean;

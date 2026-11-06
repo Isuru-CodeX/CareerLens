@@ -468,6 +468,21 @@ export interface InterviewScorecard {
   total_questions_answered: number;
 }
 
+export interface SuitableAnswer {
+  id: string;
+  label: string;
+  tag: string;
+  summary: string;
+  star_breakdown: {
+    situation: string;
+    task: string;
+    action: string;
+    result: string;
+  };
+  spoken_script: string;
+  pro_tips: string[];
+}
+
 export interface InterviewTurnRecord {
   turn: number;
   question: string;
@@ -475,6 +490,7 @@ export interface InterviewTurnRecord {
   duration_seconds: number;
   speech_metrics: SpeechMetrics;
   star_evaluation: StarEvaluation;
+  suitable_answers?: SuitableAnswer[];
 }
 
 export interface InterviewSessionSummary {

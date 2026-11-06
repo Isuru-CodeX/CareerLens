@@ -148,6 +148,14 @@ def submit_interview_answer(
                 previous_turns=turns_history
             )
 
+    # 4. Generate 2 to 3 exemplary model answers for candidate study
+    suitable_answers = InterviewSimulatorService.generate_model_answers(
+        question=question_text,
+        role_title=session.role_title,
+        company=session.company,
+        category=session.format_type
+    )
+
     # Record turn details
     turn_record = {
         "turn": turn_number,
@@ -155,7 +163,8 @@ def submit_interview_answer(
         "transcript": answer_text,
         "duration_seconds": req.duration_seconds,
         "speech_metrics": speech_metrics,
-        "star_evaluation": star_eval
+        "star_evaluation": star_eval,
+        "suitable_answers": suitable_answers
     }
 
     # Update session turns
@@ -191,6 +200,7 @@ def submit_interview_answer(
         "duration_seconds": req.duration_seconds,
         "speech_metrics": speech_metrics,
         "star_evaluation": star_eval,
+        "suitable_answers": suitable_answers,
         "follow_up_prompt": star_eval.get("follow_up_prompt"),
         "next_question": next_question,
         "is_last_turn": is_last,

@@ -13,7 +13,11 @@ import {
   TrendingUp,
   History,
   Building,
-  Briefcase
+  Briefcase,
+  Copy,
+  Check,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import {
   InterviewQuestionItem,
@@ -23,7 +27,8 @@ import {
   SpeechMetrics,
   StarEvaluation,
   Resume,
-  Preset
+  Preset,
+  SuitableAnswer
 } from '../../types';
 import { api } from '../../services/api';
 import { InterviewScorecardModal } from './InterviewScorecardModal';
@@ -76,10 +81,15 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     turn: number;
     metrics: SpeechMetrics;
     star: StarEvaluation;
+    suitableAnswers: SuitableAnswer[];
     followUp?: string | null;
     nextQuestion?: InterviewQuestionItem | null;
     isLastTurn: boolean;
   } | null>(null);
+
+  // Model Exemplar Answers state
+  const [activeModelIndex, setActiveModelIndex] = useState(0);
+  const [copiedModelScript, setCopiedModelScript] = useState(false);
 
   // Scorecard State
   const [scorecard, setScorecard] = useState<InterviewScorecard | null>(null);
@@ -90,8 +100,11 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   const [pastSessions, setPastSessions] = useState<InterviewSessionSummary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Refs for Speech Recognition
+  // Refs for Continuous Speech Recognition & Media Stream
   const recognitionRef = useRef<any>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const isRecordingIntentRef = useRef(false);
+  const baseTranscriptRef = useRef('');
   const timerIntervalRef = useRef<any>(null);
 
   // Load past sessions
@@ -165,7 +178,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     }
   };
 
-  // Initialize and toggle Web Speech Recognition
+  // Initialize and toggle Web Speech Recognition with anti-drop silence guards
   const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
@@ -174,7 +187,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     }
   };
 
-  const startRecording = () => {
+  const startRecording = async () => {
     stopTTS();
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -187,64 +200,114 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     }
 
     try {
+      // 1. Explicitly request & hold audio track from mediaDevices to prevent immediate browser disconnects
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaStreamRef.current = stream;
+        } catch (mediaErr: any) {
+          console.warn('Microphone permission check warning:', mediaErr);
+          if (mediaErr.name === 'NotAllowedError' || mediaErr.name === 'PermissionDeniedError') {
+            alert('Microphone access was denied. Please allow microphone permissions in your browser address bar.');
+            return;
+          }
+        }
+      }
+
+      // 2. Configure continuous recognition instance
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
+
+      isRecordingIntentRef.current = true;
+      baseTranscriptRef.current = transcript.trim();
 
       recognition.onstart = () => {
         setIsRecording(true);
       };
 
       recognition.onresult = (event: any) => {
-        let fullTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          fullTranscript += event.results[i][0].transcript + ' ';
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (res.isFinal) {
+            baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + res[0].transcript).replace(/\s+/g, ' ').trim();
+          } else {
+            interim += res[0].transcript;
+          }
         }
-        setTranscript(fullTranscript.trim());
+        const fullCurrent = (baseTranscriptRef.current + ' ' + interim).replace(/\s+/g, ' ').trim();
+        setTranscript(fullCurrent);
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
-        if (event.error === 'not-allowed') {
+        console.warn('Speech recognition warning/error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          isRecordingIntentRef.current = false;
+          setIsRecording(false);
           alert('Microphone access was denied. Please allow microphone permissions in your browser.');
           stopRecording();
+          return;
         }
+        // Do NOT stop recording on 'no-speech' or 'aborted' or network drops!
+        // onend will fire and restart recognition seamlessly so listening stays active!
       };
 
       recognition.onend = () => {
-        // Only stop if user explicitly stopped
-        setIsRecording(false);
+        // If user is still recording, auto-restart to prevent Chrome's 1-second silence drop!
+        if (isRecordingIntentRef.current) {
+          try {
+            recognition.start();
+          } catch {
+            setTimeout(() => {
+              if (isRecordingIntentRef.current && recognitionRef.current) {
+                try {
+                  recognitionRef.current.start();
+                } catch {}
+              }
+            }, 120);
+          }
+        } else {
+          setIsRecording(false);
+        }
       };
 
       recognitionRef.current = recognition;
       recognition.start();
 
       // Start elapsed timer
-      setElapsedSeconds(0);
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1);
-      }, 1000);
+      if (!timerIntervalRef.current) {
+        timerIntervalRef.current = setInterval(() => {
+          setElapsedSeconds((prev) => prev + 1);
+        }, 1000);
+      }
     } catch (err) {
       console.error('Failed to initialize speech recognition:', err);
+      isRecordingIntentRef.current = false;
+      setIsRecording(false);
     }
   };
 
   const stopRecording = () => {
+    isRecordingIntentRef.current = false;
+    setIsRecording(false);
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch {
-        // ignore
-      }
+      } catch {}
       recognitionRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      try {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch {}
+      mediaStreamRef.current = null;
     }
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
-    setIsRecording(false);
   };
 
   // Cleanup on unmount
@@ -332,7 +395,8 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
         transcript: answer,
         duration_seconds: duration,
         speech_metrics: result.speech_metrics,
-        star_evaluation: result.star_evaluation
+        star_evaluation: result.star_evaluation,
+        suitable_answers: result.suitable_answers || []
       };
 
       setTurnsHistory((prev) => [...prev, turnRecord]);
@@ -341,10 +405,12 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
         turn: currentTurn,
         metrics: result.speech_metrics,
         star: result.star_evaluation,
+        suitableAnswers: result.suitable_answers || [],
         followUp: result.follow_up_prompt,
         nextQuestion: result.next_question,
         isLastTurn: Boolean(result.is_last_turn || (result as any).is_final_turn || currentTurn >= totalQuestions)
       });
+      setActiveModelIndex(0);
 
       // Clear for next turn
       setTranscript('');
@@ -784,6 +850,182 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 </div>
               )}
 
+              {/* Exemplary Suitable Model Answers for this Question */}
+              {latestTurnEval.suitableAnswers && latestTurnEval.suitableAnswers.length > 0 && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                        Suitable Model Answers ({latestTurnEval.suitableAnswers.length} Benchmark Variations)
+                      </h4>
+                    </div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Switch between approaches to compare ideal phrasing
+                    </span>
+                  </div>
+
+                  {/* Variation Selectors */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {latestTurnEval.suitableAnswers.map((ans, idx) => {
+                        const isSelected = activeModelIndex === idx;
+                        return (
+                          <button
+                            key={ans.id || idx}
+                            type="button"
+                            onClick={() => setActiveModelIndex(idx)}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            <span>{ans.label}</span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase ${
+                                isSelected
+                                  ? 'bg-indigo-800 text-white'
+                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                              }`}
+                            >
+                              {ans.tag}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center gap-1 self-end sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setActiveModelIndex(Math.max(0, activeModelIndex - 1))}
+                        disabled={activeModelIndex <= 0}
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 cursor-pointer transition-colors"
+                        title="Previous approach"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-[11px] font-semibold text-slate-500 px-1">
+                        {activeModelIndex + 1} / {latestTurnEval.suitableAnswers.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveModelIndex(Math.min(latestTurnEval.suitableAnswers.length - 1, activeModelIndex + 1))}
+                        disabled={activeModelIndex >= latestTurnEval.suitableAnswers.length - 1}
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 cursor-pointer transition-colors"
+                        title="Next approach"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Selected Model Answer */}
+                  {latestTurnEval.suitableAnswers[activeModelIndex] && (
+                    <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 space-y-3.5 text-xs animate-in fade-in">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                            {latestTurnEval.suitableAnswers[activeModelIndex].label}
+                          </span>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            {latestTurnEval.suitableAnswers[activeModelIndex].summary}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => speakText(latestTurnEval.suitableAnswers[activeModelIndex].spoken_script)}
+                            className="px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 font-semibold text-xs flex items-center gap-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors cursor-pointer"
+                            title="Hear this model answer spoken aloud with AI Voice"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                            <span>Listen Aloud</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(latestTurnEval.suitableAnswers[activeModelIndex].spoken_script);
+                              setCopiedModelScript(true);
+                              setTimeout(() => setCopiedModelScript(false), 2000);
+                            }}
+                            className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center gap-1.5 hover:bg-slate-50 transition-colors cursor-pointer"
+                          >
+                            {copiedModelScript ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copiedModelScript ? 'Copied' : 'Copy'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Complete Spoken Script Blockquote */}
+                      <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 leading-relaxed text-slate-800 dark:text-slate-200 font-medium italic">
+                        &quot;{latestTurnEval.suitableAnswers[activeModelIndex].spoken_script}&quot;
+                      </div>
+
+                      {/* 4-Pill STAR Breakdown */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
+                        <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
+                          <span className="font-bold text-[10px] uppercase text-blue-700 dark:text-blue-300 block mb-1">
+                            [S] Situation
+                          </span>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-snug">
+                            {latestTurnEval.suitableAnswers[activeModelIndex].star_breakdown.situation}
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40">
+                          <span className="font-bold text-[10px] uppercase text-purple-700 dark:text-purple-300 block mb-1">
+                            [T] Task
+                          </span>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-snug">
+                            {latestTurnEval.suitableAnswers[activeModelIndex].star_breakdown.task}
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                          <span className="font-bold text-[10px] uppercase text-emerald-700 dark:text-emerald-300 block mb-1">
+                            [A] Action
+                          </span>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-snug">
+                            {latestTurnEval.suitableAnswers[activeModelIndex].star_breakdown.action}
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
+                          <span className="font-bold text-[10px] uppercase text-amber-700 dark:text-amber-300 block mb-1">
+                            [R] Result
+                          </span>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-snug">
+                            {latestTurnEval.suitableAnswers[activeModelIndex].star_breakdown.result}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Pro Tips Takeaways */}
+                      {latestTurnEval.suitableAnswers[activeModelIndex].pro_tips &&
+                        latestTurnEval.suitableAnswers[activeModelIndex].pro_tips.length > 0 && (
+                          <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 space-y-1.5">
+                            <span className="font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                              Why this answer scores 100% on the rubric:
+                            </span>
+                            <ul className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+                              {latestTurnEval.suitableAnswers[activeModelIndex].pro_tips.map((tip, idx) => (
+                                <li key={idx} className="flex items-start gap-1.5">
+                                  <span className="text-emerald-500 font-bold">✓</span>
+                                  <span>{tip}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Progression Action */}
               <div className="flex justify-end pt-1">
                 <button
@@ -859,7 +1101,10 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 <textarea
                   rows={5}
                   value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
+                  onChange={(e) => {
+                    setTranscript(e.target.value);
+                    baseTranscriptRef.current = e.target.value;
+                  }}
                   placeholder="Click 'Record Answer' below to speak your response aloud, or type your answer here..."
                   className="w-full p-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm leading-relaxed focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                 />

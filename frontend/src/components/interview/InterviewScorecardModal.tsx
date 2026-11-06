@@ -389,6 +389,19 @@ export const InterviewScorecardModal: React.FC<InterviewScorecardModalProps> = (
                               </span>
                             </div>
                           </div>
+
+                          {/* Benchmark Model Answer Preview */}
+                          {t.suitable_answers && t.suitable_answers.length > 0 && (
+                            <div className="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-1.5">
+                              <span className="font-bold text-[11px] text-indigo-900 dark:text-indigo-300 flex items-center gap-1">
+                                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                <span>Benchmark Model Answer ({t.suitable_answers[0].label}):</span>
+                              </span>
+                              <p className="text-[11px] text-slate-700 dark:text-slate-300 italic leading-relaxed">
+                                &quot;{t.suitable_answers[0].spoken_script}&quot;
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
