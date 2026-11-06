@@ -18,6 +18,7 @@ interface AddressFieldsProps {
 export const AddressFields: React.FC<AddressFieldsProps> = ({ value, onChange }) => {
   const [enriching, setEnriching] = useState(false);
   const [enrichedOk, setEnrichedOk] = useState(false);
+  const [highlighted, setHighlighted] = useState(false);
 
   const update = (field: keyof AddressData, val: string) => {
     onChange({
@@ -39,14 +40,16 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({ value, onChange })
         country: value.country || undefined,
       });
       onChange({
-        address_line1: res.line1 ?? value.address_line1,
-        city: res.city ?? value.city,
-        region: res.region ?? value.region,
-        postal_code: res.postalCode ?? value.postal_code,
-        country: res.country ?? value.country,
+        address_line1: (res.line1 ?? res.address_line1 ?? value.address_line1) || null,
+        city: (res.city ?? value.city) || null,
+        region: (res.region ?? value.region) || null,
+        postal_code: (res.postalCode ?? res.postal_code ?? value.postal_code) || null,
+        country: (res.country ?? value.country) || null,
       });
       setEnrichedOk(true);
-      setTimeout(() => setEnrichedOk(false), 3000);
+      setHighlighted(true);
+      setTimeout(() => setEnrichedOk(false), 3500);
+      setTimeout(() => setHighlighted(false), 3500);
     } catch (err) {
       console.error('Failed to enrich address:', err);
     } finally {
@@ -101,8 +104,18 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({ value, onChange })
             autoComplete="address-line1"
             value={value.address_line1 || ''}
             onChange={(e) => update('address_line1', e.target.value)}
-            placeholder="e.g. 102 Park Avenue, Suite 400"
-            className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAutoEnrich();
+              }
+            }}
+            placeholder="e.g. 177 Great Portland Street, London W1W 6PQ"
+            className={`w-full px-3 py-2 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all ${
+              highlighted
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/20'
+                : 'border-slate-300 dark:border-slate-700'
+            }`}
           />
         </div>
 
@@ -116,8 +129,12 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({ value, onChange })
             autoComplete="address-level2"
             value={value.city || ''}
             onChange={(e) => update('city', e.target.value)}
-            placeholder="e.g. Colombo / San Francisco"
-            className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. London / New York"
+            className={`w-full px-3 py-2 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all ${
+              highlighted
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/20'
+                : 'border-slate-300 dark:border-slate-700'
+            }`}
           />
         </div>
 
@@ -131,8 +148,12 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({ value, onChange })
             autoComplete="address-level1"
             value={value.region || ''}
             onChange={(e) => update('region', e.target.value)}
-            placeholder="e.g. Western Province / CA"
-            className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. Greater London / NY"
+            className={`w-full px-3 py-2 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all ${
+              highlighted
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/20'
+                : 'border-slate-300 dark:border-slate-700'
+            }`}
           />
         </div>
 
@@ -146,8 +167,12 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({ value, onChange })
             autoComplete="postal-code"
             value={value.postal_code || ''}
             onChange={(e) => update('postal_code', e.target.value)}
-            placeholder="e.g. 00500 / 94107"
-            className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. W1W 6PQ / 10001"
+            className={`w-full px-3 py-2 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all ${
+              highlighted
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/20'
+                : 'border-slate-300 dark:border-slate-700'
+            }`}
           />
         </div>
 
@@ -161,8 +186,12 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({ value, onChange })
             autoComplete="country-name"
             value={value.country || ''}
             onChange={(e) => update('country', e.target.value)}
-            placeholder="e.g. Sri Lanka / United States"
-            className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. United Kingdom / United States"
+            className={`w-full px-3 py-2 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all ${
+              highlighted
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/20'
+                : 'border-slate-300 dark:border-slate-700'
+            }`}
           />
         </div>
       </div>

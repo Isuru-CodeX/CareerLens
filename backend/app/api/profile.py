@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.models.models import User, ProfileExperience, ProfileSkill
+from app.models.models import User, ProfileExperience, ProfileSkill, SkillSource, CareerProfile
 from app.schemas.schemas import (
     ProfileExperienceOut, ProfileExperienceCreate, ProfileExperienceUpdate,
     ProfileSkillOut, ProfileSkillCreate
@@ -237,6 +237,20 @@ def delete_profile_skill(
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found.")
 
+    skill_name = skill.name
+    skill_norm = skill.name_normalized
+
+    # Clean up dependent skill sources
+    db.query(SkillSource).filter(SkillSource.skill_id == skill_id).delete()
+
+    # Also clean up CareerProfile.skills_list if present
+    prof = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
+    if prof and prof.skills_list:
+        prof.skills_list = [
+            s for s in prof.skills_list
+            if str(s).lower() != skill_name.lower() and str(s).lower() != skill_norm
+        ]
+
     db.delete(skill)
     db.commit()
     return None
@@ -264,13 +278,31 @@ async def enrich_address(
 def get_suggested_industry(
     role: Optional[str] = None,
     skills: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
-    Intelligently suggest the optimal industry domain based on target role and technical skills.
+    Intelligently suggest the optimal industry domain based on target role, technical skills,
+    and user's profile experiences.
     """
     skill_list = [s.strip() for s in skills.split(",") if s.strip()] if skills else []
-    suggestion = suggest_industry_domain(role, skill_list)
+
+    experience_titles = []
+    if not role:
+        prof = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
+        if prof and prof.target_title:
+            role = prof.target_title
+
+    user_exps = db.query(ProfileExperience).filter(ProfileExperience.user_id == current_user.id).all()
+    experience_titles = [e.job_title for e in user_exps if e.job_title]
+    if not role and experience_titles:
+        role = experience_titles[0]
+
+    if not skill_list:
+        db_skills = db.query(ProfileSkill).filter(ProfileSkill.user_id == current_user.id).all()
+        skill_list = [s.name for s in db_skills]
+
+    suggestion = suggest_industry_domain(role, skill_list, experience_titles)
     return {"suggested_industry": suggestion}
 
 

@@ -226,3 +226,37 @@ async def test_enrich_address_service():
     assert enriched.get("region") == "Greater London"
     assert bool(enriched.get("postalCode") or enriched.get("postal_code"))
 
+    # Street address containing city and UK postal code in a single line
+    enriched2 = await enrich_address_data({"line1": "177 Great Portland Street, London W1W 6PQ"})
+    assert enriched2.get("city") == "London"
+    assert enriched2.get("country") == "United Kingdom"
+    assert "W1W" in (enriched2.get("postal_code") or "")
+    assert enriched2.get("address_line1") == "177 Great Portland Street"
+
+def test_delete_profile_skill_api():
+    unique_email = f"skilltest_{os.urandom(4).hex()}@careerlens.ai"
+    reg = client.post("/api/auth/register", json={
+        "email": unique_email,
+        "password": "Password123!",
+        "full_name": "Skill Tester"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Add a test skill
+    add_resp = client.post("/api/profile/skills", headers=headers, json={"names": ["SkillToDeleteNow"]})
+    assert add_resp.status_code == 201
+    skills = add_resp.json()
+    assert len(skills) >= 1
+    skill_id = skills[0]["id"]
+
+    # Delete the skill
+    del_resp = client.delete(f"/api/profile/skills/{skill_id}", headers=headers)
+    assert del_resp.status_code == 204
+
+    # Verify skill is deleted
+    list_resp = client.get("/api/profile/skills", headers=headers)
+    assert list_resp.status_code == 200
+    current_ids = [s["id"] for s in list_resp.json()]
+    assert skill_id not in current_ids
+

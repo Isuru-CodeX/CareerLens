@@ -1,6 +1,7 @@
 import pytest
 import os
 import sys
+import uuid
 
 # Ensure backend root is on PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -391,8 +392,9 @@ def test_resume_upload_analysis_and_pdf():
     assert r_del.status_code == 200
 
 def test_job_url_extraction():
+    unique_email = f"urlextract_{uuid.uuid4().hex[:8]}@careerlens.ai"
     reg = client.post("/api/auth/register", json={
-        "email": "urlextract@careerlens.ai",
+        "email": unique_email,
         "password": "Password123!",
         "full_name": "Job Seeker"
     })
@@ -415,8 +417,9 @@ def test_job_url_extraction():
     assert len(data["job_title"]) > 0
 
 def test_avatar_upload_and_removal():
+    unique_email = f"avatar_tester_{uuid.uuid4().hex[:8]}@careerlens.ai"
     reg = client.post("/api/auth/register", json={
-        "email": "avatar_tester@careerlens.ai",
+        "email": unique_email,
         "password": "Password123!",
         "full_name": "Avatar Tester"
     })

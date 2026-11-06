@@ -77,6 +77,7 @@ export const ProfileView: React.FC = () => {
   const [profileExperiences, setProfileExperiences] = useState<ProfileExperience[]>([]);
   const [profileSkills, setProfileSkills] = useState<ProfileSkill[]>([]);
   const [suggestingIndustry, setSuggestingIndustry] = useState(false);
+  const [industrySuggestedBadge, setIndustrySuggestedBadge] = useState<string | null>(null);
 
   // Modals
   const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
@@ -126,13 +127,17 @@ export const ProfileView: React.FC = () => {
   const handleSuggestIndustry = async () => {
     if (suggestingIndustry) return;
     setSuggestingIndustry(true);
+    setIndustrySuggestedBadge(null);
     try {
+      const effectiveRole = targetTitle || profileExperiences[0]?.job_title || '';
       const res = await api.suggestIndustry(
-        targetTitle,
+        effectiveRole,
         profileSkills.map((s) => s.name)
       );
       if (res.suggested_industry) {
         setTargetIndustry(res.suggested_industry);
+        setIndustrySuggestedBadge(res.suggested_industry);
+        setTimeout(() => setIndustrySuggestedBadge(null), 3500);
       }
     } catch (err) {
       console.error('Failed to suggest industry domain:', err);
@@ -223,11 +228,15 @@ export const ProfileView: React.FC = () => {
   };
 
   const handleRemoveSkill = async (id: string) => {
+    // Optimistically remove skill from state immediately
+    setProfileSkills((prev) => prev.filter((s) => s.id !== id));
     try {
       await api.deleteProfileSkill(id);
-      setProfileSkills((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       console.error('Failed to remove skill:', err);
+      // Re-fetch from server if deletion failed
+      const sks = await api.getProfileSkills().catch(() => []);
+      setProfileSkills(sks);
     }
   };
 
@@ -679,25 +688,32 @@ export const ProfileView: React.FC = () => {
                 <label className="block font-semibold text-slate-700 dark:text-slate-300">
                   Industry Domain
                 </label>
-                <button
-                  type="button"
-                  onClick={handleSuggestIndustry}
-                  disabled={suggestingIndustry}
-                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                  title="Search online & infer best industry domain from role and skills"
-                >
-                  {suggestingIndustry ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Inferring...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3 h-3" />
-                      <span>AI Suggest Domain</span>
-                    </>
+                <div className="flex items-center gap-2">
+                  {industrySuggestedBadge && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold animate-pulse">
+                      Suggested!
+                    </span>
                   )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleSuggestIndustry}
+                    disabled={suggestingIndustry}
+                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    title="Search online & infer best industry domain from role and skills"
+                  >
+                    {suggestingIndustry ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>Inferring...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3" />
+                        <span>AI Suggest Domain</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
               <input
                 type="text"

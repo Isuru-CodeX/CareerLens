@@ -75,7 +75,20 @@ class ApiService {
       throw new Error(errorDetail);
     }
 
-    return response.json();
+    if (response.status === 204 || response.status === 205) {
+      return undefined as unknown as T;
+    }
+
+    const text = await response.text();
+    if (!text || !text.trim()) {
+      return undefined as unknown as T;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text as unknown as T;
+    }
   }
 
   // Auth
@@ -558,6 +571,8 @@ class ApiService {
     region?: string;
     postalCode?: string;
     country?: string;
+    address_line1?: string;
+    postal_code?: string;
   }> {
     return this.request<{
       line1?: string;
@@ -565,6 +580,8 @@ class ApiService {
       region?: string;
       postalCode?: string;
       country?: string;
+      address_line1?: string;
+      postal_code?: string;
     }>('/profile/enrich-address', {
       method: 'POST',
       body: JSON.stringify(address)

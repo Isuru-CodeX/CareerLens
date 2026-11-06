@@ -1,5 +1,6 @@
 """app/services/llm_client.py - one tiny client for Claude, OpenAI and Gemini (plain HTTPS via httpx,
 already in requirements.txt, so no new dependency). Returns validated Pydantic objects."""
+import os
 import json
 import time
 from typing import Optional, Type, TypeVar
@@ -36,7 +37,7 @@ class LLMClient:
         default_model = {
             "anthropic": settings.LLM_MODEL_DEEP,
             "openai": "gpt-4o-mini",
-            "gemini": "gemini-2.5-flash"
+            "gemini": os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
         }.get(self.provider, settings.LLM_MODEL_DEEP)
 
         self.model = model or default_model
@@ -85,7 +86,55 @@ class LLMClient:
         r.raise_for_status()
         return json.loads(r.json()["candidates"][0]["content"]["parts"][0]["text"])
 
+    def _gemini_text(self, system: str, user: str, max_tokens: int) -> str:
+        body = {
+            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": max_tokens}
+        }
+        if system:
+            body["systemInstruction"] = {"parts": [{"text": system}]}
+        r = self.http.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
+            headers={"x-goog-api-key": self._key()},
+            json=body
+        )
+        r.raise_for_status()
+        candidates = r.json().get("candidates", [])
+        if candidates and "content" in candidates[0] and "parts" in candidates[0]["content"]:
+            return candidates[0]["content"]["parts"][0].get("text", "").strip()
+        return ""
+
+    def _openai_text(self, system: str, user: str, max_tokens: int) -> str:
+        r = self.http.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {self._key()}"},
+            json={"model": self.model, "temperature": 0.2, "max_tokens": max_tokens,
+                  "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+        )
+        r.raise_for_status()
+        return r.json()["choices"][0]["message"]["content"].strip()
+
+    def _anthropic_text(self, system: str, user: str, max_tokens: int) -> str:
+        r = self.http.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"x-api-key": self._key(), "anthropic-version": "2023-06-01"},
+            json={"model": self.model, "max_tokens": max_tokens, "temperature": 0.2, "system": system,
+                  "messages": [{"role": "user", "content": user}]}
+        )
+        r.raise_for_status()
+        return r.json()["content"][0]["text"].strip()
+
     # ---- public API ---------------------------------------------------------------------
+    def generate_text(self, prompt: str, system: str = "", max_tokens: int = 1000) -> str:
+        if not self.available:
+            raise LLMError("LLM disabled or API key missing")
+        if self.provider == "gemini":
+            return self._gemini_text(system, prompt, max_tokens)
+        elif self.provider == "openai":
+            return self._openai_text(system, prompt, max_tokens)
+        else:
+            return self._anthropic_text(system, prompt, max_tokens)
+
     def generate_json(self, system: str, user: str, out_model: Type[T], max_tokens: int = 6000,
                       retries: int = 2) -> T:
         if not self.available:
