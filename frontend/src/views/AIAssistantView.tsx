@@ -168,11 +168,6 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
           if (me.full_name) setCandidateName(me.full_name);
           if (me.email) setCandidateEmail(me.email);
         }
-        // Ensure defaults are populated if profile fields are empty
-        setCandidateGithub((prev) => prev || prof?.github_url || 'https://github.com/Isuru-CodeX');
-        setCandidatePortfolio((prev) => prev || prof?.portfolio_url || 'https://isuru-portfolio.vercel.app');
-        setCandidateLinkedin((prev) => prev || prof?.linkedin_url || 'https://linkedin.com/in/isururathnayaka');
-        setCandidatePhone((prev) => prev || prof?.phone || '+94727938613');
       } catch (err) {
         console.error(err);
       }
@@ -254,12 +249,12 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
             job_description: coverJD,
             company_name: companyName,
             job_title: coverJobTitle,
-            candidate_name: (includeContactHeader && showName) ? (candidateName.trim() || 'Isuru Rathnayaka') : undefined,
-            email: (includeContactHeader && showEmail) ? (candidateEmail.trim() || 'isururathnayaka999@gmail.com') : undefined,
-            phone: (includeContactHeader && showPhone) ? (candidatePhone.trim() || '+94727938613') : undefined,
-            linkedin_url: (includeContactHeader && showLinkedin) ? (candidateLinkedin.trim() || 'https://linkedin.com/in/isururathnayaka') : undefined,
-            github_url: (includeContactHeader && showGithub) ? (candidateGithub.trim() || 'https://github.com/Isuru-CodeX') : undefined,
-            portfolio_url: (includeContactHeader && showPortfolio) ? (candidatePortfolio.trim() || 'https://isuru-portfolio.vercel.app') : undefined,
+            candidate_name: (includeContactHeader && showName) ? (candidateName.trim() || undefined) : undefined,
+            email: (includeContactHeader && showEmail) ? (candidateEmail.trim() || undefined) : undefined,
+            phone: (includeContactHeader && showPhone) ? (candidatePhone.trim() || undefined) : undefined,
+            linkedin_url: (includeContactHeader && showLinkedin) ? (candidateLinkedin.trim() || undefined) : undefined,
+            github_url: (includeContactHeader && showGithub) ? (candidateGithub.trim() || undefined) : undefined,
+            portfolio_url: (includeContactHeader && showPortfolio) ? (candidatePortfolio.trim() || undefined) : undefined,
             other_links: includeContactHeader ? (userProfile?.other_links || undefined) : undefined,
             include_project_links_body: (includeContactHeader && includeProjectLinksBody),
             include_contact_header: includeContactHeader,
@@ -761,9 +756,6 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setShowName(checked);
-                            if (checked && !candidateName.trim()) {
-                              setCandidateName('Isuru Rathnayaka');
-                            }
                           }}
                           className="w-3.5 h-3.5 text-blue-600 rounded-sm cursor-pointer"
                         />
@@ -774,7 +766,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                         disabled={!showName}
                         value={candidateName}
                         onChange={(e) => setCandidateName(e.target.value)}
-                        placeholder="Isuru Rathnayaka"
+                        placeholder="e.g. Alex Rivera"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-40"
                       />
                     </div>
@@ -788,9 +780,6 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setShowEmail(checked);
-                            if (checked && !candidateEmail.trim()) {
-                              setCandidateEmail('isururathnayaka999@gmail.com');
-                            }
                           }}
                           className="w-3.5 h-3.5 text-blue-600 rounded-sm cursor-pointer"
                         />
@@ -801,7 +790,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                         disabled={!showEmail}
                         value={candidateEmail}
                         onChange={(e) => setCandidateEmail(e.target.value)}
-                        placeholder="isururathnayaka999@gmail.com"
+                        placeholder="e.g. alex@example.com"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-40"
                       />
                     </div>
@@ -815,8 +804,8 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setShowPhone(checked);
-                            if (checked && !candidatePhone.trim()) {
-                              setCandidatePhone(userProfile?.phone || '+94727938613');
+                            if (checked && !candidatePhone.trim() && userProfile?.phone) {
+                              setCandidatePhone(userProfile.phone);
                             }
                           }}
                           className="w-3.5 h-3.5 text-blue-600 rounded-sm cursor-pointer"
@@ -828,7 +817,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                         disabled={!showPhone}
                         value={candidatePhone}
                         onChange={(e) => setCandidatePhone(e.target.value)}
-                        placeholder="+94 72 793 8613"
+                        placeholder="e.g. +1 (555) 019-2834"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-40"
                       />
                     </div>
@@ -842,8 +831,8 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setShowGithub(checked);
-                            if (checked && !candidateGithub.trim()) {
-                              setCandidateGithub(userProfile?.github_url || 'https://github.com/Isuru-CodeX');
+                            if (checked && !candidateGithub.trim() && userProfile?.github_url) {
+                              setCandidateGithub(userProfile.github_url);
                             }
                           }}
                           className="w-3.5 h-3.5 text-blue-600 rounded-sm cursor-pointer"
@@ -855,7 +844,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                         disabled={!showGithub}
                         value={candidateGithub}
                         onChange={(e) => setCandidateGithub(e.target.value)}
-                        placeholder="https://github.com/Isuru-CodeX"
+                        placeholder="e.g. https://github.com/username"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-40"
                       />
                     </div>
@@ -869,8 +858,8 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setShowPortfolio(checked);
-                            if (checked && !candidatePortfolio.trim()) {
-                              setCandidatePortfolio(userProfile?.portfolio_url || 'https://isuru-portfolio.vercel.app');
+                            if (checked && !candidatePortfolio.trim() && userProfile?.portfolio_url) {
+                              setCandidatePortfolio(userProfile.portfolio_url);
                             }
                           }}
                           className="w-3.5 h-3.5 text-blue-600 rounded-sm cursor-pointer"
@@ -882,7 +871,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                         disabled={!showPortfolio}
                         value={candidatePortfolio}
                         onChange={(e) => setCandidatePortfolio(e.target.value)}
-                        placeholder="https://isuru-portfolio.vercel.app"
+                        placeholder="e.g. https://myportfolio.dev"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-40"
                       />
                     </div>
@@ -896,8 +885,8 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setShowLinkedin(checked);
-                            if (checked && !candidateLinkedin.trim()) {
-                              setCandidateLinkedin(userProfile?.linkedin_url || 'https://linkedin.com/in/isururathnayaka');
+                            if (checked && !candidateLinkedin.trim() && userProfile?.linkedin_url) {
+                              setCandidateLinkedin(userProfile.linkedin_url);
                             }
                           }}
                           className="w-3.5 h-3.5 text-blue-600 rounded-sm cursor-pointer"
@@ -909,7 +898,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                         disabled={!showLinkedin}
                         value={candidateLinkedin}
                         onChange={(e) => setCandidateLinkedin(e.target.value)}
-                        placeholder="https://linkedin.com/in/isururathnayaka"
+                        placeholder="e.g. https://linkedin.com/in/username"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-40"
                       />
                     </div>
