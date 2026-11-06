@@ -415,4 +415,79 @@ export type CvImportProgressEvent =
   | { type: 'done'; summary: { resumeId: string; fieldsFilled: number; experiencesAdded: number; skillsAdded: number; photoAdded: boolean } }
   | { type: 'error'; code: string; message: string; extra?: { cvEmail: string; accountEmail: string } };
 
+export interface SpeechMetrics {
+  word_count: number;
+  duration_seconds: number;
+  wpm: number;
+  pacing_status: string;
+  pacing_badge: 'success' | 'warning' | 'neutral';
+  filler_count: number;
+  filler_density_pct: number;
+  filler_breakdown: Record<string, number>;
+}
+
+export interface StarEvaluation {
+  situation_score: number;
+  task_score: number;
+  action_score: number;
+  result_score: number;
+  overall_star_score: number;
+  is_star_compliant: boolean;
+  strengths: string[];
+  growth_areas: string[];
+  follow_up_prompt?: string | null;
+}
+
+export interface InterviewQuestionItem {
+  question_id: string;
+  turn: number;
+  question: string;
+  category?: string;
+  why_asked?: string;
+  star_guidance?: string;
+}
+
+export interface InterviewScorecard {
+  overall_score: number;
+  recommendation: 'Strong Hire' | 'Hire' | 'Lean Hire' | 'Needs Coaching' | 'Incomplete';
+  verdict: string;
+  star_average: number;
+  speech_clarity_score: number;
+  average_wpm: number;
+  total_fillers_detected: number;
+  average_filler_density: number;
+  radar: {
+    'STAR Adherence': number;
+    'Speech Pacing': number;
+    'Conciseness': number;
+    'Action Ownership': number;
+    'Metric Results': number;
+  };
+  top_strengths: string[];
+  growth_areas: string[];
+  total_questions_answered: number;
+}
+
+export interface InterviewTurnRecord {
+  turn: number;
+  question: string;
+  transcript: string;
+  duration_seconds: number;
+  speech_metrics: SpeechMetrics;
+  star_evaluation: StarEvaluation;
+}
+
+export interface InterviewSessionSummary {
+  id: string;
+  role_title: string;
+  company: string;
+  format_type: string;
+  status: 'in_progress' | 'completed';
+  overall_score: number;
+  turns_count: number;
+  created_at?: string;
+  recommendation?: string;
+}
+
+
 

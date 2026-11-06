@@ -43,6 +43,7 @@ class User(Base):
     profile_skills = relationship("ProfileSkill", back_populates="user", cascade="all, delete-orphan", order_by="ProfileSkill.name")
     presets = relationship("Preset", back_populates="user", cascade="all, delete-orphan", order_by="Preset.created_at")
     cover_letters = relationship("CoverLetter", back_populates="user", cascade="all, delete-orphan", order_by="desc(CoverLetter.created_at)")
+    interview_sessions = relationship("InterviewSession", back_populates="user", cascade="all, delete-orphan", order_by="desc(InterviewSession.created_at)")
 
 class CareerProfile(Base):
     __tablename__ = "career_profiles"
@@ -463,6 +464,24 @@ class CoverLetterVersion(Base):
     created_at = Column(DateTime, default=get_utc_now)
 
     letter = relationship("CoverLetter", back_populates="versions")
+
+class InterviewSession(Base):
+    __tablename__ = "interview_sessions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    role_title = Column(String(255), nullable=False)
+    company = Column(String(255), nullable=False)
+    format_type = Column(String(50), default="mixed")  # behavioral, technical, system_design, mixed
+    status = Column(String(50), default="in_progress")  # in_progress, completed
+    overall_score = Column(Integer, default=0)
+    scorecard = Column(JSON, default=dict)
+    turns = Column(JSON, default=list)  # list of turn dicts
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="interview_sessions")
+
 
 
 

@@ -17,13 +17,15 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  Mic
 } from 'lucide-react';
 import { Resume, CareerProfile, Preset, CoverLetterRecord, CoverLetterVersion, TextPolishChange } from '../types';
 import { api } from '../services/api';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { PresetSelect } from '../components/PresetSelect';
 import { StyleToggle } from '../components/StyleToggle';
+import { VoiceInterviewStudio } from '../components/interview/VoiceInterviewStudio';
 
 interface AIAssistantViewProps {
   initialTab?: 'rewrite' | 'coverletter' | 'interview';
@@ -117,6 +119,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   );
   const [interviewQuestions, setInterviewQuestions] = useState<any[]>([]);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [interviewMode, setInterviewMode] = useState<'voice' | 'written'>('voice');
 
   const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
   const [prevTargetRole, setPrevTargetRole] = useState(targetRole);
@@ -1330,88 +1333,131 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
         </div>
       )}
 
-      {/* Tab 3: Interview Q&A Practice */}
+      {/* Tab 3: Interview Q&A Practice & Real-Time Voice Studio */}
       {activeTab === 'interview' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Target Role & Requirements for Interview Simulation
-              </label>
-              <textarea
-                rows={4}
-                value={interviewJD}
-                onChange={(e) => setInterviewJD(e.target.value)}
-                className="w-full p-3.5 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white leading-relaxed"
-              />
-            </div>
+          {/* Sub-tab mode selector */}
+          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/60 max-w-md">
+            <button
+              type="button"
+              onClick={() => setInterviewMode('voice')}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                interviewMode === 'voice'
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <Mic className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Voice AI Simulator</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300">
+                LIVE
+              </span>
+            </button>
 
-            <div className="flex justify-end">
-              <button
-                onClick={handleGenerateQuestions}
-                disabled={isGeneratingQuestions || !interviewJD.trim()}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>{isGeneratingQuestions ? 'Generating Practice Q&A...' : 'Generate Targeted Questions'}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setInterviewMode('written')}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                interviewMode === 'written'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4 text-slate-500" />
+              <span>Practice Prompts</span>
+            </button>
           </div>
 
-          {interviewQuestions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  Targeted Interview Questions & STAR Framework Prompts
-                </h3>
-                <span className="text-xs text-slate-400">
-                  {interviewQuestions.length} practice prompts
-                </span>
-              </div>
+          {interviewMode === 'voice' ? (
+            <VoiceInterviewStudio
+              resumes={resumes}
+              presets={presets}
+              defaultRole={coverJobTitle || targetRole || ''}
+              defaultCompany={companyName || ''}
+            />
+          ) : (
+            <div className="space-y-6">
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Target Role & Requirements for Interview Simulation
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={interviewJD}
+                    onChange={(e) => setInterviewJD(e.target.value)}
+                    className="w-full p-3.5 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white leading-relaxed"
+                  />
+                </div>
 
-              <div className="space-y-3">
-                {interviewQuestions.map((q, idx) => (
-                  <div
-                    key={idx}
-                    className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3"
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleGenerateQuestions}
+                    disabled={isGeneratingQuestions || !interviewJD.trim()}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center justify-center shrink-0">
-                          {idx + 1}
-                        </span>
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                          {q.question}
-                        </h4>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
-                        {q.type}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-                      <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 text-slate-700 dark:text-slate-300">
-                        <span className="font-bold text-blue-900 dark:text-blue-300 block mb-1">
-                          Key Focus & Tradeoffs:
-                        </span>
-                        {q.suggested_focus}
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 text-slate-700 dark:text-slate-300">
-                        <span className="font-bold text-emerald-900 dark:text-emerald-300 block mb-1">
-                          STAR Method Framing Hint:
-                        </span>
-                        {q.star_hints}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    <MessageSquare className="w-4 h-4" />
+                    <span>{isGeneratingQuestions ? 'Generating Practice Q&A...' : 'Generate Targeted Questions'}</span>
+                  </button>
+                </div>
               </div>
-            </motion.div>
+
+              {interviewQuestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                      Targeted Interview Questions & STAR Framework Prompts
+                    </h3>
+                    <span className="text-xs text-slate-400">
+                      {interviewQuestions.length} practice prompts
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {interviewQuestions.map((q, idx) => (
+                      <div
+                        key={idx}
+                        className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                              {q.question}
+                            </h4>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
+                            {q.type}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                          <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 text-slate-700 dark:text-slate-300">
+                            <span className="font-bold text-blue-900 dark:text-blue-300 block mb-1">
+                              Key Focus & Tradeoffs:
+                            </span>
+                            {q.suggested_focus}
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 text-slate-700 dark:text-slate-300">
+                            <span className="font-bold text-emerald-900 dark:text-emerald-300 block mb-1">
+                              STAR Method Framing Hint:
+                            </span>
+                            {q.star_hints}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
           )}
         </div>
       )}

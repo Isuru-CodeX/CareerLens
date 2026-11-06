@@ -20,7 +20,13 @@ import {
   Preset,
   CoverLetterRecord,
   CoverLetterVersion,
-  TextPolishResponse
+  TextPolishResponse,
+  InterviewQuestionItem,
+  SpeechMetrics,
+  StarEvaluation,
+  InterviewScorecard,
+  InterviewSessionSummary,
+  InterviewTurnRecord
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -708,6 +714,83 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(data)
     });
+  }
+
+  // ==========================================
+  // Real-Time Voice AI Mock Interview Simulator
+  // ==========================================
+  async startInterviewSession(data: {
+    role_title: string;
+    company?: string;
+    format?: string;
+    job_description?: string;
+    resume_id?: string;
+    total_questions?: number;
+  }): Promise<{
+    session_id: string;
+    role_title: string;
+    company: string;
+    format_type: string;
+    status: string;
+    total_questions: number;
+    current_turn: number;
+    first_question: InterviewQuestionItem;
+  }> {
+    return this.request('/interviews/session/start', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async submitInterviewAnswer(
+    sessionId: string,
+    data: {
+      turn_index: number;
+      answer_text: string;
+      duration_seconds: number;
+    }
+  ): Promise<{
+    session_id: string;
+    turn_index: number;
+    duration_seconds: number;
+    speech_metrics: SpeechMetrics;
+    star_evaluation: StarEvaluation;
+    follow_up_prompt?: string | null;
+    next_question?: InterviewQuestionItem | null;
+    is_last_turn: boolean;
+  }> {
+    return this.request(`/interviews/session/${sessionId}/answer`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async completeInterviewSession(sessionId: string): Promise<{
+    session_id: string;
+    scorecard: InterviewScorecard;
+    status: string;
+  }> {
+    return this.request(`/interviews/session/${sessionId}/complete`, {
+      method: 'POST'
+    });
+  }
+
+  async getInterviewSessions(): Promise<InterviewSessionSummary[]> {
+    return this.request<InterviewSessionSummary[]>('/interviews/sessions');
+  }
+
+  async getInterviewSession(sessionId: string): Promise<{
+    id: string;
+    role_title: string;
+    company: string;
+    format_type: string;
+    status: string;
+    overall_score: number;
+    turns: InterviewTurnRecord[];
+    scorecard: InterviewScorecard;
+    questions: InterviewQuestionItem[];
+  }> {
+    return this.request(`/interviews/session/${sessionId}`);
   }
 }
 

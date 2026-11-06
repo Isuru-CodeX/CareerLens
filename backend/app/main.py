@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.database import Base, engine
 from app.api import (
     auth, users, resumes, jobs, ai, applications,
-    dashboard, experiences, activity, cv, profile, presets, cover_letters, text
+    dashboard, experiences, activity, cv, profile, presets, cover_letters, text, interviews
 )
 
 @asynccontextmanager
@@ -122,6 +122,7 @@ app.include_router(profile.router, prefix=settings.API_V1_STR)
 app.include_router(presets.router, prefix=settings.API_V1_STR)
 app.include_router(cover_letters.router, prefix=settings.API_V1_STR)
 app.include_router(text.router, prefix=settings.API_V1_STR)
+app.include_router(interviews.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():
