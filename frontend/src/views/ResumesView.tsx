@@ -128,6 +128,15 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
     }
   };
 
+  const handleAutoFillFromResume = async (resumeId: string) => {
+    try {
+      const res = await api.importExistingResume(resumeId);
+      setActiveImportJobId(res.job_id);
+    } catch (err: any) {
+      alert(err.message || 'Failed to start auto-fill pipeline.');
+    }
+  };
+
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile) return;
@@ -350,40 +359,52 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                 <button
-                  onClick={() => onNavigate('analysis', { resumeId: r.id })}
-                  className="py-2 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  type="button"
+                  onClick={() => handleAutoFillFromResume(r.id)}
+                  className="w-full py-2 px-3 rounded-xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  title="Auto-fill candidate profile and credentials from this CV"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Audit Score</span>
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  <span>Auto-Fill / Re-Sync Profile</span>
                 </button>
 
-                <button
-                  onClick={() => onNavigate('matches', { resumeId: r.id })}
-                  className="py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Target className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Match JD</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => onNavigate('analysis', { resumeId: r.id })}
+                    className="py-2 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Audit Score</span>
+                  </button>
 
-                <a
-                  href={api.getResumeFileUrl(r.id, 'inline')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2 px-3 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/60 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  <span>View CV</span>
-                </a>
+                  <button
+                    onClick={() => onNavigate('matches', { resumeId: r.id })}
+                    className="py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Target className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Match JD</span>
+                  </button>
 
-                <button
-                  onClick={() => openEditor(r)}
-                  className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit Fields</span>
-                </button>
+                  <a
+                    href={api.getResumeFileUrl(r.id, 'inline')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2 px-3 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/60 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>View CV</span>
+                  </a>
+
+                  <button
+                    onClick={() => openEditor(r)}
+                    className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit Fields</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}

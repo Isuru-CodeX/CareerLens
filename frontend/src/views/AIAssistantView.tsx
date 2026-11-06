@@ -617,7 +617,35 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
               <div>
                 <PresetSelect
                   value={selectedPresetId}
-                  onChange={setSelectedPresetId}
+                  onChange={(newId) => {
+                    setSelectedPresetId(newId);
+                    if (newId.startsWith('resume:')) {
+                      const rId = newId.replace('resume:', '');
+                      setSelectedResumeId(rId);
+                      const chosen = resumes.find(r => r.id === rId);
+                      if (chosen?.target_role && !coverJobTitle) {
+                        setCoverJobTitle(chosen.target_role);
+                      }
+                    } else if (newId.startsWith('preset:')) {
+                      const pId = newId.replace('preset:', '');
+                      const preset = presets.find(p => p.id === pId);
+                      if (preset && preset.resume_ids && preset.resume_ids.length > 0) {
+                        setSelectedResumeId(preset.resume_ids[0]);
+                      }
+                      if (preset?.target_role && !coverJobTitle) {
+                        setCoverJobTitle(preset.target_role);
+                      }
+                    } else if (newId === 'all') {
+                      if (resumes.length > 0) {
+                        setSelectedResumeId(resumes[0].id);
+                      }
+                    } else {
+                      const preset = presets.find(p => p.id === newId);
+                      if (preset && preset.resume_ids && preset.resume_ids.length > 0) {
+                        setSelectedResumeId(preset.resume_ids[0]);
+                      }
+                    }
+                  }}
                   presets={presets}
                   resumes={resumes}
                   onPresetsChanged={fetchPresets}

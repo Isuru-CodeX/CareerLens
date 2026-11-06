@@ -22,6 +22,7 @@ from app.services.cv_extraction_service import (
     extract_structured_cv, split_links, label_for, CvDataSchema
 )
 from app.services.years_service import canonical_skill, current_year
+from app.services.location_service import enrich_address_data, suggest_industry_domain
 from app.services.activity_service import record_user_activity
 
 logger = logging.getLogger("careerlens.cv_jobs")
@@ -76,16 +77,17 @@ async def run_import_pipeline(
     temp_file_path: str,
     original_filename: str,
     mime_type: str,
-    file_size: int
+    file_size: int,
+    resume_id: Optional[str] = None
 ):
     """
     Background pipeline that executes the 6 steps:
     1. upload (done)
     2. read (sha256, extract text & links)
-    3. analyze (AI extraction of experience and skills)
+    3. analyze (AI extraction of experience, skills, and education)
     4. verify (EMAIL GATE: match account email)
     5. photo (detect & crop headshot)
-    6. save (atomic DB transaction for profile, contact, experiences, skills)
+    6. save (atomic DB transaction for profile, contact, experiences, education, skills)
     """
     def step(s: str, status: str, detail: Optional[str] = None):
         emit_event(job_id, {"type": "step", "step": s, "status": status, "detail": detail})
@@ -105,7 +107,7 @@ async def run_import_pipeline(
 
         sha = hashlib.sha256(file_bytes).hexdigest()
         existing = db.query(Resume).filter(Resume.user_id == user_id, Resume.sha256 == sha).first()
-        if existing:
+        if existing and (not resume_id or existing.id != resume_id):
             raise ImportError("DUPLICATE_CV", "You have already uploaded this exact CV file.")
 
         ex = extract_cv_text_and_links(temp_file_path, mime_type)
@@ -156,7 +158,7 @@ async def run_import_pipeline(
         step("photo", "done", "Profile photo extracted" if avatar_bytes else "No profile photo added")
 
         # Step 6: Atomic Database Save
-        step("save", "active", "Persisting CV version, contact information, and experiences...")
+        step("save", "active", "Persisting CV version, contact information, education, and experiences...")
 
         # Store permanent resume file
         resumes_dir = os.path.join(settings.RESOLVED_UPLOAD_DIR, "resumes")
@@ -167,23 +169,56 @@ async def run_import_pipeline(
         with open(permanent_path, "wb") as f_perm:
             f_perm.write(file_bytes)
 
-        # Create Resume entity
+        # Get or create Resume entity
         title = os.path.splitext(original_filename)[0]
-        resume = Resume(
-            user_id=user.id,
-            title=title,
-            target_role=cv_data.roleCategory or "Software Professional",
-            role_category=cv_data.roleCategory,
-            file_name=original_filename,
-            file_path=permanent_path,
-            file_size=file_size,
-            file_type=ext.replace(".", ""),
-            sha256=sha,
-            parsed_json=cv_data.model_dump(),
-            raw_text=ex.text
-        )
-        db.add(resume)
+        resume = None
+        if resume_id:
+            resume = db.query(Resume).filter(Resume.id == resume_id, Resume.user_id == user.id).first()
+
+        if not resume:
+            resume = Resume(
+                user_id=user.id,
+                title=title,
+                target_role=cv_data.roleCategory or "Software Professional",
+                role_category=cv_data.roleCategory,
+                file_name=original_filename,
+                file_path=permanent_path,
+                file_size=file_size,
+                file_type=ext.replace(".", ""),
+                sha256=sha,
+                parsed_json=cv_data.model_dump(),
+                raw_text=ex.text
+            )
+            db.add(resume)
+        else:
+            resume.parsed_json = cv_data.model_dump()
+            resume.raw_text = ex.text
+            if cv_data.roleCategory:
+                resume.role_category = cv_data.roleCategory
+            resume.file_path = permanent_path
+            resume.file_size = file_size
         db.flush()
+
+        # Online address enrichment (searches postal code/region online if missing)
+        try:
+            raw_addr = {
+                "line1": cv_data.address.line1,
+                "city": cv_data.address.city,
+                "region": cv_data.address.region,
+                "postalCode": cv_data.address.postalCode,
+                "country": cv_data.address.country
+            }
+            enriched_addr = await enrich_address_data(raw_addr)
+            if enriched_addr.get("city") and not cv_data.address.city:
+                cv_data.address.city = enriched_addr["city"]
+            if enriched_addr.get("region") and not cv_data.address.region:
+                cv_data.address.region = enriched_addr["region"]
+            if enriched_addr.get("postalCode") and not cv_data.address.postalCode:
+                cv_data.address.postalCode = enriched_addr["postalCode"]
+            if enriched_addr.get("country") and not cv_data.address.country:
+                cv_data.address.country = enriched_addr["country"]
+        except Exception as e:
+            logger.warning(f"Address enrichment warning: {e}")
 
         # Merge Contact details into CareerProfile (fill empty only!)
         profile = db.query(CareerProfile).filter(CareerProfile.user_id == user.id).first()
@@ -222,6 +257,31 @@ async def run_import_pipeline(
             fields_filled += 1
         if not profile.target_title and cv_data.roleCategory:
             profile.target_title = cv_data.roleCategory
+        if not profile.target_industry:
+            profile.target_industry = suggest_industry_domain(
+                profile.target_title or cv_data.roleCategory,
+                cv_data.skills
+            )
+
+        # Merge Education History
+        cur_edu = profile.education_history or []
+        if not isinstance(cur_edu, list):
+            cur_edu = []
+        existing_edu_keys = {
+            f"{(item.get('institution') or '').strip().lower()}|{(item.get('degree') or '').strip().lower()}"
+            for item in cur_edu if isinstance(item, dict)
+        }
+        import uuid
+        edu_added_count = 0
+        for edu in cv_data.education:
+            k = f"{edu.institution.strip().lower()}|{edu.degree.strip().lower()}"
+            if k not in existing_edu_keys:
+                edu_dict = edu.model_dump()
+                edu_dict["id"] = str(uuid.uuid4())[:8]
+                cur_edu.append(edu_dict)
+                existing_edu_keys.add(k)
+                edu_added_count += 1
+        profile.education_history = cur_edu
 
         # Merge additional custom links
         cur_other = profile.other_links or []
@@ -320,6 +380,7 @@ async def run_import_pipeline(
                 "fieldsFilled": fields_filled,
                 "experiencesAdded": experiences_added,
                 "skillsAdded": skills_added,
+                "educationAdded": edu_added_count,
                 "photoAdded": bool(avatar_url)
             }
         })

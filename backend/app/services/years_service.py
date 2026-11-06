@@ -2,6 +2,7 @@
 app/services/years_service.py - Standard year calculations, industry taxonomy, and canonical skills.
 Shared logic with identical rules between server and web.
 """
+import re
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple, Dict
 
@@ -44,10 +45,21 @@ ALIASES: Dict[str, str] = {
     "ai": "Artificial Intelligence",
     "c sharp": "C#",
     "c#": "C#",
+    "c++": "C++",
+    "cpp": "C++",
     "golang": "Go",
     "go": "Go",
     "py": "Python",
     "python": "Python",
+    "java": "Java",
+    "php": "PHP",
+    "laravel": "Laravel",
+    "html": "HTML",
+    "html5": "HTML",
+    "css": "CSS",
+    "css3": "CSS",
+    "sass": "Sass",
+    "scss": "Sass",
     "aws": "AWS",
     "gcp": "Google Cloud Platform",
     "azure": "Microsoft Azure",
@@ -59,15 +71,84 @@ ALIASES: Dict[str, str] = {
     "vue": "Vue.js",
     "vuejs": "Vue.js",
     "vue.js": "Vue.js",
+    "angular": "Angular",
+    "svelte": "Svelte",
     "fastapi": "FastAPI",
     "django": "Django",
     "flask": "Flask",
+    "spring": "Spring Boot",
+    "spring boot": "Spring Boot",
+    "express": "Express.js",
+    "express.js": "Express.js",
     "graphql": "GraphQL",
     "mongodb": "MongoDB",
     "mysql": "MySQL",
+    "sqlite": "SQLite",
     "redis": "Redis",
     "git": "Git",
+    "github": "Git",
+    "ci/cd": "CI/CD",
+    "cicd": "CI/CD",
+    "jenkins": "Jenkins",
+    "terraform": "Terraform",
+    "linux": "Linux",
+    "flutter": "Flutter",
+    "dart": "Dart",
+    "kotlin": "Kotlin",
+    "swift": "Swift",
+    "react native": "React Native",
+    "figma": "Figma",
+    "ui/ux": "UI/UX Design",
+    "jira": "Jira",
+    "scrum": "Agile/Scrum",
+    "agile": "Agile/Scrum",
+    "project management": "Project Management",
+    "public relations": "Public Relations",
+    "seo": "SEO",
+    "digital marketing": "Digital Marketing",
 }
+
+PROTECTED_SKILL_SLASHES = {"ci/cd", "ui/ux", "tcp/ip", "pl/sql", "os/2", "i/o", "client/server"}
+
+def split_compound_skills(raw_skills: List[str]) -> List[str]:
+    """
+    Intelligently splits skills combined with commas, slashes, bullets, or pipes
+    (e.g. 'HTML/CSS', 'Java, PHP, JavaScript', 'Docker | Kubernetes')
+    while preserving protected terms like 'CI/CD' and 'UI/UX'.
+    """
+    result: List[str] = []
+    seen = set()
+
+    for item in raw_skills:
+        if not item or not isinstance(item, str):
+            continue
+        text = item.strip()
+        if not text:
+            continue
+
+        # Split on commas, newlines, bullets, pipes, semicolons
+        parts = re.split(r"[,;\n•·|&]+", text)
+        for part in parts:
+            p = part.strip()
+            if not p:
+                continue
+
+            # Check if slash should be split (e.g. 'HTML/CSS' or 'React / Next.js')
+            p_lower = p.lower()
+            if "/" in p and p_lower not in PROTECTED_SKILL_SLASHES:
+                sub_parts = p.split("/")
+                for sp in sub_parts:
+                    s_canon = canonical_skill(sp.strip())
+                    if s_canon and s_canon.lower() not in seen and len(s_canon) >= 2:
+                        seen.add(s_canon.lower())
+                        result.append(s_canon)
+            else:
+                s_canon = canonical_skill(p)
+                if s_canon and s_canon.lower() not in seen and len(s_canon) >= 2:
+                    seen.add(s_canon.lower())
+                    result.append(s_canon)
+
+    return result
 
 def canonical_skill(raw: str) -> str:
     cleaned = " ".join(raw.strip().split())

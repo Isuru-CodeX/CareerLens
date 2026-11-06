@@ -477,6 +477,12 @@ class ApiService {
     return res.json();
   }
 
+  async importExistingResume(resumeId: string): Promise<{ job_id: string; message: string }> {
+    return this.request<{ job_id: string; message: string }>(`/cv/import/resume/${resumeId}`, {
+      method: 'POST'
+    });
+  }
+
   getImportEventsUrl(jobId: string): string {
     return `${API_BASE_URL}/cv/import/${jobId}/events`;
   }
@@ -538,6 +544,39 @@ class ApiService {
     await this.request<void>(`/profile/skills/${id}`, {
       method: 'DELETE'
     });
+  }
+
+  async enrichAddress(address: {
+    line1?: string;
+    city?: string;
+    region?: string;
+    postalCode?: string;
+    country?: string;
+  }): Promise<{
+    line1?: string;
+    city?: string;
+    region?: string;
+    postalCode?: string;
+    country?: string;
+  }> {
+    return this.request<{
+      line1?: string;
+      city?: string;
+      region?: string;
+      postalCode?: string;
+      country?: string;
+    }>('/profile/enrich-address', {
+      method: 'POST',
+      body: JSON.stringify(address)
+    });
+  }
+
+  async suggestIndustry(role?: string, skills?: string[]): Promise<{ suggested_industry: string }> {
+    const params = new URLSearchParams();
+    if (role) params.set('role', role);
+    if (skills && skills.length > 0) params.set('skills', skills.join(','));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return this.request<{ suggested_industry: string }>(`/profile/suggest-industry${qs}`);
   }
 
   // ==========================================

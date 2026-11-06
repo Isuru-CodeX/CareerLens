@@ -13,7 +13,9 @@ import {
   Mail,
   Camera,
   Upload,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { useTheme } from '../context/useTheme';
@@ -23,9 +25,10 @@ import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { AvatarCropModal } from '../components/AvatarCropModal';
 import { AddressFields, AddressData } from '../components/AddressFields';
 import { LinksEditor } from '../components/LinksEditor';
+import { EducationEditor } from '../components/EducationEditor';
 import { ExperienceEditor } from '../components/ExperienceEditor';
 import { SkillsEditor } from '../components/SkillsEditor';
-import { ProfileExperience, ProfileSkill } from '../types';
+import { ProfileExperience, ProfileSkill, EducationItem } from '../types';
 
 // Custom clean icons for professional profiles
 const LinkedinIcon = () => (
@@ -70,8 +73,10 @@ export const ProfileView: React.FC = () => {
   const [desiredSalaryMin, setDesiredSalaryMin] = useState<number | ''>('');
   const [desiredSalaryMax, setDesiredSalaryMax] = useState<number | ''>('');
   const [summary, setSummary] = useState('');
+  const [educationHistory, setEducationHistory] = useState<EducationItem[]>([]);
   const [profileExperiences, setProfileExperiences] = useState<ProfileExperience[]>([]);
   const [profileSkills, setProfileSkills] = useState<ProfileSkill[]>([]);
+  const [suggestingIndustry, setSuggestingIndustry] = useState(false);
 
   // Modals
   const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
@@ -105,6 +110,7 @@ export const ProfileView: React.FC = () => {
           postal_code: p.postal_code || '',
           country: p.country || ''
         });
+        setEducationHistory(p.education_history || []);
         setProfileExperiences(exps);
         setProfileSkills(sks);
       } catch (err) {
@@ -116,6 +122,24 @@ export const ProfileView: React.FC = () => {
       isMounted = false;
     };
   }, []);
+
+  const handleSuggestIndustry = async () => {
+    if (suggestingIndustry) return;
+    setSuggestingIndustry(true);
+    try {
+      const res = await api.suggestIndustry(
+        targetTitle,
+        profileSkills.map((s) => s.name)
+      );
+      if (res.suggested_industry) {
+        setTargetIndustry(res.suggested_industry);
+      }
+    } catch (err) {
+      console.error('Failed to suggest industry domain:', err);
+    } finally {
+      setSuggestingIndustry(false);
+    }
+  };
 
   const handleSaveProfile = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -137,7 +161,8 @@ export const ProfileView: React.FC = () => {
         linkedin_url: linkedinUrl,
         github_url: githubUrl,
         portfolio_url: portfolioUrl,
-        other_links: otherLinks
+        other_links: otherLinks,
+        education_history: educationHistory
       });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
@@ -650,9 +675,30 @@ export const ProfileView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Industry Domain
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300">
+                  Industry Domain
+                </label>
+                <button
+                  type="button"
+                  onClick={handleSuggestIndustry}
+                  disabled={suggestingIndustry}
+                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  title="Search online & infer best industry domain from role and skills"
+                >
+                  {suggestingIndustry ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Inferring...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3" />
+                      <span>AI Suggest Domain</span>
+                    </>
+                  )}
+                </button>
+              </div>
               <input
                 type="text"
                 value={targetIndustry}
@@ -661,6 +707,14 @@ export const ProfileView: React.FC = () => {
                 className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
+          </div>
+
+          {/* Education History Section with Presets */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <EducationEditor
+              items={educationHistory}
+              onChange={setEducationHistory}
+            />
           </div>
 
           {/* Work Experience Section with auto year calculations */}

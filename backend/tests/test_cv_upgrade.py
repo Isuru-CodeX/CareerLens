@@ -13,8 +13,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from fastapi.testclient import TestClient
 from app.main import app
 from app.core.database import get_db, Base, engine, init_db
-from app.services.years_service import years_count, total_years, canonical_skill
-from app.services.cv_extraction_service import check_email_gate, clean_url, label_for, split_links
+from app.services.years_service import years_count, total_years, canonical_skill, split_compound_skills
+from app.services.cv_extraction_service import check_email_gate, clean_url, label_for, split_links, normalize_phone_number
+from app.services.location_service import suggest_industry_domain, enrich_address_data
 from app.services.polish_service import extract_digits_fingerprint
 
 client = TestClient(app)
@@ -186,3 +187,42 @@ def test_profile_experiences_and_presets_api():
     # Clean up test experience
     del_resp = client.delete(f"/api/profile/experiences/{exp_id}", headers=headers)
     assert del_resp.status_code == 204
+
+def test_split_compound_skills():
+    raw = ["HTML/CSS", "React/Next.js", "CI/CD", "UI/UX", "Java, Python, C++", "Docker / Kubernetes"]
+    split = split_compound_skills(raw)
+    assert "HTML" in split
+    assert "CSS" in split
+    assert "React" in split
+    assert "Next.js" in split
+    # Protected compound terms preserved
+    assert "CI/CD" in split
+    assert "UI/UX Design" in split or "UI/UX" in split
+    assert "Java" in split
+    assert "Python" in split
+    assert "C++" in split
+    assert "Docker" in split
+    assert "Kubernetes" in split
+
+def test_normalize_phone_number():
+    assert normalize_phone_number("+123-456-7890").startswith("+")
+    assert normalize_phone_number("(860) 612 2918") == "+1 (860) 612-2918"
+    assert normalize_phone_number("+44 20 7946 0919") == "+44 20 7946 0919"
+    assert normalize_phone_number("+1 (970) 333-3833") == "+1 (970) 333-3833"
+
+def test_location_and_industry_intelligence():
+    # Industry suggestion
+    ind1 = suggest_industry_domain("Senior Software Engineer", ["FastAPI", "PostgreSQL", "Docker"])
+    assert "Software" in ind1 or "Cloud" in ind1
+    ind2 = suggest_industry_domain("Marketing Manager", ["SEO", "Public Relations"])
+    assert "Marketing" in ind2 or "Media" in ind2
+    ind3 = suggest_industry_domain("Automotive Technician", [])
+    assert "Automotive" in ind3
+
+@pytest.mark.anyio
+async def test_enrich_address_service():
+    enriched = await enrich_address_data({"line1": "177 Great Portland Street", "city": "London"})
+    assert enriched.get("country") == "United Kingdom"
+    assert enriched.get("region") == "Greater London"
+    assert bool(enriched.get("postalCode") or enriched.get("postal_code"))
+

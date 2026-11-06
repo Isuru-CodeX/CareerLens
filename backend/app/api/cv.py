@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.models.models import User
+from app.models.models import User, Resume
+from app.core.config import settings
 from app.schemas.schemas import CvImportStartResponse
 from app.services.cv_job_manager import (
     create_job, is_job_owner, get_job_events, run_import_pipeline, _ACTIVE_JOBS
@@ -83,6 +84,62 @@ async def import_cv(
     return {
         "job_id": job_id,
         "message": "CV upload accepted. Processing started in background."
+    }
+
+@router.post("/import/resume/{resume_id}", response_model=CvImportStartResponse, status_code=status.HTTP_202_ACCEPTED)
+async def import_existing_resume(
+    resume_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Triggers the automated profile auto-fill pipeline from an already uploaded resume in the user's library.
+    """
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found in your library.")
+
+    # Locate source file on disk
+    src_path = resume.file_path
+    if not src_path or not os.path.exists(src_path):
+        candidate = os.path.join(settings.RESOLVED_UPLOAD_DIR, os.path.basename(src_path or ""))
+        if os.path.exists(candidate):
+            src_path = candidate
+        else:
+            raise HTTPException(status_code=404, detail="Resume document file not found on disk.")
+
+    ext = os.path.splitext(src_path)[1].lower()
+    if not ext:
+        ext = ".pdf" if resume.file_type == "pdf" else ".docx"
+
+    import uuid
+    temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage", "tmp")
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_filename = f"staging_{uuid.uuid4()}{ext}"
+    temp_path = os.path.join(temp_dir, temp_filename)
+    shutil.copyfile(src_path, temp_path)
+
+    job_id = create_job(current_user.id)
+    mime_type = "application/pdf" if ext == ".pdf" else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    background_tasks.add_task(
+        run_import_pipeline,
+        job_id=job_id,
+        user_id=current_user.id,
+        temp_file_path=temp_path,
+        original_filename=resume.file_name or f"{resume.title or 'Resume'}{ext}",
+        mime_type=mime_type,
+        file_size=os.path.getsize(temp_path),
+        resume_id=resume.id
+    )
+
+    return {
+        "job_id": job_id,
+        "message": f"Auto-fill pipeline initiated for '{resume.title or 'Resume'}'."
     }
 
 @router.get("/import/{job_id}/events")

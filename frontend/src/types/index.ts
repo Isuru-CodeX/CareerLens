@@ -16,6 +16,20 @@ export interface ProfileLink {
   url: string;
 }
 
+export type EducationPreset = 'university' | 'school' | 'diploma' | 'course';
+
+export interface EducationItem {
+  id?: string;
+  presetType: EducationPreset;
+  institution: string;
+  degree: string;
+  fieldOfStudy?: string;
+  startYear?: number | null;
+  endYear?: number | null;
+  grade?: string;
+  highlights?: string;
+}
+
 export interface CareerProfile {
   id: string;
   user_id: string;
@@ -27,7 +41,7 @@ export interface CareerProfile {
   desired_salary_max: number | null;
   summary: string | null;
   skills_list: any[];
-  education_history: any[];
+  education_history: EducationItem[];
   work_history: any[];
   phone?: string | null;
   address_line1?: string | null;

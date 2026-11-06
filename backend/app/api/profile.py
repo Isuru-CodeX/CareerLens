@@ -3,6 +3,7 @@ app/api/profile.py - User Profile Experiences and Skills Management.
 Implements Feature 3 (Career Target and Credentials Rework).
 """
 from typing import List, Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,7 @@ from app.schemas.schemas import (
     ProfileSkillOut, ProfileSkillCreate
 )
 from app.services.years_service import canonical_skill, years_count, total_years, INDUSTRIES
+from app.services.location_service import enrich_address_data, suggest_industry_domain
 from app.services.activity_service import record_user_activity
 
 router = APIRouter(prefix="/profile", tags=["Profile Credentials & Skills"])
@@ -238,4 +240,37 @@ def delete_profile_skill(
     db.delete(skill)
     db.commit()
     return None
+
+class AddressEnrichRequest(BaseModel):
+    line1: Optional[str] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+    postalCode: Optional[str] = None
+    country: Optional[str] = None
+
+@router.post("/enrich-address")
+async def enrich_address(
+    data: AddressEnrichRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Search online and use geocoding/regex intelligence to complete missing address components,
+    notably postal code and administrative regions.
+    """
+    enriched = await enrich_address_data(data.model_dump())
+    return enriched
+
+@router.get("/suggest-industry")
+def get_suggested_industry(
+    role: Optional[str] = None,
+    skills: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Intelligently suggest the optimal industry domain based on target role and technical skills.
+    """
+    skill_list = [s.strip() for s in skills.split(",") if s.strip()] if skills else []
+    suggestion = suggest_industry_domain(role, skill_list)
+    return {"suggested_industry": suggestion}
+
 
