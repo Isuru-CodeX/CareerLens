@@ -17,10 +17,11 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
-import { DashboardData } from '../types';
+import { DashboardData, UserActivity } from '../types';
 import { api } from '../services/api';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
+import { ActivityDetailsModal } from '../components/ActivityDetailsModal';
 
 interface DashboardViewProps {
   onNavigate: (view: string, extra?: any) => void;
@@ -73,6 +74,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<UserActivity | null>(null);
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -116,29 +118,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
-  const handleActivityClick = (activity: { entity_type?: string | null }) => {
-    switch (activity.entity_type) {
-      case 'resume':
-        onNavigate('resumes');
-        break;
-      case 'job_match':
-      case 'job_description':
-        onNavigate('matcher');
-        break;
-      case 'application':
-        onNavigate('applications');
-        break;
-      case 'cover_letter':
-      case 'interview':
-        onNavigate('writer');
-        break;
-      case 'profile':
-      case 'user':
-        onNavigate('profile');
-        break;
-      default:
-        break;
-    }
+  const handleActivityClick = (activity: any) => {
+    setSelectedActivity(activity as UserActivity);
   };
 
   if (loading) {
@@ -600,7 +581,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Recent User Activity Feed */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
               <History className="w-5 h-5" />
@@ -614,9 +595,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </p>
             </div>
           </div>
-          <span className="text-[11px] font-semibold text-slate-400 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800">
-            Live updates
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onNavigate('activity')}
+              className="px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <span>View All Activity & Analytics</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-[11px] font-semibold text-slate-400 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hidden sm:inline-block">
+              Live updates
+            </span>
+          </div>
         </div>
 
         {!data.recent_activities || data.recent_activities.length === 0 ? (
@@ -629,10 +620,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div
                 key={act.id}
                 onClick={() => handleActivityClick(act)}
-                className={`p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 flex items-start gap-3 transition-colors ${
-                  act.entity_type ? 'hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer' : ''
-                }`}
-                title={`Recorded on ${new Date(act.created_at).toLocaleString()}`}
+                className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 flex items-start gap-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                title={`Click to view execution details (Recorded on ${new Date(act.created_at).toLocaleString()})`}
               >
                 <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 shrink-0">
                   {getActivityIcon(act.event_type)}
@@ -645,11 +634,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                       {getRelativeTime(act.created_at)}
                     </span>
-                    {act.entity_type && (
-                      <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                        View details &rarr;
-                      </span>
-                    )}
+                    <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5">
+                      <span>View details</span>
+                      <span>&rarr;</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -657,6 +645,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Activity Details Modal */}
+      <ActivityDetailsModal
+        activity={selectedActivity}
+        onClose={() => setSelectedActivity(null)}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 };

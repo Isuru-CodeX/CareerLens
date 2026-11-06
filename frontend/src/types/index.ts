@@ -218,6 +218,7 @@ export interface UserActivity {
   entity_type?: string | null;
   entity_id?: string | null;
   metadata?: Record<string, any>;
+  activity_metadata?: Record<string, any>;
   created_at: string;
 }
 
@@ -226,6 +227,32 @@ export interface UserActivityPage {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface ModelUsageStat {
+  model_id: string;
+  model_name: string;
+  action_type: string;
+  call_count: number;
+  tokens_used: number;
+  estimated_time_minutes: number;
+  description: string;
+}
+
+export interface DailyActivityStat {
+  date: string;
+  count: number;
+}
+
+export interface UserActivityStats {
+  total_activities: number;
+  total_ai_actions: number;
+  total_tokens_used: number;
+  total_time_spent_minutes: number;
+  time_saved_hours: number;
+  models: ModelUsageStat[];
+  daily_activity: DailyActivityStat[];
+  category_distribution: Record<string, number>;
 }
 
 export interface ResumeExperience {

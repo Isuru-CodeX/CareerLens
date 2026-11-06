@@ -485,6 +485,15 @@ def test_activity_logging_and_pagination():
     assert data["total"] >= 1
     assert any(item["event_type"] == "profile_updated" for item in data["items"])
 
+    # Test stats endpoint
+    r_stats = client.get("/api/activity/stats", headers=headers)
+    assert r_stats.status_code == 200
+    stats_data = r_stats.json()
+    assert "total_activities" in stats_data
+    assert "total_time_spent_minutes" in stats_data
+    assert "models" in stats_data
+    assert len(stats_data["models"]) >= 3
+
 def test_experience_intelligence_engine_and_verification():
     reg = client.post("/api/auth/register", json={
         "email": "exp_tester@careerlens.ai",

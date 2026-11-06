@@ -11,6 +11,7 @@ import { JobMatchView } from './views/JobMatchView';
 import { AIAssistantView } from './views/AIAssistantView';
 import { ApplicationsView } from './views/ApplicationsView';
 import { ProfileView } from './views/ProfileView';
+import { UserActivityView } from './views/UserActivityView';
 
 const MainLayout: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('dashboard');
@@ -116,6 +117,10 @@ const MainLayout: React.FC = () => {
 
           {currentView === 'profile' && (
             <ProfileView />
+          )}
+
+          {currentView === 'activity' && (
+            <UserActivityView onNavigate={handleNavigate} />
           )}
         </main>
       </div>

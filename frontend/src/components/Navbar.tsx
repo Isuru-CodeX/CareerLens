@@ -9,7 +9,8 @@ import {
   Sparkles,
   FileText,
   Menu,
-  ChevronDown
+  ChevronDown,
+  Activity
 } from 'lucide-react';
 import { useTheme } from '../context/useTheme';
 import { useAuth } from '../context/useAuth';
@@ -218,10 +219,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                   <button
                     onClick={() => { onNavigate('profile'); setUserDropdownOpen(false); }}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mt-1"
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mt-1 cursor-pointer"
                   >
-                    <UserIcon className="w-4 h-4" />
+                    <UserIcon className="w-4 h-4 text-slate-400" />
                     <span>Career Profile & Privacy</span>
+                  </button>
+
+                  <button
+                    onClick={() => { onNavigate('activity'); setUserDropdownOpen(false); }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <Activity className="w-4 h-4 text-indigo-500" />
+                    <span>Activity & Model Stats</span>
                   </button>
 
                   <button

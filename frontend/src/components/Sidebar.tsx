@@ -7,6 +7,7 @@ import {
   Sparkles,
   Briefcase,
   UserCheck,
+  Activity,
   X,
   ShieldCheck,
   UploadCloud
@@ -61,6 +62,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Application Tracker',
       icon: Briefcase,
       badge: applicationsCount > 0 ? applicationsCount : null
+    },
+    {
+      id: 'activity',
+      label: 'Activity & Stats',
+      icon: Activity,
+      badge: 'Live'
     },
     {
       id: 'profile',

@@ -236,6 +236,13 @@ class CoverLetterRequest(BaseModel):
     portfolio_url: Optional[str] = None
     other_links: Optional[List[Dict[str, str]]] = None
     include_project_links_body: Optional[bool] = True
+    include_contact_header: Optional[bool] = True
+    include_name: Optional[bool] = True
+    include_email: Optional[bool] = True
+    include_phone: Optional[bool] = True
+    include_linkedin: Optional[bool] = True
+    include_github: Optional[bool] = True
+    include_portfolio: Optional[bool] = True
 
 class CoverLetterResponse(BaseModel):
     cover_letter: str
@@ -356,6 +363,29 @@ class UserActivityPageOut(BaseModel):
     total: int
     page: int
     limit: int
+
+class ModelUsageStat(BaseModel):
+    model_id: str
+    model_name: str
+    action_type: str
+    call_count: int
+    tokens_used: int
+    estimated_time_minutes: float
+    description: str
+
+class DailyActivityStat(BaseModel):
+    date: str
+    count: int
+
+class UserActivityStatsOut(BaseModel):
+    total_activities: int
+    total_ai_actions: int
+    total_tokens_used: int
+    total_time_spent_minutes: float
+    time_saved_hours: float
+    models: List[ModelUsageStat]
+    daily_activity: List[DailyActivityStat]
+    category_distribution: Dict[str, int]
 
 # Experience Intelligence Schemas
 class ResumeExperienceBase(BaseModel):

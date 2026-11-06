@@ -87,32 +87,50 @@ def generate_cover_letter(
     # Retrieve user career profile for contact & professional links
     profile = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
 
-    final_name = req.candidate_name.strip() if req.candidate_name and req.candidate_name.strip() else (current_user.full_name or candidate_name)
-    final_email = req.email.strip() if req.email and req.email.strip() else current_user.email
-    final_phone = req.phone.strip() if req.phone and req.phone.strip() else (profile.phone if profile else None)
-
-    if req.linkedin_url is not None:
-        final_linkedin = req.linkedin_url.strip() if req.linkedin_url.strip() else None
+    # Check overall contact header toggle
+    if req.include_contact_header is False:
+        final_name = None
+        final_email = None
+        final_phone = None
+        final_linkedin = None
+        final_github = None
+        final_portfolio = None
+        final_other_links = []
+        include_project_links_body = False
     else:
-        final_linkedin = (profile.linkedin_url if profile and profile.linkedin_url else None)
+        # Strictly respect explicit inclusion checkboxes - NEVER inject an unchecked field
+        if req.include_name is False:
+            final_name = None
+        else:
+            final_name = req.candidate_name.strip() if req.candidate_name and req.candidate_name.strip() else (current_user.full_name or candidate_name)
 
-    if req.github_url is not None:
-        final_github = req.github_url.strip() if req.github_url.strip() else None
-    else:
-        final_github = (profile.github_url if profile and profile.github_url else None)
+        if req.include_email is False:
+            final_email = None
+        else:
+            final_email = req.email.strip() if req.email and req.email.strip() else current_user.email
 
-    if req.portfolio_url is not None:
-        final_portfolio = req.portfolio_url.strip() if req.portfolio_url.strip() else None
-    else:
-        final_portfolio = (profile.portfolio_url if profile and profile.portfolio_url else None)
+        if req.include_phone is False:
+            final_phone = None
+        else:
+            final_phone = req.phone.strip() if req.phone and req.phone.strip() else (profile.phone if profile else None)
 
-    # Safe fallback for known user profile if link was requested/checked
-    if not final_github and ("isuru" in (final_name or "").lower() or "isuru" in (current_user.email or "").lower()):
-        final_github = "https://github.com/Isuru-CodeX"
-    if not final_phone and ("isuru" in (final_name or "").lower() or "isuru" in (current_user.email or "").lower()):
-        final_phone = "+94727938613"
+        if req.include_linkedin is False:
+            final_linkedin = None
+        else:
+            final_linkedin = req.linkedin_url.strip() if req.linkedin_url and req.linkedin_url.strip() else (profile.linkedin_url if profile else None)
 
-    final_other_links = req.other_links if req.other_links is not None else (profile.other_links if profile else [])
+        if req.include_github is False:
+            final_github = None
+        else:
+            final_github = req.github_url.strip() if req.github_url and req.github_url.strip() else (profile.github_url if profile else None)
+
+        if req.include_portfolio is False:
+            final_portfolio = None
+        else:
+            final_portfolio = req.portfolio_url.strip() if req.portfolio_url and req.portfolio_url.strip() else (profile.portfolio_url if profile else None)
+
+        final_other_links = req.other_links if req.other_links is not None else (profile.other_links if profile else [])
+        include_project_links_body = (req.include_project_links_body is not False)
 
     result = AIService.generate_cover_letter(
         resume_name=final_name or "Candidate",
@@ -128,7 +146,7 @@ def generate_cover_letter(
         github_url=final_github,
         portfolio_url=final_portfolio,
         other_links=final_other_links,
-        include_project_links_body=(req.include_project_links_body is not False)
+        include_project_links_body=include_project_links_body
     )
 
     draft = GeneratedDraft(
@@ -142,20 +160,42 @@ def generate_cover_letter(
     )
     db.add(draft)
 
+    tokens_count = len(result["cover_letter"].split())
     usage = AIUsageRecord(
         user_id=current_user.id,
         action_type="cover_letter_generation",
-        tokens_used=len(result["cover_letter"].split())
+        tokens_used=tokens_count,
+        model_name="careerlens-writer-ai"
     )
     db.add(usage)
     db.commit()
 
     log_audit(db, current_user.id, "COVER_LETTER_GENERATED", {"resume_id": resume.id})
 
+    active_contacts = []
+    if final_email: active_contacts.append("Email")
+    if final_phone: active_contacts.append("Phone")
+    if final_github: active_contacts.append("GitHub")
+    if final_portfolio: active_contacts.append("Portfolio")
+    if final_linkedin: active_contacts.append("LinkedIn")
+
     record_user_activity(
-        db, current_user.id, "cover_letter_generated",
+        db,
+        current_user.id,
+        "cover_letter_generated",
         f"Generated targeted cover letter for '{req.job_title or 'Target Role'}' at '{req.company_name or 'Hiring Team'}'",
-        entity_type="cover_letter", entity_id=draft.id
+        entity_type="cover_letter",
+        entity_id=draft.id,
+        metadata={
+            "company_name": req.company_name or "Hiring Team",
+            "job_title": req.job_title or "Target Role",
+            "tokens_used": tokens_count,
+            "model_name": "careerlens-writer-ai",
+            "contact_fields_included": active_contacts,
+            "include_project_links_body": include_project_links_body,
+            "estimated_duration_seconds": 14.5,
+            "word_count": tokens_count
+        }
     )
 
     return result

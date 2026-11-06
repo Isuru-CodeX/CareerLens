@@ -12,6 +12,7 @@ import {
   Reminder,
   AppearanceMode,
   UserActivityPage,
+  UserActivityStats,
   ResumeExperience,
   ExperienceSummary
 } from '../types';
@@ -159,9 +160,25 @@ class ApiService {
     return `${API_BASE_URL}/users/me/avatar/image`;
   }
 
-  // Activity Feed
-  async getActivity(limit: number = 10, page: number = 1): Promise<UserActivityPage> {
-    return this.request<UserActivityPage>(`/activity?limit=${limit}&page=${page}`);
+  // Activity Feed & Model Usage Analytics
+  async getActivity(
+    limit: number = 10,
+    page: number = 1,
+    eventType?: string,
+    search?: string
+  ): Promise<UserActivityPage> {
+    let url = `/activity?limit=${limit}&page=${page}`;
+    if (eventType && eventType !== 'all') {
+      url += `&event_type=${encodeURIComponent(eventType)}`;
+    }
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
+    }
+    return this.request<UserActivityPage>(url);
+  }
+
+  async getActivityStats(): Promise<UserActivityStats> {
+    return this.request<UserActivityStats>('/activity/stats');
   }
 
   // Experience Intelligence Engine
@@ -341,6 +358,13 @@ class ApiService {
     portfolio_url?: string;
     other_links?: { label: string; url: string }[];
     include_project_links_body?: boolean;
+    include_contact_header?: boolean;
+    include_name?: boolean;
+    include_email?: boolean;
+    include_phone?: boolean;
+    include_linkedin?: boolean;
+    include_github?: boolean;
+    include_portfolio?: boolean;
   }) {
     return this.request<{
       cover_letter: string;

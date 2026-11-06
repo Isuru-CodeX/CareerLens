@@ -191,38 +191,26 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
     if (!selectedResumeId) return;
     setIsGeneratingCover(true);
     try {
-      const effectiveGithub = (includeContactHeader && showGithub)
-        ? (candidateGithub.trim() || userProfile?.github_url || 'https://github.com/Isuru-CodeX')
-        : '';
-      const effectivePortfolio = (includeContactHeader && showPortfolio)
-        ? (candidatePortfolio.trim() || userProfile?.portfolio_url || 'https://isuru-portfolio.vercel.app')
-        : '';
-      const effectiveLinkedin = (includeContactHeader && showLinkedin)
-        ? (candidateLinkedin.trim() || userProfile?.linkedin_url || 'https://linkedin.com/in/isururathnayaka')
-        : '';
-      const effectivePhone = (includeContactHeader && showPhone)
-        ? (candidatePhone.trim() || userProfile?.phone || '+94727938613')
-        : '';
-      const effectiveEmail = (includeContactHeader && showEmail)
-        ? (candidateEmail.trim() || 'isururathnayaka999@gmail.com')
-        : '';
-      const effectiveName = (includeContactHeader && showName)
-        ? (candidateName.trim() || 'Isuru Rathnayaka')
-        : '';
-
       const res = await api.generateCoverLetter({
         resume_id: selectedResumeId,
         job_description: coverJD,
         company_name: companyName,
         job_title: coverJobTitle,
-        candidate_name: effectiveName || undefined,
-        email: effectiveEmail || undefined,
-        phone: effectivePhone || undefined,
-        linkedin_url: effectiveLinkedin || undefined,
-        github_url: effectiveGithub || undefined,
-        portfolio_url: effectivePortfolio || undefined,
+        candidate_name: (includeContactHeader && showName) ? (candidateName.trim() || 'Isuru Rathnayaka') : undefined,
+        email: (includeContactHeader && showEmail) ? (candidateEmail.trim() || 'isururathnayaka999@gmail.com') : undefined,
+        phone: (includeContactHeader && showPhone) ? (candidatePhone.trim() || '+94727938613') : undefined,
+        linkedin_url: (includeContactHeader && showLinkedin) ? (candidateLinkedin.trim() || 'https://linkedin.com/in/isururathnayaka') : undefined,
+        github_url: (includeContactHeader && showGithub) ? (candidateGithub.trim() || 'https://github.com/Isuru-CodeX') : undefined,
+        portfolio_url: (includeContactHeader && showPortfolio) ? (candidatePortfolio.trim() || 'https://isuru-portfolio.vercel.app') : undefined,
         other_links: includeContactHeader ? (userProfile?.other_links || undefined) : undefined,
-        include_project_links_body: (includeContactHeader && includeProjectLinksBody)
+        include_project_links_body: (includeContactHeader && includeProjectLinksBody),
+        include_contact_header: includeContactHeader,
+        include_name: includeContactHeader && showName,
+        include_email: includeContactHeader && showEmail,
+        include_phone: includeContactHeader && showPhone,
+        include_linkedin: includeContactHeader && showLinkedin,
+        include_github: includeContactHeader && showGithub,
+        include_portfolio: includeContactHeader && showPortfolio
       });
       setCoverLetterResult(res.cover_letter);
       setCoverLetterFacts(res.grounded_facts_used);
