@@ -11,6 +11,7 @@ import { NegotiationCoachStudio } from '../components/career/NegotiationCoachStu
 import { LiveMarketJobsStudio } from '../components/career/LiveMarketJobsStudio';
 import { Resume, CareerProfile } from '../types';
 import { api } from '../services/api';
+import { useLoader } from '../context/useLoader';
 
 interface CareerNavigatorViewProps {
   resumes?: Resume[];
@@ -19,12 +20,49 @@ interface CareerNavigatorViewProps {
 export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   resumes = []
 }) => {
+  const { triggerTransition } = useLoader();
   const [activeTab, setActiveTab] = useState<'market' | 'graph' | 'salary' | 'coach'>('market');
   const [_userProfile, setUserProfile] = useState<CareerProfile | null>(null);
   const [activeIndustry, setActiveIndustry] = useState<string>('all');
   const [focusedRole, setFocusedRole] = useState<string>('Senior Full Stack Engineer');
   const [negotiationOffer, setNegotiationOffer] = useState<number>(140000);
   const [negotiationTarget, setNegotiationTarget] = useState<number>(165000);
+
+  const handleTabSelect = (tab: 'market' | 'graph' | 'salary' | 'coach') => {
+    if (tab === activeTab) return;
+    const configMap = {
+      market: {
+        title: 'Connecting Global Telemetry...',
+        subtitle: 'Querying 2026 Remote.com-grade salary explorer & exchange rates...',
+        badge: 'Live Market Explorer',
+        icon: 'globe' as const,
+        accentColor: 'emerald'
+      },
+      graph: {
+        title: 'Mapping Directed Knowledge Graph...',
+        subtitle: 'Synchronizing 46 roles, 5 progression tiers & skill trees...',
+        badge: 'Dijkstra Career Graph',
+        icon: 'compass' as const,
+        accentColor: 'indigo'
+      },
+      salary: {
+        title: 'Calibrating ML Compensation Model...',
+        subtitle: 'Evaluating regression percentiles & localized cost-of-living tiers...',
+        badge: 'Salary Predictor ML',
+        icon: 'chart' as const,
+        accentColor: 'purple'
+      },
+      coach: {
+        title: 'Initializing AI Recruiter Persona...',
+        subtitle: 'Preparing game-theory leverage scoring & counter-offer scripts...',
+        badge: 'Negotiation Coach',
+        icon: 'briefcase' as const,
+        accentColor: 'amber'
+      }
+    };
+    triggerTransition(configMap[tab], 450);
+    setActiveTab(tab);
+  };
 
   // Load User Career Profile to initialize default industry
   useEffect(() => {
@@ -60,11 +98,25 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   // Transition from Graph / Market -> Salary Predictor
   const handleNavigateToSalary = (roleTitle: string) => {
     setFocusedRole(roleTitle);
+    triggerTransition({
+      title: 'Opening Salary Predictor...',
+      subtitle: `Pre-populating machine learning model for ${roleTitle}...`,
+      badge: 'ML Compensation Model',
+      icon: 'chart',
+      accentColor: 'purple'
+    }, 450);
     setActiveTab('salary');
   };
 
   const handleNavigateToGraph = (roleTitle: string) => {
     setFocusedRole(roleTitle);
+    triggerTransition({
+      title: 'Opening Career Knowledge Graph...',
+      subtitle: `Locating progression bridges for ${roleTitle}...`,
+      badge: 'Knowledge Graph',
+      icon: 'compass',
+      accentColor: 'indigo'
+    }, 450);
     setActiveTab('graph');
   };
 
@@ -73,6 +125,13 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
     setFocusedRole(role);
     setNegotiationOffer(offer);
     setNegotiationTarget(target);
+    triggerTransition({
+      title: 'Starting Negotiation Simulator...',
+      subtitle: `Simulating high-leverage compensation counter-offers for ${role}...`,
+      badge: 'Game Theory Coach',
+      icon: 'briefcase',
+      accentColor: 'amber'
+    }, 450);
     setActiveTab('coach');
   };
 
@@ -97,7 +156,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
         <div className="flex items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1 overflow-x-auto self-start xl:self-end">
           <button
             type="button"
-            onClick={() => setActiveTab('market')}
+            onClick={() => handleTabSelect('market')}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'market'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
@@ -110,7 +169,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
 
           <button
             type="button"
-            onClick={() => setActiveTab('graph')}
+            onClick={() => handleTabSelect('graph')}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'graph'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
@@ -123,7 +182,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
 
           <button
             type="button"
-            onClick={() => setActiveTab('salary')}
+            onClick={() => handleTabSelect('salary')}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'salary'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
@@ -136,7 +195,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
 
           <button
             type="button"
-            onClick={() => setActiveTab('coach')}
+            onClick={() => handleTabSelect('coach')}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'coach'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'

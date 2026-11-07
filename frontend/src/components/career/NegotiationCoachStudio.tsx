@@ -16,6 +16,7 @@ import {
   CounterOfferScript
 } from '../../types';
 import { api } from '../../services/api';
+import { useLoader } from '../../context/useLoader';
 
 interface NegotiationCoachStudioProps {
   initialIndustry?: string;
@@ -30,6 +31,7 @@ export const NegotiationCoachStudio: React.FC<NegotiationCoachStudioProps> = ({
   initialOffer,
   initialTarget
 }) => {
+  const { triggerTransition } = useLoader();
   // Negotiation Parameters
   const [roleTitle, setRoleTitle] = useState<string>(initialRole || 'Senior Full Stack Engineer');
   const [company, setCompany] = useState<string>('TechFlow Labs');
@@ -86,6 +88,13 @@ export const NegotiationCoachStudio: React.FC<NegotiationCoachStudioProps> = ({
   const handleSubmitPitch = async () => {
     if (!candidatePitch.trim() || isSubmittingTurn) return;
     setIsSubmittingTurn(true);
+    triggerTransition({
+      title: 'Evaluating Counter-Offer Leverage...',
+      subtitle: 'Game-theory negotiation engine calculating recruiter concessions...',
+      badge: 'Game Theory Coach',
+      icon: 'briefcase',
+      accentColor: 'amber'
+    }, 450);
 
     try {
       const result = await api.evaluateNegotiationTurn({

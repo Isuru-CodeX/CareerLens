@@ -21,6 +21,7 @@ import {
   VerifiedSalaryBenchmark
 } from '../../types';
 import { api } from '../../services/api';
+import { useLoader } from '../../context/useLoader';
 
 interface SalaryPredictorStudioProps {
   initialIndustry?: string;
@@ -102,6 +103,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
   resumes = [],
   onLaunchNegotiation
 }) => {
+  const { triggerTransition } = useLoader();
   const [selectedIndustry, setSelectedIndustry] = useState<string>(initialIndustry || 'tech');
   const [roleTitle, setRoleTitle] = useState<string>(initialRole || 'Senior Full Stack Engineer');
   const [currency, setCurrency] = useState<string>('USD');
@@ -186,6 +188,13 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
   const runPrediction = async () => {
     if (!roleTitle.trim()) return;
     setLoading(true);
+    triggerTransition({
+      title: 'Calibrating ML Regression Model...',
+      subtitle: `Computing compensation bands & skill ROI multipliers for ${roleTitle}...`,
+      badge: 'ML Compensation Predictor',
+      icon: 'chart',
+      accentColor: 'purple'
+    }, 450);
     try {
       const data = await api.predictSalary({
         role_title: roleTitle.trim(),

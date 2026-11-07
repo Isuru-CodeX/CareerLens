@@ -23,6 +23,7 @@ import {
 import { Resume, CareerProfile, Preset, CoverLetterRecord, CoverLetterVersion, TextPolishChange } from '../types';
 import { api } from '../services/api';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
+import { useLoader } from '../context/useLoader';
 import { PresetSelect } from '../components/PresetSelect';
 import { StyleToggle } from '../components/StyleToggle';
 import { VoiceInterviewStudio } from '../components/interview/VoiceInterviewStudio';
@@ -38,7 +39,37 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   jobDescription = '',
   targetRole = ''
 }) => {
+  const { triggerTransition } = useLoader();
   const [activeTab, setActiveTab] = useState<'rewrite' | 'coverletter' | 'interview'>(initialTab);
+
+  const handleTabSelect = (tab: 'rewrite' | 'coverletter' | 'interview') => {
+    if (tab === activeTab) return;
+    const tabConfigs = {
+      rewrite: {
+        title: 'Loading XYZ Formula Rewriter...',
+        subtitle: 'Calibrating Google XYZ action-verb & impact metric templates...',
+        badge: 'Neural Content Optimizer',
+        icon: 'sparkles' as const,
+        accentColor: 'indigo'
+      },
+      coverletter: {
+        title: 'Opening Cover Letter Studio...',
+        subtitle: 'Grounding candidate facts, company mission & tone presets...',
+        badge: 'Document Intelligence',
+        icon: 'file' as const,
+        accentColor: 'emerald'
+      },
+      interview: {
+        title: 'Initializing Mock Interview Simulator...',
+        subtitle: 'Preparing behavioral & STAR-framework question generation...',
+        badge: 'Multimodal Voice AI',
+        icon: 'mic' as const,
+        accentColor: 'purple'
+      }
+    };
+    triggerTransition(tabConfigs[tab], 400);
+    setActiveTab(tab);
+  };
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
 
@@ -184,6 +215,13 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
     e.preventDefault();
     if (!inputText.trim()) return;
     setIsRewriting(true);
+    triggerTransition({
+      title: 'Synthesizing XYZ Formula...',
+      subtitle: `Optimizing action verbs & measurable KPIs for ${rewriteRole}...`,
+      badge: 'Neural Content Optimizer',
+      icon: 'sparkles',
+      accentColor: 'indigo'
+    }, 450);
     try {
       const res = await api.rewriteContent({
         text: inputText,
@@ -250,6 +288,13 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
     setIsGeneratingCover(true);
     setRegenerateError(null);
     setPolishChanges(null);
+    triggerTransition({
+      title: 'Composing Grounded Cover Letter...',
+      subtitle: `Synthesizing candidate qualifications for ${coverJobTitle} at ${companyName || 'Target Company'}...`,
+      badge: 'Document Intelligence',
+      icon: 'file',
+      accentColor: 'emerald'
+    }, 450);
     try {
       // 1. Primary: Use CoverLetter record API with Multi-CV context and versioning
       const record = await api.createCoverLetterRecord({
@@ -397,6 +442,13 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
     e.preventDefault();
     if (!interviewJD.trim()) return;
     setIsGeneratingQuestions(true);
+    triggerTransition({
+      title: 'Generating STAR Questions...',
+      subtitle: `Crafting role-targeted technical & behavioral interview prompts...`,
+      badge: 'Mock Interview Simulator',
+      icon: 'mic',
+      accentColor: 'purple'
+    }, 450);
     try {
       const res = await api.generateInterviewPrep({
         resume_id: selectedResumeId,
@@ -429,7 +481,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 w-full max-w-[1720px] mx-auto">
       <DisclaimerBanner />
 
       {/* Header */}
@@ -445,7 +497,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/60 max-w-xl">
         <button
-          onClick={() => setActiveTab('rewrite')}
+          onClick={() => handleTabSelect('rewrite')}
           className={`flex-1 min-w-[140px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'rewrite'
               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
@@ -457,7 +509,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab('coverletter')}
+          onClick={() => handleTabSelect('coverletter')}
           className={`flex-1 min-w-[140px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'coverletter'
               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
@@ -469,7 +521,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab('interview')}
+          onClick={() => handleTabSelect('interview')}
           className={`flex-1 min-w-[140px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'interview'
               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'

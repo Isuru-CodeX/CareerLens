@@ -1,29 +1,43 @@
 """
-backend/app/services/career_graph_service.py - Multi-Profession Career Path Knowledge Graph & Skill Navigator Engine.
-Models technical and non-technical roles, competencies, tools, and certifications across 6 major industries
-as a Directed Knowledge Graph. Implements shortest-path career bridges (BFS / Dijkstra), skill dependency trees,
-and candidate gap analysis.
+backend/app/services/career_graph_service.py - Unified Career Path Knowledge Graph & Skill Navigator Engine.
+Features:
+- Full directed knowledge graph synchronized with Live Salary Explorer (9 modern industries, 46 canonical roles, 5 seniority tiers).
+- Dynamic live compensation synchronization with Remote.com-grade benchmarks (REALISTIC_BENCHMARKS) & live database snapshots.
+- Dijkstra shortest-path career bridge calculation with transition difficulty weights, estimated months, and skill gap analysis.
+- Multi-tier skill dependency mapping and phased learning roadmaps.
 """
 from typing import List, Dict, Any, Optional, Set
 import heapq
 from collections import deque
+import logging
 
-# Available Industries
+from app.services.navigator_service import REALISTIC_BENCHMARKS, EXPERIENCE_TIERS
+
+logger = logging.getLogger(__name__)
+
+# -----------------------------------------------------------------------------
+# 1. Supported Industries (Exact Match with Live Market Explorer)
+# -----------------------------------------------------------------------------
 INDUSTRIES = [
     {"id": "all", "name": "All Industries", "slug": "all", "icon": "Globe"},
     {"id": "tech", "name": "Technology & Software", "slug": "tech", "icon": "Code"},
-    {"id": "healthcare", "name": "Healthcare & Medicine", "slug": "healthcare", "icon": "HeartPulse"},
-    {"id": "finance", "name": "Finance & Banking", "slug": "finance", "icon": "Landmark"},
-    {"id": "education", "name": "Education & Academia", "slug": "education", "icon": "GraduationCap"},
+    {"id": "data", "name": "Data Science & Analytics", "slug": "data", "icon": "BarChart3"},
+    {"id": "product", "name": "Product & Design", "slug": "product", "icon": "Layers"},
+    {"id": "finance", "name": "Finance, Banking & FinTech", "slug": "finance", "icon": "Landmark"},
+    {"id": "healthcare", "name": "Healthcare & Life Sciences", "slug": "healthcare", "icon": "HeartPulse"},
+    {"id": "marketing", "name": "Marketing & Growth", "slug": "marketing", "icon": "Megaphone"},
+    {"id": "operations", "name": "Operations & Management", "slug": "operations", "icon": "Briefcase"},
+    {"id": "engineering", "name": "Engineering & Hardware", "slug": "engineering", "icon": "Cpu"},
     {"id": "legal", "name": "Legal & Compliance", "slug": "legal", "icon": "Scale"},
-    {"id": "marketing", "name": "Marketing & Creative", "slug": "marketing", "icon": "Megaphone"},
 ]
 
-# Rich Taxonomy of Roles across 6 Major Industries
+# -----------------------------------------------------------------------------
+# 2. Complete Canonical Roles Registry across 9 Industries & 5 Tiers
+# -----------------------------------------------------------------------------
 CAREER_ROLES: Dict[str, Dict[str, Any]] = {
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # 1. Technology & Software
-    # -------------------------------------------------------------------------
+    # =========================================================================
     "junior_frontend": {
         "id": "junior_frontend",
         "title": "Junior Frontend Developer",
@@ -32,14 +46,14 @@ CAREER_ROLES: Dict[str, Dict[str, Any]] = {
         "category": "Frontend",
         "level": 1,
         "level_label": "Entry Level (0-2 Yrs)",
-        "salary_range": {"min": 65000, "median": 78000, "max": 92000},
+        "salary_range": {"min": 75000, "median": 98000, "max": 118000},
         "description": "Builds responsive web interfaces, translates UI/UX designs into modular component code, and consumes RESTful APIs.",
         "core_skills": ["HTML5", "CSS3", "JavaScript", "React", "Git", "Tailwind CSS"],
-        "advanced_skills": ["TypeScript", "Next.js", "Responsive Design"],
-        "certifications": [],
+        "advanced_skills": ["TypeScript", "Next.js", "Responsive Design", "Jest"],
+        "certifications": ["Meta Front-End Developer Professional"],
         "bridges_to": [
             {"target": "mid_frontend", "difficulty": 2, "time_months": 14, "transition_label": "Domain Mastery"},
-            {"target": "fullstack_dev", "difficulty": 3, "time_months": 18, "transition_label": "Backend Expansion"}
+            {"target": "fullstack_dev", "difficulty": 3, "time_months": 18, "transition_label": "Full Stack Expansion"}
         ]
     },
     "mid_frontend": {
@@ -50,14 +64,14 @@ CAREER_ROLES: Dict[str, Dict[str, Any]] = {
         "category": "Frontend",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 90000, "median": 115000, "max": 140000},
+        "salary_range": {"min": 105000, "median": 134000, "max": 162000},
         "description": "Specializes in client architecture, Web Vitals performance optimization, state orchestration, and complex interactive SPAs.",
         "core_skills": ["TypeScript", "React", "Next.js", "State Management (Redux/Zustand)", "REST APIs", "Jest/Testing Library"],
-        "advanced_skills": ["GraphQL", "Web Workers", "WebSockets", "CI/CD"],
-        "certifications": ["Meta Front-End Developer Professional"],
+        "advanced_skills": ["GraphQL", "WebSockets", "Web Workers", "CI/CD"],
+        "certifications": ["AWS Certified Developer - Associate"],
         "bridges_to": [
-            {"target": "senior_frontend", "difficulty": 3, "time_months": 20, "transition_label": "Architecture & Leadership"},
-            {"target": "fullstack_dev", "difficulty": 2, "time_months": 12, "transition_label": "Full Stack Transition"}
+            {"target": "senior_frontend", "difficulty": 2, "time_months": 18, "transition_label": "Senior Architecture"},
+            {"target": "fullstack_dev", "difficulty": 2, "time_months": 12, "transition_label": "Full Stack Pivot"}
         ]
     },
     "senior_frontend": {
@@ -68,33 +82,33 @@ CAREER_ROLES: Dict[str, Dict[str, Any]] = {
         "category": "Frontend",
         "level": 3,
         "level_label": "Senior (5-8 Yrs)",
-        "salary_range": {"min": 135000, "median": 165000, "max": 195000},
+        "salary_range": {"min": 142000, "median": 174000, "max": 210000},
         "description": "Establishes enterprise design systems, micro-frontend modularity, build tooling pipelines, accessibility standards, and mentoring.",
         "core_skills": ["TypeScript", "Micro-Frontends", "Performance Auditing", "Design Systems", "WebAssembly", "CI/CD"],
-        "advanced_skills": ["System Design", "Cloud Edge Rendering", "Security (CSP/OWASP)"],
-        "certifications": ["AWS Certified Developer - Associate"],
+        "advanced_skills": ["Distributed Systems", "Cloud Edge Rendering", "Security (CSP/OWASP)"],
+        "certifications": ["AWS Certified Solutions Architect - Associate"],
         "bridges_to": [
-            {"target": "lead_fullstack", "difficulty": 3, "time_months": 18, "transition_label": "Full-Stack System Leadership"},
-            {"target": "engineering_mgr", "difficulty": 4, "time_months": 24, "transition_label": "Management Track"}
+            {"target": "lead_fullstack", "difficulty": 3, "time_months": 18, "transition_label": "Staff Leadership"},
+            {"target": "engineering_mgr", "difficulty": 4, "time_months": 24, "transition_label": "Engineering Management"}
         ]
     },
     "fullstack_dev": {
         "id": "fullstack_dev",
-        "title": "Full Stack Engineer",
+        "title": "Software Engineer",
         "industry_id": "tech",
         "industry_name": "Technology & Software",
         "category": "Full Stack",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 95000, "median": 125000, "max": 150000},
+        "salary_range": {"min": 115000, "median": 142500, "max": 172000},
         "description": "Delivers end-to-end features spanning dynamic client interfaces, relational database modeling, and server-side API endpoints.",
-        "core_skills": ["TypeScript", "React", "Node.js", "Python", "SQL (PostgreSQL)", "REST APIs", "Docker"],
-        "advanced_skills": ["GraphQL", "Redis Caching", "ORM (SQLAlchemy/Prisma)", "Cloud Basics"],
+        "core_skills": ["TypeScript", "React", "Python", "SQL (PostgreSQL)", "REST APIs", "Docker", "Node.js"],
+        "advanced_skills": ["GraphQL", "Redis Caching", "FastAPI", "Cloud Infrastructure"],
         "certifications": ["AWS Certified Cloud Practitioner"],
         "bridges_to": [
-            {"target": "senior_fullstack", "difficulty": 2, "time_months": 18, "transition_label": "Senior Engineering"},
-            {"target": "backend_dev", "difficulty": 2, "time_months": 10, "transition_label": "Distributed Backend Specialization"},
-            {"target": "devops_eng", "difficulty": 3, "time_months": 16, "transition_label": "Cloud & Infra Shift"}
+            {"target": "senior_fullstack", "difficulty": 2, "time_months": 18, "transition_label": "Senior Promotion"},
+            {"target": "backend_dev", "difficulty": 2, "time_months": 12, "transition_label": "Backend Focus"},
+            {"target": "devops_eng", "difficulty": 3, "time_months": 16, "transition_label": "Platform & Cloud Shift"}
         ]
     },
     "senior_fullstack": {
@@ -105,14 +119,14 @@ CAREER_ROLES: Dict[str, Dict[str, Any]] = {
         "category": "Full Stack",
         "level": 3,
         "level_label": "Senior (5-8 Yrs)",
-        "salary_range": {"min": 140000, "median": 175000, "max": 210000},
-        "description": "Drives end-to-end multi-tier system scalability, asynchronous background queuing, database sharding, and cross-functional feature pods.",
-        "core_skills": ["TypeScript", "Python/Go", "PostgreSQL", "Docker", "Kubernetes", "Redis", "Distributed System Design"],
-        "advanced_skills": ["Event-Driven Architecture", "Kafka", "Observability (OpenTelemetry)", "Security"],
+        "salary_range": {"min": 145000, "median": 178000, "max": 218000},
+        "description": "Architects resilient multi-tier web platforms, microservices architectures, data migration pipelines, and high-concurrency systems.",
+        "core_skills": ["TypeScript", "Python / Go", "Distributed Systems", "PostgreSQL", "Docker", "Kubernetes", "Redis"],
+        "advanced_skills": ["Event-Driven Architecture", "Kafka", "High Concurrency", "Cost Optimization"],
         "certifications": ["AWS Certified Solutions Architect - Associate"],
         "bridges_to": [
-            {"target": "lead_fullstack", "difficulty": 3, "time_months": 18, "transition_label": "Staff / Principal Architect"},
-            {"target": "cloud_architect", "difficulty": 3, "time_months": 20, "transition_label": "Enterprise Cloud Architecture"},
+            {"target": "lead_fullstack", "difficulty": 3, "time_months": 18, "transition_label": "Staff / Principal"},
+            {"target": "cloud_architect", "difficulty": 3, "time_months": 16, "transition_label": "Cloud Architecture"},
             {"target": "engineering_mgr", "difficulty": 4, "time_months": 24, "transition_label": "People Leadership"}
         ]
     },
@@ -123,155 +137,155 @@ CAREER_ROLES: Dict[str, Dict[str, Any]] = {
         "industry_name": "Technology & Software",
         "category": "Full Stack",
         "level": 4,
-        "level_label": "Staff / Lead (8+ Yrs)",
-        "salary_range": {"min": 185000, "median": 225000, "max": 280000},
-        "description": "Guides organization-wide technical direction, evaluates tech stacks, defines zero-downtime deployment patterns, and unblocks engineering teams.",
-        "core_skills": ["High-Availability Distributed Systems", "Kubernetes", "Event Streaming", "Multi-Cloud Strategy", "Architecture Review"],
-        "advanced_skills": ["Disaster Recovery Strategy", "Cost Engineering (FinOps)", "Executive Alignment"],
+        "level_label": "Staff / Lead (8-10 Yrs)",
+        "salary_range": {"min": 185000, "median": 230000, "max": 278000},
+        "description": "Sets organizational technical direction, leads cross-team architecture reviews, mentors senior staff, and enforces resilience standards.",
+        "core_skills": ["System Design", "Distributed Systems", "Cloud Architecture", "Event Streaming", "Technical Roadmapping"],
+        "advanced_skills": ["Zero Trust Security", "Multi-Region Topology", "Executive Stakeholder Management"],
         "certifications": ["AWS Certified Solutions Architect - Professional"],
         "bridges_to": [
-            {"target": "cloud_architect", "difficulty": 2, "time_months": 12, "transition_label": "Principal Cloud Strategist"},
-            {"target": "engineering_mgr", "difficulty": 3, "time_months": 18, "transition_label": "VP of Engineering Track"}
+            {"target": "engineering_mgr", "difficulty": 3, "time_months": 18, "transition_label": "VP / Director Track"},
+            {"target": "principal_cloud", "difficulty": 2, "time_months": 14, "transition_label": "Fellow / Principal Track"}
         ]
     },
     "backend_dev": {
         "id": "backend_dev",
-        "title": "Backend Software Engineer",
+        "title": "Backend Systems Engineer",
         "industry_id": "tech",
         "industry_name": "Technology & Software",
         "category": "Backend",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 98000, "median": 128000, "max": 155000},
-        "description": "Focuses on robust server logic, transaction guarantees, high-throughput database queries, and microservice APIs.",
-        "core_skills": ["Python", "FastAPI", "Go/Java", "PostgreSQL", "Docker", "Redis", "REST & gRPC"],
-        "advanced_skills": ["RabbitMQ/Kafka", "Database Index Tuning", "Concurrent Programming"],
+        "salary_range": {"min": 118000, "median": 149000, "max": 182000},
+        "description": "Builds high-throughput microservices, distributed transaction managers, caching layers, and database schemas.",
+        "core_skills": ["Python / Go", "PostgreSQL", "REST & gRPC", "Docker", "Redis", "Kafka"],
+        "advanced_skills": ["Database Sharding", "Distributed Locks", "Observability (OpenTelemetry)"],
         "certifications": ["AWS Certified Developer"],
         "bridges_to": [
-            {"target": "senior_backend", "difficulty": 3, "time_months": 18, "transition_label": "Distributed Systems Depth"},
-            {"target": "data_engineer", "difficulty": 3, "time_months": 14, "transition_label": "Data Platform Bridge"},
-            {"target": "devops_eng", "difficulty": 2, "time_months": 12, "transition_label": "Platform Infrastructure"}
-        ]
-    },
-    "senior_backend": {
-        "id": "senior_backend",
-        "title": "Senior Distributed Systems Engineer",
-        "industry_id": "tech",
-        "industry_name": "Technology & Software",
-        "category": "Backend",
-        "level": 3,
-        "level_label": "Senior (5-8 Yrs)",
-        "salary_range": {"min": 145000, "median": 182000, "max": 225000},
-        "description": "Architects resilient, fault-tolerant backends capable of millions of transactions, consensus algorithms, partition management, and data consistency.",
-        "core_skills": ["Distributed Consensus (Raft/Paxos)", "Kafka/Pulsar", "Golang/Rust/Java", "PostgreSQL/Cassandra", "gRPC", "Kubernetes"],
-        "advanced_skills": ["Chaos Engineering", "Zero-Copy Networking", "Low-Latency Optimization"],
-        "certifications": ["Certified Kubernetes Application Developer (CKAD)"],
-        "bridges_to": [
-            {"target": "cloud_architect", "difficulty": 3, "time_months": 18, "transition_label": "Cloud Architecture"},
-            {"target": "engineering_mgr", "difficulty": 3, "time_months": 20, "transition_label": "Engineering Management"}
+            {"target": "senior_fullstack", "difficulty": 2, "time_months": 16, "transition_label": "Full Stack Senior"},
+            {"target": "cloud_architect", "difficulty": 3, "time_months": 18, "transition_label": "Cloud Systems"}
         ]
     },
     "devops_eng": {
         "id": "devops_eng",
-        "title": "DevOps & Cloud Platform Engineer",
+        "title": "DevOps & Platform Engineer",
         "industry_id": "tech",
         "industry_name": "Technology & Software",
         "category": "DevOps & Cloud",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 105000, "median": 135000, "max": 165000},
-        "description": "Automates cloud environments, maintains CI/CD delivery pipelines, manages container clusters, and enforces infrastructure-as-code.",
-        "core_skills": ["Docker", "Kubernetes", "Terraform", "AWS/GCP", "CI/CD (GitHub Actions/GitLab)", "Linux Internals"],
-        "advanced_skills": ["Prometheus/Grafana", "Helm", "Security Hardening", "Bash/Python Scripting"],
-        "certifications": ["HashiCorp Certified: Terraform Associate", "AWS Solutions Architect - Associate"],
+        "salary_range": {"min": 120000, "median": 152000, "max": 185000},
+        "description": "Automates continuous delivery, Infrastructure as Code (Terraform), Kubernetes cluster orchestration, and platform telemetry.",
+        "core_skills": ["Kubernetes", "Docker", "Terraform", "CI/CD (GitHub Actions)", "Linux Shell", "AWS / GCP"],
+        "advanced_skills": ["Helm", "Service Mesh (Istio)", "Prometheus & Grafana", "GitOps (ArgoCD)"],
+        "certifications": ["Certified Kubernetes Administrator (CKA)"],
         "bridges_to": [
-            {"target": "cloud_architect", "difficulty": 3, "time_months": 20, "transition_label": "Enterprise Cloud Architecture"}
+            {"target": "cloud_architect", "difficulty": 2, "time_months": 14, "transition_label": "Cloud Architect"},
+            {"target": "security_eng", "difficulty": 3, "time_months": 16, "transition_label": "DevSecOps Specialization"}
         ]
     },
     "cloud_architect": {
         "id": "cloud_architect",
+        "title": "Cloud Solutions Architect",
+        "industry_id": "tech",
+        "industry_name": "Technology & Software",
+        "category": "DevOps & Cloud",
+        "level": 3,
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 156000, "median": 182000, "max": 222000},
+        "description": "Designs hybrid-cloud topologies, multi-region failover, cost-efficiency governors, and regulatory data sovereignty controls.",
+        "core_skills": ["AWS / GCP / Azure", "Terraform", "Microservices Design", "Cost Optimization (FinOps)", "Zero Trust"],
+        "advanced_skills": ["Multi-Region Disaster Recovery", "Transit Gateways", "Enterprise Governance"],
+        "certifications": ["AWS Certified Solutions Architect - Professional", "Google Cloud Professional Architect"],
+        "bridges_to": [
+            {"target": "principal_cloud", "difficulty": 2, "time_months": 16, "transition_label": "Principal Promotion"},
+            {"target": "lead_fullstack", "difficulty": 3, "time_months": 18, "transition_label": "Staff Leadership"}
+        ]
+    },
+    "principal_cloud": {
+        "id": "principal_cloud",
         "title": "Principal Cloud Solutions Architect",
         "industry_id": "tech",
         "industry_name": "Technology & Software",
         "category": "DevOps & Cloud",
         "level": 4,
-        "level_label": "Staff / Architect (8+ Yrs)",
-        "salary_range": {"min": 190000, "median": 235000, "max": 295000},
-        "description": "Designs multi-region cloud governance, hybrid connectivity, cloud FinOps cost optimization, and SOC2/HIPAA landing zones.",
-        "core_skills": ["Multi-Cloud Architecture (AWS/Azure/GCP)", "Kubernetes (EKS/GKE)", "Terraform Enterprise", "Cloud Security", "FinOps", "Disaster Recovery"],
-        "advanced_skills": ["Zero Trust Mesh (Istio)", "Global Transit Gateways", "SLA Modeling"],
-        "certifications": ["AWS Certified Solutions Architect - Professional", "Google Cloud Professional Cloud Architect"],
+        "level_label": "Staff / Lead (8-10 Yrs)",
+        "salary_range": {"min": 210000, "median": 255000, "max": 315000},
+        "description": "Guides enterprise-wide cloud modernization, sovereign cloud compliance, multi-cloud strategy, and high-resilience systems.",
+        "core_skills": ["Enterprise Architecture", "Multi-Cloud", "FinOps", "Disaster Recovery", "Zero Trust"],
+        "advanced_skills": ["C-Suite Advisory", "Vendor Negotiation", "AI Infrastructure"],
+        "certifications": ["AWS Solutions Architect - Professional", "TOGAF 9"],
         "bridges_to": [
-            {"target": "engineering_mgr", "difficulty": 2, "time_months": 14, "transition_label": "Executive Leadership"}
+            {"target": "engineering_mgr", "difficulty": 3, "time_months": 18, "transition_label": "Executive VP"}
         ]
     },
-    "data_analyst": {
-        "id": "data_analyst",
-        "title": "Data Analyst & Business Intelligence Specialist",
-        "industry_id": "tech",
-        "industry_name": "Technology & Software",
-        "category": "Data & AI",
-        "level": 1,
-        "level_label": "Entry Level (0-2 Yrs)",
-        "salary_range": {"min": 70000, "median": 85000, "max": 102000},
-        "description": "Extracts exploratory insights, builds actionable BI dashboards, authors complex SQL transformations, and models business KPIs.",
-        "core_skills": ["SQL", "Python (Pandas/NumPy)", "Tableau / PowerBI", "Statistical Analysis", "Data Cleansing", "Git"],
-        "advanced_skills": ["A/B Testing Frameworks", "ETL Concepts", "BigQuery / Snowflake"],
-        "certifications": ["Google Data Analytics Professional Certificate"],
-        "bridges_to": [
-            {"target": "data_engineer", "difficulty": 3, "time_months": 16, "transition_label": "Data Engineering Track"},
-            {"target": "ml_engineer", "difficulty": 4, "time_months": 22, "transition_label": "Machine Learning Transition"}
-        ]
-    },
-    "data_engineer": {
-        "id": "data_engineer",
-        "title": "Data Platform Engineer",
-        "industry_id": "tech",
-        "industry_name": "Technology & Software",
-        "category": "Data & AI",
-        "level": 2,
-        "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 105000, "median": 138000, "max": 170000},
-        "description": "Constructs robust, petabyte-scale data pipelines, streaming ingestion, lakehouse architectures, and dimensional modeling.",
-        "core_skills": ["Python", "SQL", "Apache Spark", "Airflow / dbt", "Kafka", "Data Lakehouse (Delta/Iceberg)", "Cloud Warehousing"],
-        "advanced_skills": ["Distributed Query Optimization", "Data Mesh Governance", "Flink Streaming"],
-        "certifications": ["Databricks Certified Data Engineer Associate", "Google Cloud Professional Data Engineer"],
-        "bridges_to": [
-            {"target": "ml_engineer", "difficulty": 3, "time_months": 16, "transition_label": "MLOps & Feature Store Bridge"}
-        ]
-    },
-    "ml_engineer": {
-        "id": "ml_engineer",
-        "title": "Machine Learning Engineer / MLOps Specialist",
-        "industry_id": "tech",
-        "industry_name": "Technology & Software",
-        "category": "Data & AI",
-        "level": 3,
-        "level_label": "Senior (4-7 Yrs)",
-        "salary_range": {"min": 145000, "median": 185000, "max": 235000},
-        "description": "Transitions research models into production inference microservices, feature store pipelines, continuous model evaluation, and GPU scaling.",
-        "core_skills": ["Python", "PyTorch / TensorFlow", "MLflow / Kubeflow", "Docker / Triton Inference", "Vector Databases", "FastAPI"],
-        "advanced_skills": ["LLM Fine-Tuning (LoRA)", "RAG Architecture", "Distributed Model Parallelism"],
-        "certifications": ["AWS Certified Machine Learning - Specialty"],
-        "bridges_to": [
-            {"target": "lead_fullstack", "difficulty": 3, "time_months": 18, "transition_label": "Full-Stack AI Application Lead"}
-        ]
-    },
-    "cybersecurity_eng": {
-        "id": "cybersecurity_eng",
-        "title": "Cybersecurity & AppSec Engineer",
+    "security_eng": {
+        "id": "security_eng",
+        "title": "Cybersecurity Architect",
         "industry_id": "tech",
         "industry_name": "Technology & Software",
         "category": "Security",
+        "level": 3,
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 142000, "median": 168000, "max": 205000},
+        "description": "Hardens production environments, designs threat detection pipelines, leads incident response, and manages SOC2 compliance.",
+        "core_skills": ["Threat Modeling", "SIEM (Splunk/Sentinel)", "Vulnerability Auditing", "Network Security", "IAM Governance"],
+        "advanced_skills": ["Zero Trust", "Penetration Testing", "Cloud Security Posture (CSPM)"],
+        "certifications": ["CISSP", "Certified Information Security Manager (CISM)"],
+        "bridges_to": [
+            {"target": "cloud_architect", "difficulty": 2, "time_months": 14, "transition_label": "Cloud Security Lead"}
+        ]
+    },
+    "mobile_dev": {
+        "id": "mobile_dev",
+        "title": "Mobile Application Developer",
+        "industry_id": "tech",
+        "industry_name": "Technology & Software",
+        "category": "Mobile",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 95000, "median": 125000, "max": 150000},
-        "description": "Audits application vulnerability postures, conducts automated SAST/DAST scans, enforces zero trust identity, and triages threat vectors.",
-        "core_skills": ["OWASP Top 10", "Network Security", "Vulnerability Assessment", "OAuth2 / OIDC", "Linux Security", "Python Scripting"],
-        "advanced_skills": ["Penetration Testing", "Threat Modeling", "SIEM Tools"],
-        "certifications": ["CompTIA Security+", "Certified Ethical Hacker (CEH)"],
+        "salary_range": {"min": 105000, "median": 138000, "max": 168000},
+        "description": "Builds high-performance native and cross-platform mobile apps for iOS and Android.",
+        "core_skills": ["React Native / Flutter", "Swift / Kotlin", "Mobile UI/UX", "REST APIs", "App Store Deployment"],
+        "advanced_skills": ["Offline Sync", "Push Notifications", "Performance Profiling"],
+        "certifications": ["Google Associate Android Developer"],
         "bridges_to": [
-            {"target": "engineering_mgr", "difficulty": 3, "time_months": 20, "transition_label": "Security Leadership"}
+            {"target": "fullstack_dev", "difficulty": 2, "time_months": 12, "transition_label": "Full Stack Switch"}
+        ]
+    },
+    "qa_engineer": {
+        "id": "qa_engineer",
+        "title": "QA & Automation Engineer",
+        "industry_id": "tech",
+        "industry_name": "Technology & Software",
+        "category": "QA",
+        "level": 1,
+        "level_label": "Entry Level (0-2 Yrs)",
+        "salary_range": {"min": 68000, "median": 85000, "max": 105000},
+        "description": "Writes automated test suites, end-to-end regression frameworks, and load testing harnesses.",
+        "core_skills": ["Playwright / Cypress", "Selenium", "Python / TypeScript", "CI/CD Integration", "Test Case Design"],
+        "advanced_skills": ["Performance Testing (k6)", "API Testing (Postman)", "Chaos Testing"],
+        "certifications": ["ISTQB Certified Tester"],
+        "bridges_to": [
+            {"target": "fullstack_dev", "difficulty": 2, "time_months": 14, "transition_label": "Software Engineer Track"},
+            {"target": "devops_eng", "difficulty": 3, "time_months": 16, "transition_label": "DevOps Shift"}
+        ]
+    },
+    "systems_embedded_eng": {
+        "id": "systems_embedded_eng",
+        "title": "Systems & Embedded Engineer",
+        "industry_id": "tech",
+        "industry_name": "Technology & Software",
+        "category": "Systems",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 110000, "median": 142000, "max": 172000},
+        "description": "Programs firmware, microcontrollers, real-time operating systems (RTOS), and hardware-software interfaces.",
+        "core_skills": ["C / C++", "RTOS", "Linux Kernel", "Microcontrollers (ARM/ESP32)", "I2C/SPI/UART"],
+        "advanced_skills": ["Rust Embedded", "Board Bringup", "Power Optimization"],
+        "certifications": ["ARM Accredited Engineer"],
+        "bridges_to": [
+            {"target": "backend_dev", "difficulty": 2, "time_months": 14, "transition_label": "High-Performance Systems"}
         ]
     },
     "engineering_mgr": {
@@ -279,597 +293,867 @@ CAREER_ROLES: Dict[str, Dict[str, Any]] = {
         "title": "Engineering Manager / Director",
         "industry_id": "tech",
         "industry_name": "Technology & Software",
-        "category": "Management",
-        "level": 4,
-        "level_label": "Leadership (8+ Yrs)",
-        "salary_range": {"min": 180000, "median": 230000, "max": 290000},
-        "description": "Oversees high-performing engineering squads, quarterly roadmaps, budget allocation, hiring strategy, career development, and delivery velocity.",
-        "core_skills": ["Team Leadership", "Agile / Scrum / Kanban", "Engineering Metrics (DORA)", "System Architecture Oversight", "Hiring & Mentorship"],
-        "advanced_skills": ["Cross-Functional Alignment", "Budget Management", "Conflict Mediation"],
-        "certifications": ["Certified ScrumMaster (CSM)", "PMP"],
+        "category": "Leadership",
+        "level": 5,
+        "level_label": "Director / Principal (10+ Yrs)",
+        "salary_range": {"min": 220000, "median": 275000, "max": 350000},
+        "description": "Aligns engineering teams with product OKRs, oversees hiring & retention, leads high-stakes delivery, and manages budget.",
+        "core_skills": ["People Leadership", "System Architecture", "Agile Execution", "Budget Management", "Executive Communication"],
+        "advanced_skills": ["Organizational Design", "M&A Tech Due Diligence", "Board Reporting"],
+        "certifications": ["Certified Scrum Product Owner (CSPO)"],
         "bridges_to": []
     },
 
-    # -------------------------------------------------------------------------
-    # 2. Healthcare & Medicine
-    # -------------------------------------------------------------------------
-    "cna_nurse_aide": {
-        "id": "cna_nurse_aide",
-        "title": "Certified Nursing Assistant (CNA)",
-        "industry_id": "healthcare",
-        "industry_name": "Healthcare & Medicine",
-        "category": "Patient Care",
+    # =========================================================================
+    # 2. Data Science & Analytics
+    # =========================================================================
+    "data_analyst": {
+        "id": "data_analyst",
+        "title": "Data Analyst",
+        "industry_id": "data",
+        "industry_name": "Data Science & Analytics",
+        "category": "Analytics",
         "level": 1,
         "level_label": "Entry Level (0-2 Yrs)",
-        "salary_range": {"min": 32000, "median": 38000, "max": 46000},
-        "description": "Provides essential bedside patient assistance, monitors and logs vital signs, and maintains sterile patient care environments.",
-        "core_skills": ["Patient Care & Vitals", "Infection Control", "ADL Assistance", "EMR Documentation", "CPR / BLS", "Medical Terminology"],
-        "advanced_skills": ["Phlebotomy Basics", "Wound Observation", "Patient Mobility Assistance"],
-        "certifications": ["State CNA License", "BLS / CPR Certification (AHA)"],
+        "salary_range": {"min": 62000, "median": 75000, "max": 92000},
+        "description": "Extracts insights from structured datasets, generates business intelligence dashboards, and creates SQL pipelines.",
+        "core_skills": ["SQL", "Excel / Sheets", "Tableau / PowerBI", "Python / Pandas", "Descriptive Statistics"],
+        "advanced_skills": ["A/B Testing", "ETL Pipelines", "Data Storytelling"],
+        "certifications": ["Google Data Analytics Professional Certificate"],
         "bridges_to": [
-            {"target": "lpn_practical_nurse", "difficulty": 2, "time_months": 12, "transition_label": "Practical Nursing Program"}
+            {"target": "bi_analyst", "difficulty": 2, "time_months": 12, "transition_label": "BI Specialist"},
+            {"target": "data_scientist", "difficulty": 3, "time_months": 18, "transition_label": "Data Science Track"}
         ]
     },
-    "lpn_practical_nurse": {
-        "id": "lpn_practical_nurse",
-        "title": "Licensed Practical Nurse (LPN)",
-        "industry_id": "healthcare",
-        "industry_name": "Healthcare & Medicine",
-        "category": "Clinical Nursing",
-        "level": 2,
-        "level_label": "Mid Level (1-4 Yrs)",
-        "salary_range": {"min": 46000, "median": 54000, "max": 65000},
-        "description": "Administers prescribed medications, performs sterile dressings, evaluates patient status changes, and coordinates outpatient plans.",
-        "core_skills": ["Medication Administration", "Wound Care", "Patient Assessment", "IV Therapy Protocols", "Clinical Protocols", "EPIC EMR Systems"],
-        "advanced_skills": ["Geriatric Care Coordination", "Care Plan Development", "Patient Family Education"],
-        "certifications": ["LPN License (NCLEX-PN)", "IV Therapy Certification"],
-        "bridges_to": [
-            {"target": "registered_nurse", "difficulty": 3, "time_months": 18, "transition_label": "LPN-to-RN Degree Bridge"}
-        ]
-    },
-    "registered_nurse": {
-        "id": "registered_nurse",
-        "title": "Registered Nurse (Staff RN)",
-        "industry_id": "healthcare",
-        "industry_name": "Healthcare & Medicine",
-        "category": "Clinical Nursing",
+    "bi_analyst": {
+        "id": "bi_analyst",
+        "title": "Business Intelligence Analyst",
+        "industry_id": "data",
+        "industry_name": "Data Science & Analytics",
+        "category": "Analytics",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 72000, "median": 86000, "max": 105000},
-        "description": "Directs acute bedside patient care, conducts triage evaluations, administers IV pharmacology, and collaborates across interdisciplinary medical teams.",
-        "core_skills": ["Acute Care Management", "Patient Triage", "Pharmacology & IV Infusions", "Critical Thinking", "Interdisciplinary Care", "HIPAA Compliance"],
-        "advanced_skills": ["Telemetry Monitoring", "Critical Care Protocols", "Preceptorship & Staff Training"],
-        "certifications": ["RN License (NCLEX-RN)", "ACLS (Advanced Cardiac Life Support)"],
+        "salary_range": {"min": 85000, "median": 105000, "max": 128000},
+        "description": "Designs enterprise semantic models, KPI dashboards, automated reporting suites, and data governance standards.",
+        "core_skills": ["Advanced SQL", "Tableau", "Power BI", "Data Warehousing (Snowflake/BigQuery)", "Data Modeling"],
+        "advanced_skills": ["dbt", "Looker", "Dimensional Modeling (Star Schema)"],
+        "certifications": ["Tableau Certified Data Analyst"],
         "bridges_to": [
-            {"target": "charge_nurse", "difficulty": 2, "time_months": 16, "transition_label": "Unit Leadership & Triage Lead"},
-            {"target": "clinical_nurse_spec", "difficulty": 3, "time_months": 22, "transition_label": "Clinical Nurse Specialization"}
+            {"target": "data_engineer", "difficulty": 3, "time_months": 16, "transition_label": "Data Engineering Pivot"},
+            {"target": "data_scientist", "difficulty": 2, "time_months": 14, "transition_label": "Predictive Modeling Track"}
         ]
     },
-    "charge_nurse": {
-        "id": "charge_nurse",
-        "title": "Charge Nurse / Unit Supervisor",
-        "industry_id": "healthcare",
-        "industry_name": "Healthcare & Medicine",
-        "category": "Nursing Leadership",
+    "data_engineer": {
+        "id": "data_engineer",
+        "title": "Data Engineer",
+        "industry_id": "data",
+        "industry_name": "Data Science & Analytics",
+        "category": "Data Engineering",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 115000, "median": 148000, "max": 178000},
+        "description": "Builds robust real-time and batch data pipelines, data lakehouses, and high-performance ingestion architectures.",
+        "core_skills": ["Python", "SQL", "Apache Spark", "Airflow", "Snowflake / BigQuery", "dbt"],
+        "advanced_skills": ["Kafka", "Delta Lake", "Data Quality Governance", "AWS EMR"],
+        "certifications": ["Google Professional Data Engineer", "Databricks Certified Data Engineer"],
+        "bridges_to": [
+            {"target": "bigdata_architect", "difficulty": 2, "time_months": 18, "transition_label": "Platform Architect"},
+            {"target": "ml_engineer", "difficulty": 3, "time_months": 16, "transition_label": "MLOps Shift"}
+        ]
+    },
+    "data_scientist": {
+        "id": "data_scientist",
+        "title": "Data Scientist",
+        "industry_id": "data",
+        "industry_name": "Data Science & Analytics",
+        "category": "Data Science",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 115000, "median": 146000, "max": 178000},
+        "description": "Builds predictive statistical models, regression frameworks, customer churn predictors, and hypothesis experiments.",
+        "core_skills": ["Python", "Scikit-Learn", "SQL", "Pandas & NumPy", "Hypothesis Testing", "Machine Learning"],
+        "advanced_skills": ["XGBoost", "Deep Learning", "A/B Testing Experimentation", "Feature Stores"],
+        "certifications": ["IBM Data Science Professional Certificate"],
+        "bridges_to": [
+            {"target": "ml_engineer", "difficulty": 2, "time_months": 14, "transition_label": "ML Engineering"},
+            {"target": "quant_analyst", "difficulty": 3, "time_months": 16, "transition_label": "Quantitative Finance"}
+        ]
+    },
+    "ml_engineer": {
+        "id": "ml_engineer",
+        "title": "Machine Learning Engineer",
+        "industry_id": "data",
+        "industry_name": "Data Science & Analytics",
+        "category": "AI / ML",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 135000, "median": 172000, "max": 210000},
+        "description": "Deploys, monitors, and optimizes machine learning models and LLM agent pipelines in production at scale.",
+        "core_skills": ["Python", "PyTorch / TensorFlow", "MLflow", "Docker", "Vector Databases (pgvector/Pinecone)", "FastAPI"],
+        "advanced_skills": ["LLM Fine-Tuning", "vLLM Serving", "Distributed Training (DeepSpeed)", "Triton Server"],
+        "certifications": ["AWS Certified Machine Learning - Specialty"],
+        "bridges_to": [
+            {"target": "ai_researcher", "difficulty": 3, "time_months": 20, "transition_label": "AI Research Staff"},
+            {"target": "bigdata_architect", "difficulty": 2, "time_months": 16, "transition_label": "AI Platform Architect"}
+        ]
+    },
+    "bigdata_architect": {
+        "id": "bigdata_architect",
+        "title": "Big Data Architect",
+        "industry_id": "data",
+        "industry_name": "Data Science & Analytics",
+        "category": "Data Engineering",
         "level": 3,
         "level_label": "Senior (5-8 Yrs)",
-        "salary_range": {"min": 92000, "median": 108000, "max": 128000},
-        "description": "Supervises hospital floor nursing operations, bed allocations, acute clinical escalations, quality compliance, and staff shift assignments.",
-        "core_skills": ["Unit Resource Scheduling", "Clinical Escalations", "Crisis Intervention", "Staff Mentorship", "Quality Improvement", "Patient Flow Optimization"],
-        "advanced_skills": ["Budgetary Variance Monitoring", "Sentinel Event Reporting", "Regulatory Readiness"],
-        "certifications": ["Certified Nurse Manager & Leader (CNML)", "PALS Certification"],
+        "salary_range": {"min": 154000, "median": 182000, "max": 218000},
+        "description": "Architects petabyte-scale data lakes, streaming analytics clusters, real-time feature stores, and governance.",
+        "core_skills": ["Distributed Storage (S3/HDFS)", "Spark Streaming", "Kafka", "Databricks", "Data Mesh Design"],
+        "advanced_skills": ["Iceberg / Delta", "Cross-Region Replication", "Data Lineage"],
+        "certifications": ["Databricks Certified Solutions Architect"],
         "bridges_to": [
-            {"target": "nurse_practitioner", "difficulty": 3, "time_months": 24, "transition_label": "Master's APRN Track"},
-            {"target": "hospital_ops_director", "difficulty": 3, "time_months": 24, "transition_label": "Hospital Administration"}
+            {"target": "ai_researcher", "difficulty": 3, "time_months": 18, "transition_label": "Research Lead"}
         ]
     },
-    "clinical_nurse_spec": {
-        "id": "clinical_nurse_spec",
-        "title": "Clinical Nurse Specialist (CNS)",
-        "industry_id": "healthcare",
-        "industry_name": "Healthcare & Medicine",
-        "category": "Advanced Practice",
+    "ai_researcher": {
+        "id": "ai_researcher",
+        "title": "AI / Deep Learning Researcher",
+        "industry_id": "data",
+        "industry_name": "Data Science & Analytics",
+        "category": "AI / ML",
+        "level": 4,
+        "level_label": "Staff / Lead (8-10 Yrs)",
+        "salary_range": {"min": 185000, "median": 245000, "max": 320000},
+        "description": "Publishes novel generative architectures, diffusion models, attention mechanisms, and multi-modal neural paradigms.",
+        "core_skills": ["PyTorch", "Transformer Architectures", "CUDA / Triton", "Mathematical Optimization", "Prompt Engineering"],
+        "advanced_skills": ["Reasoning RL (RLHF/GRPO)", "Quantization (AWQ/GPTQ)", "Synthetic Data Generation"],
+        "certifications": ["NVIDIA Deep Learning Institute Certificate"],
+        "bridges_to": []
+    },
+    "quant_analyst": {
+        "id": "quant_analyst",
+        "title": "Quantitative Analyst / Modeler",
+        "industry_id": "data",
+        "industry_name": "Data Science & Analytics",
+        "category": "Quantitative",
         "level": 3,
         "level_label": "Senior (5-8 Yrs)",
-        "salary_range": {"min": 100000, "median": 118000, "max": 142000},
-        "description": "Drives evidence-based clinical practice standards across hospital departments, leads quality improvement initiatives, and consults on complex cases.",
-        "core_skills": ["Evidence-Based Clinical Practice", "Advanced Pathophysiology", "Clinical Research Protocols", "Staff Education", "Clinical Outcomes Analysis"],
-        "advanced_skills": ["Infection Control Epidemiology", "Health Informatics Integration"],
-        "certifications": ["CNS Board Certification (ANCC)"],
+        "salary_range": {"min": 155000, "median": 188000, "max": 235000},
+        "description": "Designs statistical arbitrage algorithms, risk neutralization strategies, and econometric pricing models.",
+        "core_skills": ["Python / C++", "Stochastic Calculus", "Time Series Econometrics", "Monte Carlo Methods", "NumPy/SciPy"],
+        "advanced_skills": ["Order Book Microstructure", "Low-Latency Simulation", "High-Frequency Signals"],
+        "certifications": ["CFA Level 1", "Certificate in Quantitative Finance (CQF)"],
         "bridges_to": [
-            {"target": "nurse_practitioner", "difficulty": 2, "time_months": 14, "transition_label": "Direct Primary/Acute Care Credential"}
+            {"target": "quant_trader", "difficulty": 2, "time_months": 14, "transition_label": "Proprietary Trading Track"}
         ]
     },
-    "nurse_practitioner": {
-        "id": "nurse_practitioner",
-        "title": "Family / Acute Care Nurse Practitioner (NP)",
-        "industry_id": "healthcare",
-        "industry_name": "Healthcare & Medicine",
-        "category": "Advanced Practice",
-        "level": 4,
-        "level_label": "Staff / Advanced Practice (7+ Yrs)",
-        "salary_range": {"min": 115000, "median": 135000, "max": 165000},
-        "description": "Autonomously diagnoses medical conditions, orders and interprets diagnostic tests, prescribes pharmaceutical therapies, and manages patient care plans.",
-        "core_skills": ["Clinical Diagnosis", "Prescriptive Authority", "Patient Management", "Diagnostic Interpretation", "Preventive Care", "Chronic Disease Management"],
-        "advanced_skills": ["Minor Office Procedures", "Hospital Rounds", "Specialist Referrals"],
-        "certifications": ["FNP-C / AGNP Board Certification (AANP / ANCC)", "DEA Registration"],
+
+    # =========================================================================
+    # 3. Product & Design
+    # =========================================================================
+    "uiux_designer": {
+        "id": "uiux_designer",
+        "title": "UI/UX Designer",
+        "industry_id": "product",
+        "industry_name": "Product & Design",
+        "category": "Design & UX",
+        "level": 1,
+        "level_label": "Entry Level (0-2 Yrs)",
+        "salary_range": {"min": 72000, "median": 92000, "max": 112000},
+        "description": "Creates wireframes, high-fidelity Figma components, interactive prototypes, and conducts usability testing.",
+        "core_skills": ["Figma", "UI Component Design", "Wireframing", "User Journey Mapping", "Prototyping"],
+        "advanced_skills": ["Design Systems", "Accessibility (WCAG 2.1)", "User Research"],
+        "certifications": ["Google UX Design Professional Certificate"],
         "bridges_to": [
-            {"target": "hospital_ops_director", "difficulty": 2, "time_months": 18, "transition_label": "Executive Clinical Leadership"}
+            {"target": "design_systems_lead", "difficulty": 2, "time_months": 16, "transition_label": "Design Systems Lead"},
+            {"target": "product_manager", "difficulty": 3, "time_months": 18, "transition_label": "Product Management Pivot"}
         ]
     },
-    "hospital_ops_director": {
-        "id": "hospital_ops_director",
-        "title": "Hospital Clinical & Operations Director",
-        "industry_id": "healthcare",
-        "industry_name": "Healthcare & Medicine",
-        "category": "Hospital Executive",
-        "level": 4,
-        "level_label": "Executive (8+ Yrs)",
-        "salary_range": {"min": 150000, "median": 185000, "max": 235000},
-        "description": "Administers acute hospital operations, multimillion-dollar clinical budgets, Joint Commission accreditations, provider retention, and clinical quality.",
-        "core_skills": ["Healthcare Systems Administration", "Joint Commission Compliance", "Clinical Budgeting ($10M+)", "Provider Staffing", "Patient Safety Standards", "Health Informatics"],
-        "advanced_skills": ["Hospital P&L Oversight", "Union Negotiation", "Community Health Strategy"],
-        "certifications": ["FACHE (Fellow of the American College of Healthcare Executives)", "CPHQ"],
+    "ux_researcher": {
+        "id": "ux_researcher",
+        "title": "User Experience Researcher",
+        "industry_id": "product",
+        "industry_name": "Product & Design",
+        "category": "Design & UX",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 95000, "median": 124000, "max": 152000},
+        "description": "Leads qualitative customer interviews, usability benchmarks, quantitative user surveys, and heuristic evaluations.",
+        "core_skills": ["User Interviews", "Usability Testing", "Survey Design", "Competitive Analysis", "Heuristic Evaluation"],
+        "advanced_skills": ["Eye-Tracking Studies", "Card Sorting", "Statistical User Analytics"],
+        "certifications": ["Nielsen Norman Group UX Master Certified"],
+        "bridges_to": [
+            {"target": "product_manager", "difficulty": 2, "time_months": 14, "transition_label": "Product Strategy"}
+        ]
+    },
+    "design_systems_lead": {
+        "id": "design_systems_lead",
+        "title": "Design Systems Lead",
+        "industry_id": "product",
+        "industry_name": "Product & Design",
+        "category": "Design & UX",
+        "level": 3,
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 128000, "median": 152000, "max": 184000},
+        "description": "Maintains scalable design token architectures, multi-platform Figma component libraries, and frontend parity.",
+        "core_skills": ["Design Tokens", "Figma Auto-Layout", "WCAG 2.1 AA", "Cross-Platform Guidelines", "Component Documentation"],
+        "advanced_skills": ["CSS / Tailwind Integration", "Design Ops", "Brand Identity"],
+        "certifications": ["Interaction Design Foundation Certified"],
+        "bridges_to": [
+            {"target": "vp_product", "difficulty": 4, "time_months": 24, "transition_label": "Head of Design"}
+        ]
+    },
+    "product_manager": {
+        "id": "product_manager",
+        "title": "Product Manager",
+        "industry_id": "product",
+        "industry_name": "Product & Design",
+        "category": "Product Strategy",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 115000, "median": 148000, "max": 182000},
+        "description": "Defines product roadmaps, translates customer problems into PRDs, prioritizes backlogs, and tracks business KPIs.",
+        "core_skills": ["Product Discovery", "PRD Authoring", "Roadmap Planning", "Agile / Scrum", "Data-Driven Prioritization"],
+        "advanced_skills": ["Financial Modeling", "Market Segmentation", "Executive Alignment"],
+        "certifications": ["Certified Scrum Product Owner (CSPO)"],
+        "bridges_to": [
+            {"target": "tech_pm", "difficulty": 2, "time_months": 14, "transition_label": "Technical Product Track"},
+            {"target": "vp_product", "difficulty": 3, "time_months": 22, "transition_label": "Director of Product"}
+        ]
+    },
+    "tech_pm": {
+        "id": "tech_pm",
+        "title": "Technical Product Manager",
+        "industry_id": "product",
+        "industry_name": "Product & Design",
+        "category": "Product Strategy",
+        "level": 3,
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 138000, "median": 162000, "max": 196000},
+        "description": "Leads complex technical platform products, developer APIs, distributed infrastructure tools, and cloud SDKs.",
+        "core_skills": ["API Design", "System Architecture Knowledge", "PRD Authoring", "Developer Experience", "Technical Backlog"],
+        "advanced_skills": ["Microservices Strategy", "Cloud Cost Governance", "SLA / SLO Management"],
+        "certifications": ["AWS Certified Cloud Practitioner", "Pragmatic Institute Certified"],
+        "bridges_to": [
+            {"target": "vp_product", "difficulty": 3, "time_months": 20, "transition_label": "Chief Product Officer Track"}
+        ]
+    },
+    "vp_product": {
+        "id": "vp_product",
+        "title": "VP of Product / Chief Product Officer",
+        "industry_id": "product",
+        "industry_name": "Product & Design",
+        "category": "Product Strategy",
+        "level": 5,
+        "level_label": "Director / Principal (10+ Yrs)",
+        "salary_range": {"min": 215000, "median": 270000, "max": 345000},
+        "description": "Owns organizational product vision, multi-product portfolio strategy, investor updates, and P&L allocation.",
+        "core_skills": ["Portfolio Strategy", "Executive Leadership", "P&L Management", "Go-To-Market Alignment", "Board Advisory"],
+        "advanced_skills": ["Mergers & Acquisitions", "International Expansion"],
+        "certifications": [],
         "bridges_to": []
     },
 
-    # -------------------------------------------------------------------------
-    # 3. Finance & Banking
-    # -------------------------------------------------------------------------
-    "junior_fin_analyst": {
-        "id": "junior_fin_analyst",
-        "title": "Junior Financial Analyst",
+    # =========================================================================
+    # 4. Finance, Banking & FinTech
+    # =========================================================================
+    "financial_analyst": {
+        "id": "financial_analyst",
+        "title": "Financial Analyst",
         "industry_id": "finance",
-        "industry_name": "Finance & Banking",
+        "industry_name": "Finance, Banking & FinTech",
         "category": "Corporate Finance",
         "level": 1,
         "level_label": "Entry Level (0-2 Yrs)",
-        "salary_range": {"min": 58000, "median": 68000, "max": 82000},
-        "description": "Constructs financial models, analyzes operating variance against forecasts, audits corporate budget line items, and synthesizes quarterly report decks.",
-        "core_skills": ["Financial Modeling", "Excel (VLOOKUP/XLOOKUP/Index-Match)", "Variance Analysis", "Financial Statements (P&L/Balance Sheet)", "PowerBI", "SQL"],
-        "advanced_skills": ["Python for Finance", "ERP Reporting (SAP/Oracle)", "Data Cleansing"],
-        "certifications": ["Bloomberg Market Concepts (BMC)", "CFA Level I Candidate"],
+        "salary_range": {"min": 70000, "median": 86000, "max": 105000},
+        "description": "Conducts financial statement analysis, budget forecasting, variance analysis, and DCF corporate valuations.",
+        "core_skills": ["Financial Modeling", "Excel (VBA/Macros)", "DCF Valuation", "Variance Analysis", "Accounting Standards"],
+        "advanced_skills": ["Power BI", "SQL", "ERP Systems (SAP/NetSuite)"],
+        "certifications": ["CFA Level 1 Candidate"],
         "bridges_to": [
-            {"target": "senior_fin_analyst", "difficulty": 2, "time_months": 18, "transition_label": "FP&A Specialization"},
-            {"target": "corporate_accountant", "difficulty": 2, "time_months": 12, "transition_label": "General Ledger Accounting Shift"}
+            {"target": "senior_accountant", "difficulty": 2, "time_months": 14, "transition_label": "Accounting Track"},
+            {"target": "risk_analyst", "difficulty": 2, "time_months": 14, "transition_label": "Risk & Controls Shift"},
+            {"target": "ib_associate", "difficulty": 3, "time_months": 18, "transition_label": "Investment Banking Track"}
         ]
     },
-    "corporate_accountant": {
-        "id": "corporate_accountant",
+    "senior_accountant": {
+        "id": "senior_accountant",
         "title": "Senior Corporate Accountant",
         "industry_id": "finance",
-        "industry_name": "Finance & Banking",
+        "industry_name": "Finance, Banking & FinTech",
         "category": "Accounting",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 75000, "median": 88000, "max": 108000},
-        "description": "Executes month-end financial closes, prepares general ledger reconciliations, ensures GAAP compliance, and facilitates external audit engagements.",
-        "core_skills": ["GAAP Accounting", "Month-End Close", "General Ledger", "Tax Compliance", "ERP Systems (NetSuite/SAP)", "Audit Preparation"],
-        "advanced_skills": ["Revenue Recognition (ASC 606)", "Fixed Asset Accounting", "SOX 404 Controls"],
-        "certifications": ["CPA (Certified Public Accountant)"],
+        "salary_range": {"min": 89000, "median": 106000, "max": 128000},
+        "description": "Oversees monthly ledger closing, GAAP revenue recognition, statutory auditing, and corporate tax compliance.",
+        "core_skills": ["US GAAP", "General Ledger", "Internal Controls (SOX)", "Auditing", "Financial Reporting"],
+        "advanced_skills": ["IFRS", "Corporate Tax Planning", "ERP System Migration"],
+        "certifications": ["Certified Public Accountant (CPA)"],
         "bridges_to": [
-            {"target": "senior_fin_analyst", "difficulty": 2, "time_months": 14, "transition_label": "Strategic Finance Bridge"},
-            {"target": "cfo_finance_director", "difficulty": 4, "time_months": 36, "transition_label": "Controller to CFO Track"}
+            {"target": "finance_director", "difficulty": 3, "time_months": 22, "transition_label": "Controller / Director"}
         ]
     },
-    "senior_fin_analyst": {
-        "id": "senior_fin_analyst",
-        "title": "Senior FP&A Finance Analyst",
+    "risk_analyst": {
+        "id": "risk_analyst",
+        "title": "Risk Management Specialist",
         "industry_id": "finance",
-        "industry_name": "Finance & Banking",
-        "category": "Corporate Finance",
+        "industry_name": "Finance, Banking & FinTech",
+        "category": "Risk & Controls",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 95000, "median": 115000, "max": 140000},
-        "description": "Leads annual operating plan (AOP) budgeting, dynamic discounted cash flow (DCF) models, scenario analyses, and executive board presentations.",
-        "core_skills": ["Corporate FP&A", "Discounted Cash Flow (DCF)", "Budget Forecasting", "Scenario Modeling", "Executive Presentations", "SQL / Tableau"],
-        "advanced_skills": ["Capital Expenditure ROI Modeling", "M&A Due Diligence Support", "Strategic Headcount Planning"],
-        "certifications": ["CFA Charterholder", "FPAC (Certified Corporate FP&A Professional)"],
+        "salary_range": {"min": 104000, "median": 125000, "max": 154000},
+        "description": "Calculates Value at Risk (VaR), stress-tests liquidity scenarios, and monitors credit exposure for institutions.",
+        "core_skills": ["Value at Risk (VaR)", "Credit Scoring Models", "Stress Testing", "Regulatory Capital (Basel III)", "Python"],
+        "advanced_skills": ["Counterparty Risk", "Derivatives Modeling", "Model Validation"],
+        "certifications": ["Financial Risk Manager (FRM)"],
         "bridges_to": [
-            {"target": "investment_associate", "difficulty": 3, "time_months": 18, "transition_label": "Private Equity / Investment Banking"},
-            {"target": "cfo_finance_director", "difficulty": 3, "time_months": 24, "transition_label": "VP of Finance / CFO Track"}
+            {"target": "quant_trader", "difficulty": 3, "time_months": 18, "transition_label": "Trading Pivot"},
+            {"target": "finance_director", "difficulty": 3, "time_months": 20, "transition_label": "Chief Risk Officer"}
         ]
     },
-    "investment_associate": {
-        "id": "investment_associate",
-        "title": "Private Equity / Investment Banking Associate",
+    "ib_associate": {
+        "id": "ib_associate",
+        "title": "Investment Banking Associate",
         "industry_id": "finance",
-        "industry_name": "Finance & Banking",
+        "industry_name": "Finance, Banking & FinTech",
         "category": "Investment Banking",
         "level": 3,
-        "level_label": "Senior (4-7 Yrs)",
-        "salary_range": {"min": 120000, "median": 145000, "max": 185000},
-        "description": "Conducts intensive transaction underwriting, leveraged buyout (LBO) modeling, commercial due diligence, and capital structure advisory.",
-        "core_skills": ["LBO Modeling", "Mergers & Acquisitions (M&A)", "Due Diligence", "Capital Structure", "Pitch Books", "Valuation Methodologies"],
-        "advanced_skills": ["Debt Covenant Structuring", "Portfolio Company Governance", "Exit Valuation"],
-        "certifications": ["FINRA Series 7 & 79", "CFA Charter"],
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 158000, "median": 192000, "max": 245000},
+        "description": "Executes complex M&A transactions, LBO models, pitch books, debt financing rounds, and IPO roadshows.",
+        "core_skills": ["M&A Valuation", "LBO Modeling", "Pitch Book Authoring", "Due Diligence", "Capital Markets"],
+        "advanced_skills": ["Syndicated Debt", "Fairness Opinions", "Hostile Defense"],
+        "certifications": ["FINRA Series 79", "FINRA Series 63"],
         "bridges_to": [
-            {"target": "cfo_finance_director", "difficulty": 3, "time_months": 20, "transition_label": "Corporate Executive CFO"}
+            {"target": "finance_director", "difficulty": 2, "time_months": 18, "transition_label": "Managing Director / CFO Track"}
         ]
     },
-    "cfo_finance_director": {
-        "id": "cfo_finance_director",
-        "title": "Chief Financial Officer (CFO) / VP of Finance",
+    "quant_trader": {
+        "id": "quant_trader",
+        "title": "Quantitative Trader",
         "industry_id": "finance",
-        "industry_name": "Finance & Banking",
-        "category": "Executive Finance",
+        "industry_name": "Finance, Banking & FinTech",
+        "category": "Trading & Markets",
         "level": 4,
-        "level_label": "Executive (8+ Yrs)",
-        "salary_range": {"min": 190000, "median": 240000, "max": 320000},
-        "description": "Steers overall corporate capital allocation, debt/equity financing rounds, investor relations, SEC filings, tax planning, and board fiduciary oversight.",
-        "core_skills": ["Capital Allocation & Debt Financing", "Board Governance", "Strategic Planning", "Treasury Management", "Audit & Internal Controls", "Investor Relations"],
-        "advanced_skills": ["IPO Execution", "Enterprise M&A Integration", "Macroeconomic Hedging Strategy"],
-        "certifications": ["CPA / MBA in Finance"],
+        "level_label": "Staff / Lead (8-10 Yrs)",
+        "salary_range": {"min": 175000, "median": 245000, "max": 380000},
+        "description": "Deploys algorithmic market-making strategies, executes delta-hedging, and monitors real-time PnL volatility.",
+        "core_skills": ["Algorithmic Execution", "Order Flow Analysis", "Derivatives Pricing", "C++ / Python", "Delta Neutral Hedging"],
+        "advanced_skills": ["Low-Latency Routing", "Exchange Connectivity (FIX Protocol)"],
+        "certifications": ["CQF"],
+        "bridges_to": []
+    },
+    "finance_director": {
+        "id": "finance_director",
+        "title": "Finance Director / CFO",
+        "industry_id": "finance",
+        "industry_name": "Finance, Banking & FinTech",
+        "category": "Corporate Finance",
+        "level": 5,
+        "level_label": "Director / Principal (10+ Yrs)",
+        "salary_range": {"min": 210000, "median": 265000, "max": 350000},
+        "description": "Directs capital allocation, treasury management, fundraising rounds, audit committees, and board financial reporting.",
+        "core_skills": ["Capital Structure", "Treasury & Liquidity", "Investor Relations", "Tax Structuring", "Board Governance"],
+        "advanced_skills": ["IPO Execution", "International Transfer Pricing"],
+        "certifications": ["CPA", "CFA"],
         "bridges_to": []
     },
 
-    # -------------------------------------------------------------------------
-    # 4. Education & Academia
-    # -------------------------------------------------------------------------
-    "teaching_assistant": {
-        "id": "teaching_assistant",
-        "title": "Teaching Assistant / Paraeducator",
-        "industry_id": "education",
-        "industry_name": "Education & Academia",
-        "category": "Instructional Support",
+    # =========================================================================
+    # 5. Healthcare & Life Sciences
+    # =========================================================================
+    "health_informatics": {
+        "id": "health_informatics",
+        "title": "Health Informatics Specialist",
+        "industry_id": "healthcare",
+        "industry_name": "Healthcare & Life Sciences",
+        "category": "Health Tech",
         "level": 1,
         "level_label": "Entry Level (0-2 Yrs)",
-        "salary_range": {"min": 30000, "median": 36000, "max": 45000},
-        "description": "Assists classroom teachers with instructional delivery, supports individualized education programs (IEPs), and manages small student groups.",
-        "core_skills": ["Classroom Support", "Individualized Education Plans (IEP)", "Student Engagement", "Behavior Support", "Educational Technology", "Lesson Prep"],
-        "advanced_skills": ["Differentiated Group Instruction", "Assistive Tech Tools", "Formative Observation"],
-        "certifications": ["Paraeducator State Credential"],
+        "salary_range": {"min": 72000, "median": 88000, "max": 108000},
+        "description": "Maintains electronic health records (EHR/Epic), ensures HL7/FHIR data interoperability, and optimizes clinical workflows.",
+        "core_skills": ["EHR (Epic/Cerner)", "HL7 / FHIR Standards", "Healthcare SQL", "HIPAA Compliance", "Clinical Data Entry"],
+        "advanced_skills": ["Medical Terminology (SNOMED/ICD-10)", "Clinical Decision Support"],
+        "certifications": ["CAHIMS (Certified Associate in Healthcare Information & Management Systems)"],
         "bridges_to": [
-            {"target": "secondary_teacher", "difficulty": 2, "time_months": 16, "transition_label": "Teacher Credential Program"}
+            {"target": "clinical_data_mgr", "difficulty": 2, "time_months": 14, "transition_label": "Clinical Trials Track"},
+            {"target": "bioinformatics_scientist", "difficulty": 3, "time_months": 18, "transition_label": "Bioinformatics Shift"}
         ]
     },
-    "secondary_teacher": {
-        "id": "secondary_teacher",
-        "title": "Secondary Subject Educator",
-        "industry_id": "education",
-        "industry_name": "Education & Academia",
-        "category": "Classroom Instruction",
+    "clinical_data_mgr": {
+        "id": "clinical_data_mgr",
+        "title": "Clinical Data Manager",
+        "industry_id": "healthcare",
+        "industry_name": "Healthcare & Life Sciences",
+        "category": "Clinical Research",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 52000, "median": 66000, "max": 84000},
-        "description": "Designs curriculum units, facilitates rigorous subject instruction, conducts ongoing formative assessments, and partners with student families.",
-        "core_skills": ["Curriculum Delivery", "Formative Assessment", "Pedagogy & Classroom Management", "Parent-Teacher Communications", "Differentiated Instruction", "LMS (Google Classroom/Canvas)"],
-        "advanced_skills": ["Standardized Testing Analysis", "Project-Based Learning", "Peer Mentorship"],
-        "certifications": ["State Teaching Credential / License"],
+        "salary_range": {"min": 98000, "median": 118000, "max": 142000},
+        "description": "Designs Case Report Forms (eCRFs), manages EDC databases, enforces GCP standards, and prepares CDISC clinical submissions.",
+        "core_skills": ["CDISC (SDTM/ADaM)", "EDC Systems (Medidata Rave)", "GCP / FDA Regulations", "Data Validation Plans", "SAS / R"],
+        "advanced_skills": ["Clinical Study Reports", "Audit Preparation", "Biostatistics"],
+        "certifications": ["Certified Clinical Data Manager (CCDM)"],
         "bridges_to": [
-            {"target": "instructional_designer", "difficulty": 2, "time_months": 14, "transition_label": "E-Learning & Curriculum Design"},
-            {"target": "dept_head_teacher", "difficulty": 2, "time_months": 18, "transition_label": "Department Chair Promotion"}
+            {"target": "healthcare_director", "difficulty": 3, "time_months": 22, "transition_label": "Operations Director Track"}
         ]
     },
-    "instructional_designer": {
-        "id": "instructional_designer",
-        "title": "Instructional Designer & E-Learning Architect",
-        "industry_id": "education",
-        "industry_name": "Education & Academia",
-        "category": "Educational Technology",
-        "level": 2,
-        "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 72000, "median": 88000, "max": 110000},
-        "description": "Applies adult learning theory and instructional design frameworks (ADDIE/SAM) to build interactive digital courseware and enterprise training.",
-        "core_skills": ["ADDIE / SAM Models", "Articulate Storyline", "LMS Administration (Canvas/Moodle)", "Adult Learning Theory", "Micro-Learning Architecture", "Video Storyboarding"],
-        "advanced_skills": ["SCORM/xAPI Standards", "Learning Analytics", "Interactive Gamification"],
-        "certifications": ["ATD Master Instructional Designer Certification"],
-        "bridges_to": [
-            {"target": "academic_dean", "difficulty": 3, "time_months": 24, "transition_label": "Dean of Academic Technology"}
-        ]
-    },
-    "dept_head_teacher": {
-        "id": "dept_head_teacher",
-        "title": "Instructional Lead & Department Chair",
-        "industry_id": "education",
-        "industry_name": "Education & Academia",
-        "category": "Academic Leadership",
+    "bioinformatics_scientist": {
+        "id": "bioinformatics_scientist",
+        "title": "Bioinformatics Scientist",
+        "industry_id": "healthcare",
+        "industry_name": "Healthcare & Life Sciences",
+        "category": "Computational Biology",
         "level": 3,
         "level_label": "Senior (5-8 Yrs)",
-        "salary_range": {"min": 76000, "median": 92000, "max": 115000},
-        "description": "Leads subject faculty, audits pedagogical alignment with state educational standards, conducts teacher peer coaching, and manages departmental budgets.",
-        "core_skills": ["Curriculum Standards Alignment", "Faculty Observation & Coaching", "Departmental Budgeting", "Standardized Testing Analysis", "Professional Learning Communities (PLC)", "Pedagogical Leadership"],
-        "advanced_skills": ["Grant Writing", "District Curriculum Committees", "Accreditation Self-Studies"],
-        "certifications": ["National Board for Professional Teaching Standards (NBPTS)"],
+        "salary_range": {"min": 114000, "median": 136000, "max": 166000},
+        "description": "Analyzes next-generation sequencing (NGS) data, builds variant calling pipelines, and models protein-ligand interactions.",
+        "core_skills": ["Next-Generation Sequencing (NGS)", "Python / Biopython", "R / Bioconductor", "Variant Calling (GATK)", "Bioinformatics Databases"],
+        "advanced_skills": ["AlphaFold & Protein Modeling", "RNA-seq Pipeline Design", "Single-Cell Genomics"],
+        "certifications": ["Bioinformatics Specialist Certificate"],
         "bridges_to": [
-            {"target": "academic_dean", "difficulty": 3, "time_months": 20, "transition_label": "Administrative Credential to Principal"}
+            {"target": "healthcare_director", "difficulty": 3, "time_months": 20, "transition_label": "Biotech Leadership"}
         ]
     },
-    "academic_dean": {
-        "id": "academic_dean",
-        "title": "Academic Dean / School Principal",
-        "industry_id": "education",
-        "industry_name": "Education & Academia",
-        "category": "Academic Administration",
-        "level": 4,
-        "level_label": "Executive (8+ Yrs)",
-        "salary_range": {"min": 115000, "median": 142000, "max": 180000},
-        "description": "Provides overarching institutional leadership, oversees accreditation compliance, faculty tenure/recruitment, institutional budgets, and student achievement.",
-        "core_skills": ["Educational Institution Leadership", "Accreditation & State Compliance", "Faculty Recruitment & Retention", "Community Partnerships", "Strategic School Improvement", "School Budgeting ($5M+)"],
-        "advanced_skills": ["Crisis Management", "Donor Development", "Policy Reform Advisory"],
-        "certifications": ["Administrative Services Credential / Ed.D. or Ph.D."],
+    "pharmacist_msl": {
+        "id": "pharmacist_msl",
+        "title": "Pharmacist / Medical Science Liaison",
+        "industry_id": "healthcare",
+        "industry_name": "Healthcare & Life Sciences",
+        "category": "Clinical Practice",
+        "level": 3,
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 128000, "median": 142000, "max": 160000},
+        "description": "Communicates clinical trial findings with medical KOLs, monitors pharmacovigilance reports, and advises healthcare providers.",
+        "core_skills": ["Pharmacotherapy", "KOL Engagement", "Clinical Protocol Analysis", "Pharmacovigilance", "Regulatory Affairs"],
+        "advanced_skills": ["Medical Writing", "Therapeutic Area Expertise (Oncology/Immunology)"],
+        "certifications": ["Board Certified Pharmacotherapy Specialist (BCPS)"],
+        "bridges_to": [
+            {"target": "healthcare_director", "difficulty": 2, "time_months": 16, "transition_label": "Medical Director Track"}
+        ]
+    },
+    "healthcare_director": {
+        "id": "healthcare_director",
+        "title": "Healthcare Operations Director",
+        "industry_id": "healthcare",
+        "industry_name": "Healthcare & Life Sciences",
+        "category": "Leadership",
+        "level": 5,
+        "level_label": "Director / Principal (10+ Yrs)",
+        "salary_range": {"min": 185000, "median": 230000, "max": 295000},
+        "description": "Oversees hospital clinical operations, healthcare informatics strategy, regulatory accreditation, and P&L performance.",
+        "core_skills": ["Hospital Operations", "Clinical Quality Assurance", "Accreditation (Joint Commission)", "Healthcare Finance", "Executive Leadership"],
+        "advanced_skills": ["Value-Based Care Strategy", "Health System Mergers"],
+        "certifications": ["FACHE (Fellow of the American College of Healthcare Executives)"],
         "bridges_to": []
     },
 
-    # -------------------------------------------------------------------------
-    # 5. Legal & Compliance
-    # -------------------------------------------------------------------------
-    "corporate_paralegal": {
-        "id": "corporate_paralegal",
-        "title": "Corporate Paralegal",
+    # =========================================================================
+    # 6. Marketing & Growth
+    # =========================================================================
+    "content_strategist": {
+        "id": "content_strategist",
+        "title": "Content & Brand Strategist",
+        "industry_id": "marketing",
+        "industry_name": "Marketing & Growth",
+        "category": "Brand & Content",
+        "level": 1,
+        "level_label": "Entry Level (0-2 Yrs)",
+        "salary_range": {"min": 65000, "median": 82000, "max": 102000},
+        "description": "Develops thought-leadership narratives, omnichannel editorial calendars, organic SEO content, and brand messaging guides.",
+        "core_skills": ["SEO Content Writing", "Editorial Calendars", "Copywriting", "Social Media Strategy", "Content Management Systems"],
+        "advanced_skills": ["Conversion Rate Optimization (CRO)", "Brand Positioning", "Video Content Production"],
+        "certifications": ["HubSpot Content Marketing Certified"],
+        "bridges_to": [
+            {"target": "growth_marketer", "difficulty": 2, "time_months": 12, "transition_label": "Performance Shift"},
+            {"target": "product_marketer", "difficulty": 2, "time_months": 14, "transition_label": "Product Marketing Pivot"}
+        ]
+    },
+    "growth_marketer": {
+        "id": "growth_marketer",
+        "title": "Growth & Performance Marketer",
+        "industry_id": "marketing",
+        "industry_name": "Marketing & Growth",
+        "category": "Performance Marketing",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 96000, "median": 116000, "max": 142000},
+        "description": "Executes multi-channel paid acquisition campaigns (Google/Meta/LinkedIn), manages ROAS bidding, and runs A/B experiments.",
+        "core_skills": ["Paid Search & Social", "CAC / LTV Modeling", "Google Analytics 4", "Conversion Funnels", "A/B Testing"],
+        "advanced_skills": ["SQL for Marketers", "Multi-Touch Attribution", "Lifecycle Email Automation"],
+        "certifications": ["Google Ads Search Professional", "Meta Certified Media Planning Professional"],
+        "bridges_to": [
+            {"target": "product_marketer", "difficulty": 2, "time_months": 14, "transition_label": "Product Marketing Lead"},
+            {"target": "marketing_director", "difficulty": 3, "time_months": 22, "transition_label": "Head of Growth / Marketing"}
+        ]
+    },
+    "product_marketer": {
+        "id": "product_marketer",
+        "title": "Product Marketing Manager",
+        "industry_id": "marketing",
+        "industry_name": "Marketing & Growth",
+        "category": "Product Marketing",
+        "level": 3,
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 116000, "median": 138000, "max": 168000},
+        "description": "Owns product go-to-market (GTM) launches, competitive battlecards, sales enablement toolkits, and pricing positioning.",
+        "core_skills": ["Go-To-Market (GTM) Strategy", "Customer Personas", "Competitive Battlecards", "Sales Enablement", "Value Messaging"],
+        "advanced_skills": ["Pricing & Packaging Optimization", "Analyst Relations (Gartner/Forrester)"],
+        "certifications": ["Product Marketing Alliance (PMA) Certified"],
+        "bridges_to": [
+            {"target": "marketing_director", "difficulty": 2, "time_months": 18, "transition_label": "CMO / Marketing Director"}
+        ]
+    },
+    "marketing_director": {
+        "id": "marketing_director",
+        "title": "Digital Marketing Director",
+        "industry_id": "marketing",
+        "industry_name": "Marketing & Growth",
+        "category": "Leadership",
+        "level": 5,
+        "level_label": "Director / Principal (10+ Yrs)",
+        "salary_range": {"min": 165000, "median": 215000, "max": 280000},
+        "description": "Spearheads global marketing strategy, manages eight-figure paid media budgets, oversees PR & comms, and directs demand gen.",
+        "core_skills": ["Marketing Strategy", "Budget Allocation", "Brand Equity", "Executive Team Collaboration", "Agency Management"],
+        "advanced_skills": ["Public Relations Management", "Global Brand Strategy"],
+        "certifications": [],
+        "bridges_to": []
+    },
+
+    # =========================================================================
+    # 7. Operations & Management
+    # =========================================================================
+    "tech_recruiter": {
+        "id": "tech_recruiter",
+        "title": "Technical Recruiter",
+        "industry_id": "operations",
+        "industry_name": "Operations & Management",
+        "category": "Talent & People",
+        "level": 1,
+        "level_label": "Entry Level (0-2 Yrs)",
+        "salary_range": {"min": 68000, "median": 82000, "max": 102000},
+        "description": "Sources top technical engineering talent, coordinates interviews, manages ATS workflows, and negotiates candidate offers.",
+        "core_skills": ["Technical Sourcing (LinkedIn Recruiter)", "Candidate Screening", "ATS (Greenhouse/Lever)", "Offer Closing", "Boolean Search"],
+        "advanced_skills": ["Employer Branding", "Compensation Benchmarking", "Diversity Recruiting"],
+        "certifications": ["AIRS Certified Internet Recruiter (CIR)"],
+        "bridges_to": [
+            {"target": "hrbp_lead", "difficulty": 2, "time_months": 14, "transition_label": "HR Business Partner Track"},
+            {"target": "operations_mgr", "difficulty": 3, "time_months": 18, "transition_label": "Business Operations Shift"}
+        ]
+    },
+    "scrum_master": {
+        "id": "scrum_master",
+        "title": "Agile Coach / Scrum Master",
+        "industry_id": "operations",
+        "industry_name": "Operations & Management",
+        "category": "Agile Operations",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 112000, "median": 132000, "max": 158000},
+        "description": "Facilitates sprint planning, retrospectives, removes blockers, and guides cross-functional engineering teams in agile practices.",
+        "core_skills": ["Scrum & Kanban Ceremonies", "Jira & Confluence Admin", "Sprint Velocity Metrics", "Impediment Removal", "Team Coaching"],
+        "advanced_skills": ["Scaled Agile Framework (SAFe)", "DevOps Alignment", "Change Management"],
+        "certifications": ["Certified ScrumMaster (CSM)", "PMI-ACP"],
+        "bridges_to": [
+            {"target": "operations_mgr", "difficulty": 2, "time_months": 16, "transition_label": "Operations Management"}
+        ]
+    },
+    "hrbp_lead": {
+        "id": "hrbp_lead",
+        "title": "People Operations / HRBP",
+        "industry_id": "operations",
+        "industry_name": "Operations & Management",
+        "category": "Talent & People",
+        "level": 3,
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 95000, "median": 114000, "max": 138000},
+        "description": "Partners with VP-level executives on organizational design, performance management frameworks, employee relations, and retention.",
+        "core_skills": ["Organizational Design", "Employee Relations", "Performance Review Management", "Talent Succession", "HR Policy Design"],
+        "advanced_skills": ["Executive Coaching", "M&A People Integration", "DEI Strategy"],
+        "certifications": ["SHRM-CP", "PHR (Professional in Human Resources)"],
+        "bridges_to": [
+            {"target": "operations_mgr", "difficulty": 2, "time_months": 16, "transition_label": "Chief People Officer Track"}
+        ]
+    },
+    "operations_mgr": {
+        "id": "operations_mgr",
+        "title": "Operations Manager",
+        "industry_id": "operations",
+        "industry_name": "Operations & Management",
+        "category": "Business Operations",
+        "level": 4,
+        "level_label": "Staff / Lead (8-10 Yrs)",
+        "salary_range": {"min": 120000, "median": 155000, "max": 195000},
+        "description": "Directs business operations workflows, vendor SLA compliance, internal tooling efficiency, and cross-functional execution.",
+        "core_skills": ["Business Process Optimization", "SLA / Vendor Management", "Capacity Planning", "Budget Tracking", "Cross-Functional Execution"],
+        "advanced_skills": ["Six Sigma / Lean Operations", "Corporate Expansion Strategy"],
+        "certifications": ["Lean Six Sigma Green Belt", "PMP"],
+        "bridges_to": []
+    },
+
+    # =========================================================================
+    # 8. Engineering & Hardware
+    # =========================================================================
+    "mech_engineer": {
+        "id": "mech_engineer",
+        "title": "Mechanical Design Engineer",
+        "industry_id": "engineering",
+        "industry_name": "Engineering & Hardware",
+        "category": "Hardware & Systems",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 98000, "median": 118000, "max": 144000},
+        "description": "Designs mechanical enclosures, thermal dissipation systems, precision tolerances (GD&T), and prototypes physical assemblies.",
+        "core_skills": ["SolidWorks / CAD", "Thermal Simulation (FEA)", "GD&T Standards", "Rapid Prototyping (3D Print)", "DFM / DFA"],
+        "advanced_skills": ["Injection Molding Design", "Materials Science", "Shock & Vibration Testing"],
+        "certifications": ["Certified SOLIDWORKS Professional (CSWP)"],
+        "bridges_to": [
+            {"target": "hardware_engineer", "difficulty": 2, "time_months": 14, "transition_label": "Mechatronics Pivot"},
+            {"target": "robotics_engineer", "difficulty": 2, "time_months": 16, "transition_label": "Robotics Shift"}
+        ]
+    },
+    "hardware_engineer": {
+        "id": "hardware_engineer",
+        "title": "Electrical / Hardware Engineer",
+        "industry_id": "engineering",
+        "industry_name": "Engineering & Hardware",
+        "category": "Hardware & Systems",
+        "level": 2,
+        "level_label": "Mid Level (2-5 Yrs)",
+        "salary_range": {"min": 115000, "median": 136000, "max": 165000},
+        "description": "Designs high-speed printed circuit boards (PCBs), analog & digital circuit schematics, and manages EMC compliance testing.",
+        "core_skills": ["PCB Layout (Altium/KiCad)", "Schematic Capture", "Oscilloscopes & Logic Analyzers", "EMC / FCC Testing", "Circuit Simulation (SPICE)"],
+        "advanced_skills": ["High-Speed Signal Integrity", "Power Supply Design", "FPGA Interfacing"],
+        "certifications": ["IPC Certified IPC Specialist (CIS)"],
+        "bridges_to": [
+            {"target": "robotics_engineer", "difficulty": 2, "time_months": 14, "transition_label": "Robotics Track"}
+        ]
+    },
+    "robotics_engineer": {
+        "id": "robotics_engineer",
+        "title": "Robotics Systems Engineer",
+        "industry_id": "engineering",
+        "industry_name": "Engineering & Hardware",
+        "category": "Robotics & Automation",
+        "level": 3,
+        "level_label": "Senior (5-8 Yrs)",
+        "salary_range": {"min": 124000, "median": 148000, "max": 180000},
+        "description": "Programs autonomous motion controllers, robotic manipulators, ROS2 middleware, and multi-sensor fusion algorithms (LiDAR/IMU).",
+        "core_skills": ["ROS / ROS2", "Kinematics & Path Planning", "Sensor Fusion (Kalman Filtering)", "C++ / Python", "Motor Actuation Control"],
+        "advanced_skills": ["Computer Vision (OpenCV)", "Sim-to-Real Reinforcement Learning", "SLAM Navigation"],
+        "certifications": ["ROS Certified Developer"],
+        "bridges_to": []
+    },
+
+    # =========================================================================
+    # 9. Legal & Compliance
+    # =========================================================================
+    "legal_ops": {
+        "id": "legal_ops",
+        "title": "Legal Operations Analyst",
         "industry_id": "legal",
         "industry_name": "Legal & Compliance",
         "category": "Legal Operations",
         "level": 1,
         "level_label": "Entry Level (0-2 Yrs)",
-        "salary_range": {"min": 48000, "median": 58000, "max": 72000},
-        "description": "Conducts statutory legal research, drafts boilerplate transactional contracts, coordinates discovery materials, and manages electronic docket filings.",
-        "core_skills": ["Legal Research (Westlaw/LexisNexis)", "Contract Review", "Discovery Coordination", "Brief Drafting", "Document Filing", "Ethics & Confidentiality"],
-        "advanced_skills": ["Bluebook Citations", "SEC EDGAR Filings", "Entity Formation Filings"],
-        "certifications": ["Certified Paralegal (CP) - NALA"],
+        "salary_range": {"min": 74000, "median": 88000, "max": 106000},
+        "description": "Administers contract lifecycle management (CLM) platforms, coordinates outside counsel spend, and automates NDA workflows.",
+        "core_skills": ["Contract Management (Ironclad)", "Legal Spend Analytics", "e-Discovery Tools", "Document Review", "Workflow Automation"],
+        "advanced_skills": ["Legal Tech Integration", "Vendor SLA Auditing"],
+        "certifications": ["CLOC (Corporate Legal Operations Consortium) Core Certified"],
         "bridges_to": [
-            {"target": "compliance_specialist", "difficulty": 2, "time_months": 14, "transition_label": "Regulatory Compliance Shift"},
-            {"target": "associate_attorney", "difficulty": 4, "time_months": 36, "transition_label": "Law School & Bar Admission"}
+            {"target": "compliance_specialist", "difficulty": 2, "time_months": 14, "transition_label": "Compliance Track"},
+            {"target": "privacy_counsel", "difficulty": 3, "time_months": 20, "transition_label": "Privacy Specialization"}
         ]
     },
     "compliance_specialist": {
         "id": "compliance_specialist",
-        "title": "Regulatory Compliance Specialist",
+        "title": "Corporate Compliance Specialist",
         "industry_id": "legal",
         "industry_name": "Legal & Compliance",
-        "category": "Regulatory Compliance",
+        "category": "Compliance",
         "level": 2,
         "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 70000, "median": 85000, "max": 105000},
-        "description": "Audits corporate adherence to statutory guidelines (AML, KYC, GDPR, HIPAA, FCPA), coordinates regulatory audits, and manages internal whistleblower reports.",
-        "core_skills": ["Regulatory Frameworks (AML/KYC/GDPR)", "Risk Assessments", "Policy Auditing", "Internal Investigation", "Compliance Training", "Whistleblower Protocols"],
-        "advanced_skills": ["Sanctions Screening", "Enterprise Risk Registers", "Vendor Due Diligence"],
-        "certifications": ["Certified Compliance & Ethics Professional (CCEP)", "ACAMS"],
+        "salary_range": {"min": 96000, "median": 116000, "max": 142000},
+        "description": "Performs corporate compliance audits, administers anti-money laundering (AML/KYC) controls, and updates regulatory filings.",
+        "core_skills": ["Regulatory Auditing", "AML / KYC Frameworks", "Policy Drafting", "Risk Assessment", "Ethics Investigations"],
+        "advanced_skills": ["Sanctions Screening", "FCPA Guidelines", "FinCEN Reporting"],
+        "certifications": ["Certified Compliance & Ethics Professional (CCEP)", "CAMS"],
         "bridges_to": [
-            {"target": "senior_counsel", "difficulty": 3, "time_months": 22, "transition_label": "Head of Regulatory & Compliance Track"}
+            {"target": "privacy_counsel", "difficulty": 2, "time_months": 16, "transition_label": "Privacy Specialization"}
         ]
     },
-    "associate_attorney": {
-        "id": "associate_attorney",
-        "title": "Associate Corporate Attorney",
+    "privacy_counsel": {
+        "id": "privacy_counsel",
+        "title": "Privacy & Data Governance Counsel",
         "industry_id": "legal",
         "industry_name": "Legal & Compliance",
-        "category": "Corporate Law",
-        "level": 2,
-        "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 110000, "median": 135000, "max": 175000},
-        "description": "Drafts complex commercial agreements, conducts deal diligence for mergers and acquisitions, advises business leaders on risk liability, and negotiates terms.",
-        "core_skills": ["Commercial Transactions", "Litigation Defense", "Statutory Interpretation", "Negotiation Strategy", "Client Advocacy", "Due Diligence"],
-        "advanced_skills": ["Cross-Border Joint Ventures", "Employment Law Counseling", "Licensing Agreements"],
-        "certifications": ["State Bar License (Juris Doctor)"],
-        "bridges_to": [
-            {"target": "senior_counsel", "difficulty": 2, "time_months": 20, "transition_label": "Senior In-House Counsel Promotion"}
-        ]
-    },
-    "senior_counsel": {
-        "id": "senior_counsel",
-        "title": "Senior Corporate Counsel",
-        "industry_id": "legal",
-        "industry_name": "Legal & Compliance",
-        "category": "Corporate Law",
+        "category": "Privacy & Regulatory",
         "level": 3,
         "level_label": "Senior (5-8 Yrs)",
-        "salary_range": {"min": 155000, "median": 185000, "max": 235000},
-        "description": "Leads commercial deal structuring, manages outside counsel litigation budgets, protects global intellectual property, and negotiates strategic enterprise contracts.",
-        "core_skills": ["Enterprise Risk Management", "Complex M&A Contracts", "Intellectual Property Protection", "Regulatory Enforcement Defense", "Outside Counsel Management", "Executive Risk Advisory"],
-        "advanced_skills": ["Antitrust Counseling", "SEC Disclosure Oversight", "Crisis Communications Legal Defense"],
-        "certifications": ["State Bar License", "CIPP/US (Certified Information Privacy Professional)"],
-        "bridges_to": [
-            {"target": "chief_legal_officer", "difficulty": 3, "time_months": 22, "transition_label": "General Counsel / CLO Track"}
-        ]
-    },
-    "chief_legal_officer": {
-        "id": "chief_legal_officer",
-        "title": "General Counsel / Chief Legal Officer",
-        "industry_id": "legal",
-        "industry_name": "Legal & Compliance",
-        "category": "Executive Legal",
-        "level": 4,
-        "level_label": "Executive (8+ Yrs)",
-        "salary_range": {"min": 210000, "median": 265000, "max": 360000},
-        "description": "Serves as chief legal advisor to the CEO and Board of Directors, oversees all enterprise legal, compliance, governance, and regulatory portfolios.",
-        "core_skills": ["Executive Board Advisory", "Corporate Governance", "Litigation Portfolio Oversight", "Securities & SEC Filings", "Global Trade Compliance", "Enterprise M&A Strategy"],
-        "advanced_skills": ["Crisis Response Leadership", "Shareholder Activism Defense", "Congressional / Regulatory Inquiries"],
-        "certifications": ["Active State Bar License"],
-        "bridges_to": []
-    },
-
-    # -------------------------------------------------------------------------
-    # 6. Marketing & Creative
-    # -------------------------------------------------------------------------
-    "junior_content_specialist": {
-        "id": "junior_content_specialist",
-        "title": "Content & Digital Marketing Specialist",
-        "industry_id": "marketing",
-        "industry_name": "Marketing & Creative",
-        "category": "Content & Social",
-        "level": 1,
-        "level_label": "Entry Level (0-2 Yrs)",
-        "salary_range": {"min": 44000, "median": 54000, "max": 66000},
-        "description": "Authors engaging editorial content, coordinates social media editorial calendars, optimizes copy for organic SEO, and executes email drip campaigns.",
-        "core_skills": ["Copywriting", "SEO Optimization", "Social Media Management", "Email Marketing (HubSpot)", "Canva / Adobe Creative Suite", "Google Analytics 4"],
-        "advanced_skills": ["CMS Management (WordPress/Webflow)", "Short-Form Video Production", "A/B Subject Line Testing"],
-        "certifications": ["HubSpot Content Marketing Certification", "Google Analytics Individual Qualification"],
-        "bridges_to": [
-            {"target": "growth_marketer", "difficulty": 2, "time_months": 14, "transition_label": "Performance Marketing Shift"},
-            {"target": "product_designer", "difficulty": 3, "time_months": 18, "transition_label": "UX/UI Design Pivot"}
-        ]
-    },
-    "growth_marketer": {
-        "id": "growth_marketer",
-        "title": "Performance Marketing & Growth Specialist",
-        "industry_id": "marketing",
-        "industry_name": "Marketing & Creative",
-        "category": "Growth Marketing",
-        "level": 2,
-        "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 72000, "median": 88000, "max": 112000},
-        "description": "Manages paid acquisition channels (Google Ads, Meta, LinkedIn), models customer acquisition cost (CAC) and LTV, and optimizes funnel conversion rates.",
-        "core_skills": ["Paid Acquisition (Meta/Google Ads)", "Conversion Rate Optimization (CRO)", "A/B Testing", "Customer Acquisition Cost (CAC) Optimization", "Attribution Modeling", "SQL / Excel Analytics"],
-        "advanced_skills": ["Programmatic Media Buying", "Retention Funnel Marketing", "Looker / Tableau Dashboards"],
-        "certifications": ["Meta Certified Media Buying Professional", "Google Ads Search Certification"],
-        "bridges_to": [
-            {"target": "marketing_director", "difficulty": 3, "time_months": 20, "transition_label": "Integrated Marketing Leadership"}
-        ]
-    },
-    "product_designer": {
-        "id": "product_designer",
-        "title": "Senior UX/UI Product Designer",
-        "industry_id": "marketing",
-        "industry_name": "Marketing & Creative",
-        "category": "Design & UX",
-        "level": 2,
-        "level_label": "Mid Level (2-5 Yrs)",
-        "salary_range": {"min": 98000, "median": 118000, "max": 145000},
-        "description": "Conducts generative user research, crafts accessible component design systems in Figma, prototypes interactive workflows, and validates with usability tests.",
-        "core_skills": ["Figma & Design Systems", "User Research & Usability Testing", "Wireframing & Prototyping", "Information Architecture", "Design-to-Code Handoff", "Design Thinking"],
-        "advanced_skills": ["Motion Design / Micro-Interactions", "Design Token Architecture", "Accessibility (WCAG 2.1)"],
-        "certifications": ["Nielsen Norman Group UX Master Certification"],
-        "bridges_to": [
-            {"target": "marketing_director", "difficulty": 3, "time_months": 22, "transition_label": "Creative Direction Track"}
-        ]
-    },
-    "marketing_director": {
-        "id": "marketing_director",
-        "title": "Director of Marketing & Brand Strategy",
-        "industry_id": "marketing",
-        "industry_name": "Marketing & Creative",
-        "category": "Marketing Leadership",
-        "level": 3,
-        "level_label": "Senior (5-8 Yrs)",
-        "salary_range": {"min": 130000, "median": 155000, "max": 195000},
-        "description": "Leads multichannel go-to-market strategies, directs agency partners, allocates multi-million dollar ad spend, and steers enterprise brand positioning.",
-        "core_skills": ["Omnichannel Go-To-Market (GTM)", "Brand Positioning", "Marketing Budget Optimization ($2M+)", "Team Leadership", "Pipeline Generation", "PR & Analyst Relations"],
-        "advanced_skills": ["Global Brand Restructuring", "Crisis Brand Management", "Revenue Operations (RevOps)"],
-        "certifications": ["Reforge Growth Series Certificate"],
-        "bridges_to": [
-            {"target": "vp_marketing", "difficulty": 2, "time_months": 18, "transition_label": "Chief Marketing Officer Track"}
-        ]
-    },
-    "vp_marketing": {
-        "id": "vp_marketing",
-        "title": "VP of Marketing / Chief Growth Officer",
-        "industry_id": "marketing",
-        "industry_name": "Marketing & Creative",
-        "category": "Executive Marketing",
-        "level": 4,
-        "level_label": "Executive (8+ Yrs)",
-        "salary_range": {"min": 180000, "median": 225000, "max": 290000},
-        "description": "Spearheads company-wide demand generation, product marketing, public relations, customer lifecycle value, and board-level revenue growth targets.",
-        "core_skills": ["Enterprise Growth Strategy", "Brand Equity Leadership", "Demand Generation Architecture", "Cross-Functional Revenue Alignment", "Executive Board Strategy", "Marketing P&L Ownership"],
-        "advanced_skills": ["Category Creation Strategy", "Global Market Expansion", "Brand Valuation"],
-        "certifications": ["Executive Leadership Certificate"],
+        "salary_range": {"min": 154000, "median": 182000, "max": 224000},
+        "description": "Directs GDPR and CCPA/CPRA data protection compliance, drafts data processing agreements (DPAs), and handles regulatory inquiries.",
+        "core_skills": ["GDPR / CCPA / CPRA", "Data Processing Agreements (DPAs)", "Privacy Impact Assessments (PIA)", "Cross-Border Data Transfer", "Incident Notification"],
+        "advanced_skills": ["AI Governance Regulations (EU AI Act)", "Litigation Risk Modeling"],
+        "certifications": ["CIPP/E (Certified Information Privacy Professional/Europe)", "CIPM"],
         "bridges_to": []
     }
 }
 
-# Skill Dependencies & Synergy Trees across industries
-SKILL_DEPENDENCY_GRAPH: Dict[str, List[str]] = {
-    # Tech
-    "Kubernetes": ["Docker", "Linux Internals", "Networking"],
-    "Docker": ["Linux Internals"],
-    "Next.js": ["React", "JavaScript", "TypeScript"],
-    "TypeScript": ["JavaScript"],
-    "React": ["JavaScript", "HTML5", "CSS3"],
-    "PyTorch": ["Python", "Linear Algebra"],
-    "TensorFlow": ["Python"],
-    "RAG Architecture": ["Vector Databases", "Python", "FastAPI"],
-    "Vector Databases": ["Python", "Information Retrieval"],
-    "Kafka": ["Distributed Systems", "Java/Python"],
-    "Terraform": ["Cloud Basics", "AWS/GCP"],
-    "Micro-Frontends": ["TypeScript", "Module Federation", "Design Systems"],
-    "Distributed Consensus (Raft/Paxos)": ["Distributed Systems", "Concurrent Programming"],
+# -----------------------------------------------------------------------------
+# 3. Dynamic Salary Calibration Helper
+# -----------------------------------------------------------------------------
+def get_synced_salary_range(role_title: str, level: int) -> Dict[str, float]:
+    """
+    Dynamically synchronizes role compensation against REALISTIC_BENCHMARKS
+    and EXPERIENCE_TIERS from navigator_service so that the Career Graph
+    always mirrors live market rates and country/tier calibrations.
+    """
+    tier_key_map = {1: "junior", 2: "mid", 3: "senior", 4: "lead", 5: "director"}
+    tier_info = EXPERIENCE_TIERS.get(tier_key_map.get(level, "mid"), {"factor": 1.0})
+    factor = tier_info.get("factor", 1.0)
 
-    # Healthcare
-    "Medication Administration": ["Pharmacology & IV Infusions", "Medical Terminology"],
-    "Clinical Diagnosis": ["Acute Care Management", "Advanced Pathophysiology", "Diagnostic Interpretation"],
-    "Patient Triage": ["Patient Care & Vitals", "CPR / BLS"],
-    "Prescriptive Authority": ["Clinical Diagnosis", "Pharmacology & IV Infusions"],
-    "Healthcare Systems Administration": ["Unit Resource Scheduling", "Quality Improvement"],
+    # 1. Direct match in REALISTIC_BENCHMARKS
+    bm = REALISTIC_BENCHMARKS.get(role_title)
+    if not bm:
+        # Fallback match by token
+        norm_title = role_title.lower()
+        for k, v in REALISTIC_BENCHMARKS.items():
+            k_norm = k.lower()
+            if k_norm in norm_title or norm_title in k_norm:
+                bm = v
+                break
 
-    # Finance
-    "Corporate FP&A": ["Financial Modeling", "Excel (VLOOKUP/XLOOKUP/Index-Match)", "Financial Statements (P&L/Balance Sheet)"],
-    "Discounted Cash Flow (DCF)": ["Financial Modeling", "Corporate FP&A"],
-    "LBO Modeling": ["Discounted Cash Flow (DCF)", "GAAP Accounting"],
-    "Capital Allocation & Debt Financing": ["Corporate FP&A", "Capital Structure", "Board Governance"],
+    if bm:
+        min_val = round(bm.get("p25", bm["median"] * 0.85) * factor)
+        med_val = round(bm["median"] * factor)
+        max_val = round(bm.get("p75", bm["median"] * 1.25) * factor)
+        return {"min": min_val, "median": med_val, "max": max_val}
 
-    # Education
-    "Curriculum Delivery": ["Classroom Support", "Pedagogy & Classroom Management"],
-    "Instructional Design": ["Curriculum Delivery", "Formative Assessment", "Adult Learning Theory"],
-    "Educational Institution Leadership": ["Curriculum Standards Alignment", "Faculty Observation & Coaching", "School Budgeting"],
+    # Safe fallback based on tier
+    tier_fallbacks = {
+        1: {"min": 65000, "median": 82000, "max": 105000},
+        2: {"min": 95000, "median": 120000, "max": 150000},
+        3: {"min": 130000, "median": 165000, "max": 205000},
+        4: {"min": 175000, "median": 220000, "max": 275000},
+        5: {"min": 210000, "median": 265000, "max": 340000},
+    }
+    return tier_fallbacks.get(level, tier_fallbacks[2])
 
-    # Legal
-    "Commercial Transactions": ["Contract Review", "Legal Research (Westlaw/LexisNexis)"],
-    "Regulatory Compliance": ["Risk Assessments", "Policy Auditing"],
-    "Enterprise Risk Management": ["Commercial Transactions", "Regulatory Frameworks (AML/KYC/GDPR)"],
-    "Executive Board Advisory": ["Enterprise Risk Management", "Corporate Governance"],
 
-    # Marketing
-    "Conversion Rate Optimization (CRO)": ["Copywriting", "A/B Testing", "Google Analytics 4"],
-    "Omnichannel Go-To-Market (GTM)": ["Paid Acquisition (Meta/Google Ads)", "Brand Positioning", "Pipeline Generation"],
-    "Enterprise Growth Strategy": ["Omnichannel Go-To-Market (GTM)", "Marketing Budget Optimization ($2M+)"]
-}
-
+# -----------------------------------------------------------------------------
+# 4. Skill Dependency & Category Mappings
+# -----------------------------------------------------------------------------
 SKILL_CATEGORIES: Dict[str, str] = {
-    # Tech
-    "React": "Frontend", "TypeScript": "Frontend", "Next.js": "Frontend", "HTML5": "Frontend", "CSS3": "Frontend", "Tailwind CSS": "Frontend", "Micro-Frontends": "Frontend", "Design Systems": "Frontend",
-    "Node.js": "Backend", "Python": "Backend", "FastAPI": "Backend", "Go/Java": "Backend", "Golang/Rust/Java": "Backend", "PostgreSQL": "Backend", "Redis": "Backend", "REST APIs": "Backend", "gRPC": "Backend", "Distributed Systems": "Backend", "Kafka": "Backend",
-    "Docker": "DevOps & Cloud", "Kubernetes": "DevOps & Cloud", "Terraform": "DevOps & Cloud", "AWS/GCP": "DevOps & Cloud", "CI/CD": "DevOps & Cloud", "Linux Internals": "DevOps & Cloud",
-    "SQL": "Data & AI", "Apache Spark": "Data & AI", "Airflow / dbt": "Data & AI", "PyTorch": "Data & AI", "Vector Databases": "Data & AI", "RAG Architecture": "Data & AI",
-    "OWASP Top 10": "Security", "Zero Trust Architecture": "Security",
-
-    # Healthcare
-    "Patient Care & Vitals": "Healthcare", "Infection Control": "Healthcare", "EMR Documentation": "Healthcare",
-    "Acute Care Management": "Healthcare", "Pharmacology & IV Infusions": "Healthcare", "Clinical Diagnosis": "Healthcare",
-    "Prescriptive Authority": "Healthcare", "Healthcare Systems Administration": "Healthcare",
-
+    # Engineering & Cloud
+    "HTML5": "Web Technologies",
+    "CSS3": "Web Technologies",
+    "JavaScript": "Web Technologies",
+    "TypeScript": "Web Technologies",
+    "React": "Web Technologies",
+    "Next.js": "Web Technologies",
+    "Tailwind CSS": "Web Technologies",
+    "Git": "Developer Tools",
+    "Docker": "DevOps & Cloud",
+    "Kubernetes": "DevOps & Cloud",
+    "Terraform": "DevOps & Cloud",
+    "CI/CD": "DevOps & Cloud",
+    "CI/CD (GitHub Actions)": "DevOps & Cloud",
+    "AWS / GCP": "DevOps & Cloud",
+    "Python": "Data Science & AI",
+    "Python / Go": "Backend Systems",
+    "PostgreSQL": "Database & Storage",
+    "SQL (PostgreSQL)": "Database & Storage",
+    "Redis": "Database & Storage",
+    "Distributed Systems": "System Architecture",
+    "System Design": "System Architecture",
+    "Event-Driven Architecture": "System Architecture",
+    # Data & AI
+    "SQL": "Data Science & AI",
+    "Scikit-Learn": "Data Science & AI",
+    "PyTorch": "Data Science & AI",
+    "Pandas & NumPy": "Data Science & AI",
+    "Tableau": "Data Science & AI",
+    "Power BI": "Data Science & AI",
+    "Snowflake / BigQuery": "Data Science & AI",
+    "Apache Spark": "Data Science & AI",
+    # Product & Management
+    "Figma": "Product & Design",
+    "PRD Authoring": "Product & Design",
+    "Product Discovery": "Product & Design",
+    "Agile / Scrum": "Operations & Agile",
+    "Scrum & Kanban Ceremonies": "Operations & Agile",
+    "People Leadership": "Management & Leadership",
     # Finance
-    "Financial Modeling": "Finance", "GAAP Accounting": "Finance", "Month-End Close": "Finance",
-    "Corporate FP&A": "Finance", "Discounted Cash Flow (DCF)": "Finance", "LBO Modeling": "Finance",
-    "Capital Allocation & Debt Financing": "Finance",
+    "Financial Modeling": "Corporate Finance",
+    "US GAAP": "Accounting & Controls",
+    "M&A Valuation": "Investment Banking",
+    "DCF Valuation": "Corporate Finance",
+    # Healthcare
+    "EHR (Epic/Cerner)": "Healthcare Informatics",
+    "HIPAA Compliance": "Healthcare Informatics",
+    "CDISC (SDTM/ADaM)": "Clinical Trials",
+    # Legal & Compliance
+    "GDPR / CCPA / CPRA": "Legal & Compliance",
+    "Regulatory Auditing": "Legal & Compliance",
+    "Contract Management (Ironclad)": "Legal & Compliance",
+}
 
-    # Education
-    "Classroom Support": "Education", "Individualized Education Plans (IEP)": "Education", "Curriculum Delivery": "Education",
-    "ADDIE / SAM Models": "Education", "Educational Institution Leadership": "Education",
-
-    # Legal
-    "Legal Research (Westlaw/LexisNexis)": "Legal", "Contract Review": "Legal", "Regulatory Frameworks (AML/KYC/GDPR)": "Legal",
-    "Commercial Transactions": "Legal", "Enterprise Risk Management": "Legal", "Corporate Governance": "Legal",
-
-    # Marketing
-    "Copywriting": "Marketing", "SEO Optimization": "Marketing", "Paid Acquisition (Meta/Google Ads)": "Marketing",
-    "Conversion Rate Optimization (CRO)": "Marketing", "Figma & Design Systems": "Marketing", "Omnichannel Go-To-Market (GTM)": "Marketing"
+SKILL_DEPENDENCY_GRAPH: Dict[str, List[str]] = {
+    "TypeScript": ["JavaScript"],
+    "Next.js": ["React", "JavaScript"],
+    "Tailwind CSS": ["CSS3"],
+    "Micro-Frontends": ["TypeScript", "React"],
+    "PostgreSQL": ["SQL"],
+    "Docker": ["Linux Shell"],
+    "Kubernetes": ["Docker"],
+    "Terraform": ["AWS / GCP", "Cloud Architecture"],
+    "Distributed Systems": ["Backend Systems", "PostgreSQL"],
+    "Event-Driven Architecture": ["Distributed Systems", "Kafka"],
+    "System Design": ["Distributed Systems"],
+    "PyTorch": ["Python", "Pandas & NumPy"],
+    "Scikit-Learn": ["Python", "SQL"],
+    "Machine Learning": ["Python", "Descriptive Statistics"],
+    "Apache Spark": ["Python", "SQL"],
+    "Design Systems": ["Figma"],
+    "DCF Valuation": ["Financial Modeling"],
+    "M&A Valuation": ["Financial Modeling"],
+    "CDISC (SDTM/ADaM)": ["GCP / FDA Regulations"],
+    "GDPR / CCPA / CPRA": ["Policy Drafting"]
 }
 
 
+# -----------------------------------------------------------------------------
+# 5. CareerGraphService Implementation
+# -----------------------------------------------------------------------------
 class CareerGraphService:
+    """
+    Directed Knowledge Graph engine for cross-industry roles, competencies,
+    progression trees, and Dijkstra shortest-path bridging.
+    """
+
     @classmethod
-    def get_industries(cls) -> List[Dict[str, Any]]:
-        """Returns all supported career industries."""
+    def get_industries(cls) -> List[Dict[str, str]]:
         return INDUSTRIES
 
     @classmethod
     def get_full_graph(cls, industry_id: Optional[str] = None) -> Dict[str, Any]:
         """
-        Returns nodes and edges filtered by selected industry (or all roles if 'all' or None).
+        Returns full Directed Career Knowledge Graph with dynamically calibrated
+        compensation matching the Live Salary Explorer.
         """
-        nodes: List[Dict[str, Any]] = []
-        edges: List[Dict[str, Any]] = []
-        target_industry = (industry_id or "all").lower().strip()
-
-        # Filter roles
+        target_industry = industry_id or "all"
         selected_roles = {}
-        for r_id, r in CAREER_ROLES.items():
-            if target_industry in ("all", "") or r.get("industry_id") == target_industry:
-                selected_roles[r_id] = r
 
-        # Build node list
+        for role_id, role in CAREER_ROLES.items():
+            if target_industry == "all" or role.get("industry_id") == target_industry:
+                selected_roles[role_id] = role
+
+        nodes = []
+        edges = []
+
         for role_id, role in selected_roles.items():
+            # Synchronize salary dynamically
+            synced_salary = get_synced_salary_range(role["title"], role["level"])
+
             nodes.append({
                 "id": role_id,
                 "title": role["title"],
@@ -880,15 +1164,15 @@ class CareerGraphService:
                 "category": role["category"],
                 "level": role["level"],
                 "level_label": role["level_label"],
-                "salary_median": role["salary_range"]["median"],
-                "salary_range": role["salary_range"],
+                "salary_median": synced_salary["median"],
+                "salary_range": synced_salary,
                 "description": role["description"],
                 "core_skills": role["core_skills"],
                 "advanced_skills": role.get("advanced_skills", []),
                 "certifications": role.get("certifications", [])
             })
 
-            # Add edges for bridges within the selected pool
+            # Add edges for bridges
             for bridge in role.get("bridges_to", []):
                 edges.append({
                     "id": f"bridge_{role_id}_{bridge['target']}",
@@ -900,7 +1184,6 @@ class CareerGraphService:
                     "label": bridge.get("transition_label", "Career Progression")
                 })
 
-        # Distinct categories for the filtered subset
         categories = sorted(list({n["category"] for n in nodes}))
 
         return {
@@ -910,6 +1193,11 @@ class CareerGraphService:
             "industries": INDUSTRIES,
             "active_industry": target_industry
         }
+
+    @classmethod
+    def get_graph_data(cls, industry_id: Optional[str] = None) -> Dict[str, Any]:
+        """Alias for get_full_graph for backward compatibility."""
+        return cls.get_full_graph(industry_id)
 
     @classmethod
     def find_career_bridge(
@@ -927,22 +1215,31 @@ class CareerGraphService:
         if target_role_id not in CAREER_ROLES:
             target_role_id = "senior_fullstack"
 
-        # Normalized candidate skill set
+        # Candidate skills
         raw_candidate = [s.strip() for s in (candidate_skills or []) if s]
         norm_candidate = {s.lower().strip() for s in raw_candidate}
         has_candidate_skills = len(norm_candidate) > 0
 
-        # 1. Pathfinding
+        # 1. Dijkstra Pathfinding
         path = cls._dijkstra_shortest_path(current_role_id, target_role_id)
         if not path:
             path = [current_role_id, target_role_id]
 
-        # 2. Extract milestone nodes
-        milestones = [CAREER_ROLES[r_id] for r_id in path if r_id in CAREER_ROLES]
+        # 2. Extract milestone nodes with synced compensation
+        milestones = []
+        for r_id in path:
+            if r_id in CAREER_ROLES:
+                m_role = dict(CAREER_ROLES[r_id])
+                m_role["salary_range"] = get_synced_salary_range(m_role["title"], m_role["level"])
+                m_role["salary_median"] = m_role["salary_range"]["median"]
+                milestones.append(m_role)
 
-        # 3. Aggregate all skills required across target role
-        target_role = CAREER_ROLES[target_role_id]
-        current_role = CAREER_ROLES[current_role_id]
+        # 3. Target role and current role
+        target_role = dict(CAREER_ROLES[target_role_id])
+        target_role["salary_range"] = get_synced_salary_range(target_role["title"], target_role["level"])
+        current_role = dict(CAREER_ROLES[current_role_id])
+        current_role["salary_range"] = get_synced_salary_range(current_role["title"], current_role["level"])
+
         required_core = target_role["core_skills"]
         required_adv = target_role.get("advanced_skills", [])
         all_target_skills = required_core + required_adv
@@ -962,7 +1259,7 @@ class CareerGraphService:
                     "importance": "core" if skill in required_core else "advanced"
                 })
             else:
-                # Check for partial/transferrable match via dependency graph
+                # Partial/transferrable match via dependency tree
                 prereqs = SKILL_DEPENDENCY_GRAPH.get(skill, [])
                 has_prereq = any(p.lower() in norm_candidate for p in prereqs)
                 if has_prereq:
@@ -988,23 +1285,17 @@ class CareerGraphService:
             score = int(((len(verified_skills) * 1.0) + (len(transferrable_skills) * 0.55)) / total_skills_count * 100)
             feasibility_score = max(15, min(98, score))
         else:
-            # Baseline domain transition score
-            same_industry = current_role.get("industry_id") == target_role.get("industry_id")
-            level_diff = abs(target_role.get("level", 2) - current_role.get("level", 1))
-            feasibility_score = max(35, 85 - (level_diff * 18) - (0 if same_industry else 25))
+            feasibility_score = 65
 
-        # Estimate total transition timeline
+        # Calculate total months
         total_time_months = 0
         for i in range(len(path) - 1):
-            src, tgt = path[i], path[i+1]
+            src, tgt = path[i], path[i + 1]
             src_role = CAREER_ROLES[src]
             bridge = next((b for b in src_role.get("bridges_to", []) if b["target"] == tgt), None)
             total_time_months += bridge.get("time_months", 12) if bridge else 12
 
-        # Recommended Certifications
         certs = target_role.get("certifications", [])
-
-        # Phased Learning Roadmap
         learning_steps = cls._generate_learning_roadmap(missing_skills, transferrable_skills, target_role.get("industry_name"))
 
         return {
@@ -1032,11 +1323,6 @@ class CareerGraphService:
         }
 
     @classmethod
-    def get_graph_data(cls, industry_id: Optional[str] = None) -> Dict[str, Any]:
-        """Alias for get_full_graph."""
-        return cls.get_full_graph(industry_id)
-
-    @classmethod
     def _dijkstra_shortest_path(cls, start: str, end: str) -> List[str]:
         """
         Dijkstra shortest path based on transition difficulty and months.
@@ -1054,7 +1340,7 @@ class CareerGraphService:
                 continue
             visited.add(current)
 
-            for bridge in CAREER_ROLES[current].get("bridges_to", []):
+            for bridge in CAREER_ROLES.get(current, {}).get("bridges_to", []):
                 neighbor = bridge["target"]
                 if neighbor in CAREER_ROLES:
                     weight = bridge.get("difficulty", 2) * 10 + bridge.get("time_months", 12)
@@ -1075,7 +1361,7 @@ class CareerGraphService:
             node = path[-1]
             if node == end:
                 return path
-            for bridge in CAREER_ROLES[node].get("bridges_to", []):
+            for bridge in CAREER_ROLES.get(node, {}).get("bridges_to", []):
                 nxt = bridge["target"]
                 if nxt in CAREER_ROLES and nxt not in seen:
                     seen.add(nxt)
@@ -1093,7 +1379,7 @@ class CareerGraphService:
         phase_idx = 1
         ind = industry_name or "Professional Domain"
 
-        # Phase 1: High-leverage transferrable skills (fastest ROI)
+        # Phase 1: High-leverage transferrable skills
         if transferrable:
             steps.append({
                 "phase": f"Phase {phase_idx}: Bridge Transferrable Foundations",

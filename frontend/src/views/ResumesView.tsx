@@ -208,7 +208,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 w-full max-w-[1720px] mx-auto">
       <DisclaimerBanner compact />
 
       {/* Header */}
