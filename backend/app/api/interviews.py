@@ -304,10 +304,8 @@ def get_interview_session(
 def _audio_to_wav(content: bytes) -> bytes:
     """
     Converts any uploaded audio format (WebM, OGG, MP4, MP3) into 16kHz mono PCM WAV
-    using the bundled self-contained FFmpeg engine.
+    with loudness normalization using the bundled self-contained FFmpeg engine.
     """
-    if content.startswith(b"RIFF") and b"WAVE" in content[:12]:
-        return content
     try:
         import imageio_ffmpeg
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -317,8 +315,19 @@ def _audio_to_wav(content: bytes) -> bytes:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as out_f:
             out_path = out_f.name
         try:
-            cmd = [ffmpeg_exe, "-y", "-i", in_path, "-ar", "16000", "-ac", "1", out_path]
-            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            # First attempt: 16kHz mono with loudness normalization
+            cmd = [
+                ffmpeg_exe, "-y", "-i", in_path,
+                "-ar", "16000", "-ac", "1",
+                "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
+                out_path
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if res.returncode != 0:
+                # Fallback without filter if loudnorm filter is unsupported
+                cmd_fallback = [ffmpeg_exe, "-y", "-i", in_path, "-ar", "16000", "-ac", "1", out_path]
+                subprocess.run(cmd_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
             with open(out_path, "rb") as f:
                 return f.read()
         finally:
@@ -339,34 +348,64 @@ async def transcribe_interview_audio(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Server-side audio transcription backup.
-    Processes audio (WebM/WAV/PCM) using speech_recognition / Google Speech REST,
-    ensuring speech is transcribed even if browser Web Speech API encounters network or privacy blocks.
+    Server-side audio transcription engine.
+    Processes audio (WebM/WAV/PCM) using SpeechRecognition with automatic loudness normalization
+    and intelligent chunking for long speech sessions (>10s), ensuring complete accuracy
+    even when browser Web Speech encounters network or firewall blocks.
     """
     content = await file.read()
     logger.info(f"Received audio file for transcription: size={len(content)} bytes")
-    if not content or len(content) < 500:
+    if not content or len(content) < 400:
         return {"transcript": "", "words_count": 0, "status": "empty"}
 
     wav_bytes = _audio_to_wav(content)
     transcript = ""
     try:
+        import math
         import speech_recognition as sr
 
         r = sr.Recognizer()
-        r.energy_threshold = 300
-        r.dynamic_energy_threshold = True
+        r.energy_threshold = 200
+        r.dynamic_energy_threshold = False
+
         with sr.AudioFile(io.BytesIO(wav_bytes)) as source:
-            audio_data = r.record(source)
+            total_audio = r.record(source)
+            duration = len(total_audio.frame_data) / (total_audio.sample_rate * total_audio.sample_width)
+
+        # Strategy 1: If audio <= 12 seconds, transcribe directly in one pass
+        if duration <= 12.0:
             try:
-                transcript = r.recognize_google(audio_data, language="en-US")
-                logger.info(f"Google speech recognition transcribed: '{transcript[:60]}...'")
+                transcript = r.recognize_google(total_audio, language="en-US")
+                logger.info(f"Direct Google Speech transcribed ({duration:.1f}s): '{transcript[:60]}...'")
             except sr.UnknownValueError:
-                logger.info("Speech recognition: no intelligible speech detected in audio")
                 transcript = ""
             except sr.RequestError as e:
-                logger.warning(f"Google speech recognition request error: {e}")
+                logger.warning(f"Direct Google Speech request error: {e}")
                 transcript = ""
+
+        # Strategy 2: If duration > 12s OR Strategy 1 yielded no speech, use intelligent sliding chunking
+        if not transcript and duration > 3.0:
+            chunk_duration = 9.0
+            total_chunks = math.ceil(duration / chunk_duration)
+            recognized_chunks: List[str] = []
+
+            with sr.AudioFile(io.BytesIO(wav_bytes)) as source:
+                for chunk_idx in range(total_chunks):
+                    try:
+                        chunk_audio = r.record(source, duration=chunk_duration)
+                        chunk_text = r.recognize_google(chunk_audio, language="en-US")
+                        if chunk_text and chunk_text.strip():
+                            recognized_chunks.append(chunk_text.strip())
+                    except sr.UnknownValueError:
+                        continue
+                    except Exception as chunk_err:
+                        logger.debug(f"Chunk {chunk_idx} transcription error: {chunk_err}")
+                        continue
+
+            if recognized_chunks:
+                transcript = " ".join(recognized_chunks)
+                logger.info(f"Chunked Google Speech transcribed ({len(recognized_chunks)} chunks): '{transcript[:60]}...'")
+
     except Exception as e:
         logger.warning(f"Server audio transcription error: {e}")
         transcript = ""

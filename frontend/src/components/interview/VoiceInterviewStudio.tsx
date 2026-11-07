@@ -17,7 +17,9 @@ import {
   Copy,
   Check,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import {
   InterviewQuestionItem,
@@ -78,6 +80,8 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [isSpeakingQuestion, setIsSpeakingQuestion] = useState(false);
+  const [hasRecordedAudio, setHasRecordedAudio] = useState(false);
+  const [transcriptionNotice, setTranscriptionNotice] = useState<{ type: 'info' | 'success' | 'warn'; text: string } | null>(null);
 
   // Turn Evaluation Feedback State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,6 +121,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   const audioChunksRef = useRef<Blob[]>([]);
   const recordedBlobRef = useRef<Blob | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const syncIntervalRef = useRef<any>(null);
 
   // Load past sessions
   const loadPastSessions = async () => {
@@ -208,6 +213,8 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     sessionFinalRef.current = '';
     audioChunksRef.current = [];
     recordedBlobRef.current = null;
+    setHasRecordedAudio(false);
+    setTranscriptionNotice(null);
     setAudioLevel(0);
 
     // 1. Initialize MediaStream & Native MediaRecorder (Reliable browser standard)
@@ -393,6 +400,33 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
         console.warn('Speech recognition start error:', startErr);
         isWebSpeechAliveRef.current = false;
       }
+      // 4. Start periodic background audio sync if browser live speech is offline
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
+      }
+      syncIntervalRef.current = setInterval(async () => {
+        if (!isRecordingIntentRef.current) return;
+        // If Web Speech is actively typing live, no need for background sync
+        if (isWebSpeechAliveRef.current) return;
+        if (!audioChunksRef.current || audioChunksRef.current.length < 2) return;
+
+        const currentMime = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const sliceBlob = new Blob([...audioChunksRef.current], { type: currentMime });
+        if (sliceBlob.size > 2000) {
+          try {
+            const res = await api.transcribeAudio(sliceBlob);
+            if (res && res.transcript && res.transcript.trim() && isRecordingIntentRef.current) {
+              const liveWords = res.transcript.trim();
+              setTranscript(liveWords);
+              initialTextRef.current = liveWords;
+              setEngineStatus('typing_live');
+            }
+          } catch {
+            // Silently continue recording
+          }
+        }
+      }, 4500);
+
     } catch (err) {
       console.warn('Web Speech API unavailable:', err);
       setEngineStatus('audio_backup_active');
@@ -406,6 +440,11 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     setIsRecording(false);
     setIsVoiceDetected(false);
     setAudioLevel(0);
+
+    if (syncIntervalRef.current) {
+      clearInterval(syncIntervalRef.current);
+      syncIntervalRef.current = null;
+    }
 
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -440,11 +479,18 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     // Stop MediaRecorder and trigger server-side audio transcription
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== 'inactive') {
+      try {
+        if (mr.state === 'recording') {
+          mr.requestData();
+        }
+      } catch {}
+
       mr.onstop = async () => {
         const chunks = [...audioChunksRef.current];
         audioChunksRef.current = [];
         const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
         recordedBlobRef.current = blob;
+        setHasRecordedAudio(blob.size > 800);
 
         // Cleanup audio stream
         if (mediaStreamRef.current) {
@@ -458,17 +504,31 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
           audioContextRef.current = null;
         }
 
-        // If Web Speech didn't type text or is empty, automatically transcribe from recorded audio
-        if (!currentText && blob.size > 800) {
+        // Transcribe audio using backend intelligent chunked speech engine
+        if (blob.size > 800) {
           setIsTranscribingBackend(true);
+          setTranscriptionNotice({ type: 'info', text: 'Transcribing speech audio with AI engine...' });
           try {
             const res = await api.transcribeAudio(blob);
-            if (res && res.transcript) {
-              setTranscript(res.transcript);
-              initialTextRef.current = res.transcript;
+            if (res && res.transcript && res.transcript.trim()) {
+              const fullText = res.transcript.trim();
+              setTranscript(fullText);
+              initialTextRef.current = fullText;
+              setTranscriptionNotice({ type: 'success', text: `Transcribed ${res.words_count || fullText.split(' ').length} words successfully!` });
+            } else if (!currentText) {
+              setTranscriptionNotice({
+                type: 'warn',
+                text: 'Audio recorded, but no clear speech was recognized. You can speak louder, type your response, or click "Sample Answer" below.'
+              });
             }
           } catch (err: any) {
             console.warn('Backend audio transcription fallback error:', err);
+            if (!currentText) {
+              setTranscriptionNotice({
+                type: 'warn',
+                text: 'Could not transcribe audio automatically. You can type your response or click "Sample Answer".'
+              });
+            }
           } finally {
             setIsTranscribingBackend(false);
           }
@@ -494,19 +554,50 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
   const handleManualTranscribe = async () => {
     if (!recordedBlobRef.current) return;
     setIsTranscribingBackend(true);
+    setTranscriptionNotice({ type: 'info', text: 'Re-transcribing audio with AI engine...' });
     try {
       const res = await api.transcribeAudio(recordedBlobRef.current);
-      if (res && res.transcript) {
-        setTranscript(res.transcript);
-        initialTextRef.current = res.transcript;
+      if (res && res.transcript && res.transcript.trim()) {
+        const fullText = res.transcript.trim();
+        setTranscript(fullText);
+        initialTextRef.current = fullText;
+        setTranscriptionNotice({ type: 'success', text: `Transcribed ${res.words_count || fullText.split(' ').length} words successfully!` });
       } else {
-        alert('No clear speech was detected in the recorded audio. Please speak a bit louder or closer to your microphone.');
+        setTranscriptionNotice({
+          type: 'warn',
+          text: 'No distinct speech detected in audio. Please speak louder, type your response, or click "Sample Answer".'
+        });
       }
     } catch (err: any) {
-      alert('Transcription error: ' + (err.message || 'Could not process audio'));
+      setTranscriptionNotice({
+        type: 'warn',
+        text: 'Transcription error: ' + (err.message || 'Could not process audio')
+      });
     } finally {
       setIsTranscribingBackend(false);
     }
+  };
+
+  const handleInsertSampleAnswer = () => {
+    if (!currentQuestion) return;
+    const qText = (currentQuestion.question || '').toLowerCase();
+    const cat = (currentQuestion.category || '').toLowerCase();
+    let sample = '';
+
+    if (qText.includes('conflict') || qText.includes('disagreement')) {
+      sample = "During our core platform redesign, our lead frontend developer and backend engineer strongly disagreed on whether to use GraphQL or standard REST endpoints. As the senior engineer, I needed to resolve the deadlock without slowing down our sprint velocity. I set up an objective evaluation spike where both engineers spent one afternoon benchmarking request latency, caching feasibility with Redis, and schema evolution overhead. The empirical metrics demonstrated that REST with HTTP/2 multiplexing delivered 35% lower serialization latency for our high-throughput read workloads. Both engineers reviewed the performance data and agreed on REST with typed OpenAPI specs. We completed the migration on schedule with zero customer-impacting regressions.";
+    } else if (cat.includes('tech') || qText.includes('api') || qText.includes('database') || qText.includes('performance')) {
+      sample = "In my recent role, our production database began timing out during peak traffic spikes, causing p99 latency to exceed 450ms. I was tasked with identifying root causes and stabilizing the system. Using query profiling and slow-query logs, I identified several unindexed foreign-key joins in our transactions table. I implemented composite B-tree indexes, introduced Redis caching for hot read paths with a 5-minute TTL, and routed analytics queries to a dedicated read-replica. This reduced database CPU utilization by 50% and dropped p99 response times down to 42ms.";
+    } else if (cat.includes('system') || qText.includes('design') || qText.includes('scalable') || qText.includes('architect')) {
+      sample = "When designing our asynchronous notification processing pipeline, we needed to ensure zero message loss while processing over 10,000 notifications per second across push, SMS, and email. I architected an event-driven system leveraging Apache Kafka for partitioned topic streaming, backed by Redis for idempotency key deduplication. I also implemented a dead-letter queue with exponential backoff retries for third-party provider failures. This architecture achieved 99.99% uptime and processed over 50 million monthly messages seamlessly.";
+    } else {
+      sample = "At my previous employer, we were faced with an aggressive four-week deadline to deliver a SOC2-compliant role-based access control system. As the project owner, my responsibility was to lead the architecture and coordinate delivery across three time zones. I drafted the technical specifications, decomposed work into modular PRs, and introduced automated policy-as-code linting into our GitHub Actions CI pipeline. By prioritizing critical paths and daily async check-ins, we delivered the security architecture two days ahead of schedule, passing the compliance audit on our initial evaluation.";
+    }
+
+    setTranscript(sample);
+    initialTextRef.current = sample;
+    sessionFinalRef.current = '';
+    setTranscriptionNotice({ type: 'info', text: 'Sample STAR answer inserted! You can customize it or click Submit.' });
   };
 
   // Cleanup on unmount
@@ -1318,8 +1409,39 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 </div>
               </div>
 
+              {/* Live Status Notices & Feedback */}
+              {transcriptionNotice && (
+                <div
+                  className={`p-3 rounded-2xl flex items-center justify-between gap-3 text-xs font-semibold shadow-xs transition-all ${
+                    transcriptionNotice.type === 'success'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                      : transcriptionNotice.type === 'info'
+                      ? 'bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300'
+                      : 'bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {transcriptionNotice.type === 'info' ? (
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0 text-indigo-600 dark:text-indigo-400" />
+                    ) : transcriptionNotice.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    )}
+                    <span>{transcriptionNotice.text}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTranscriptionNotice(null)}
+                    className="text-xs opacity-70 hover:opacity-100 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               {/* Status alerts if browser speech engine is offline */}
-              {isTranscribingBackend && (
+              {isTranscribingBackend && !transcriptionNotice && (
                 <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 flex items-center gap-3 text-xs text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs animate-pulse">
                   <Loader2 className="w-4 h-4 animate-spin text-indigo-600 dark:text-indigo-400 shrink-0" />
                   <div>
@@ -1333,8 +1455,8 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
 
               {engineStatus === 'network_offline' && isRecording && (
                 <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                  <span className="font-bold">ℹ️ Note:</span>
-                  <span>Browser live speech cloud is unreachable (network/firewall). Direct audio is recording continuously and will be transcribed automatically when you stop!</span>
+                  <span className="font-bold">ℹ️ Live Speech Sync:</span>
+                  <span>Audio is continuously recording and streaming to server for transcription. Speak clearly!</span>
                 </div>
               )}
 
@@ -1372,30 +1494,43 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
 
               {/* Interaction Controls */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={toggleRecording}
-                  className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
-                    isRecording
-                      ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
-                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                  }`}
-                >
-                  {isRecording ? (
-                    <>
-                      <MicOff className="w-4 h-4" />
-                      <span>Stop Recording</span>
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-4 h-4" />
-                      <span>Record Answer (Microphone)</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleRecording}
+                    className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
+                      isRecording
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    }`}
+                  >
+                    {isRecording ? (
+                      <>
+                        <MicOff className="w-4 h-4" />
+                        <span>Stop Recording</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-4 h-4" />
+                        <span>Record Answer (Microphone)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleInsertSampleAnswer}
+                    disabled={isRecording}
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-colors border border-slate-200 dark:border-slate-700"
+                    title="Insert a high-scoring sample STAR answer tailored to this question"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Sample Answer (STAR)</span>
+                  </button>
+                </div>
 
                 <div className="flex items-center gap-2">
-                  {!transcript.trim() && recordedBlobRef.current && (
+                  {!transcript.trim() && (hasRecordedAudio || recordedBlobRef.current) && (
                     <button
                       type="button"
                       onClick={handleManualTranscribe}
@@ -1415,6 +1550,7 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                         setTranscript('');
                         initialTextRef.current = '';
                         sessionFinalRef.current = '';
+                        setTranscriptionNotice(null);
                       }}
                       className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 text-xs font-semibold cursor-pointer"
                     >
