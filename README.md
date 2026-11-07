@@ -54,6 +54,10 @@ Whether you need to stress-test your resume against algorithmic hiring filters, 
 
 | | Feature | Details |
 |---|---|---|
+| 🗺️ | **Career Knowledge Graph** | Directed Knowledge Graph modeling 18 technical roles, Dijkstra shortest-path career bridges, and prerequisite trees |
+| 💰 | **ML Salary Predictor** | Supervised compensation regression estimating 25th, 50th, 75th, and 90th percentile bands with location cost tiers |
+| 🤝 | **Negotiation Coach & Simulator** | Interactive game-theory recruiter negotiation simulator measuring leverage, firmness vs. politeness, and concession gains |
+| 📜 | **Battle-Tested Counter-Offers** | 5 1-click structured negotiation templates (*Market Anchor, Competing Offer, Total Comp Bridge, 6-Month Review, Phone Script*) |
 | 🎙️ | **Voice AI Mock Interviewer** | Interactive spoken interview simulator with speech pacing (WPM), filler-word detection, and STAR framework evaluation |
 | 🏆 | **Exemplar Model Answers** | Dissects every question with 3 benchmark answers (*Senior Leadership & ROI*, *Deep Technical Architecture*, *Agile Incident Recovery*) with audio playback |
 | 📊 | **Live Mic Visualizer (VU Meter)** | Real-time Web Audio API decibel sound equalizer confirming active microphone sensitivity (0–100%) |
@@ -84,6 +88,46 @@ The **Voice AI Mock Interview Studio** replicates high-stakes technical and beha
    - Switch between **3 distinct narrative archetypes** under your turn score.
    - Inspect the complete 4-pill STAR breakdown explaining why each answer satisfies hiring rubrics.
    - Click **"Listen Aloud"** to hear the model answer synthesized or **"Copy Script"** to study the phrasing.
+
+---
+
+## 🗺️ Career Path Knowledge Graph & Skill Navigator
+
+The **Career Knowledge Graph** models technical careers as a directed graph of 18 industry roles, competencies, tools, and prerequisite skill trees across 7 domains (*Frontend, Full Stack, Backend, DevOps & Cloud, Data & AI, Security, Management*):
+
+1. **Dijkstra Shortest-Path Bridging**: Computes the optimal promotion or lateral transition sequence connecting your current baseline role to your target dream role with estimated transition months and difficulty weighting.
+2. **Categorized Skill Gap Breakdown**:
+   - 🟢 **Verified Skills**: Competencies already confirmed from your synced resume.
+   - 🟡 **Transferrable Skills**: Adjacent competencies where you possess prerequisite foundations.
+   - 🔴 **Missing Prerequisite Gaps**: Critical technical tools and architectural paradigms required for the target level.
+3. **3-Phase Structured Learning Roadmap**: Decomposes upskilling into actionable phases (*Foundations & Quick Wins, Core Prerequisite Mastery, Production Scale & System Design*) with real-world milestone project recommendations.
+4. **Interactive Hierarchy Matrix**: Filter and inspect roles by seniority tiers (*L1 Entry, L2 Mid-Level, L3 Senior, L4 Staff / Lead*).
+
+---
+
+## 💰 Market Salary Predictor & Offer Negotiation Coach
+
+The **Salary Predictor & Negotiation Coach** merges supervised compensation regression with game-theory roleplay simulation:
+
+1. **Calibrated Compensation Bands**: Predicts **25th (Entry)**, **50th (Median Market)**, **75th (Top Quartile)**, and **90th (Staff/Lead)** percentile salary benchmarks.
+2. **Location Cost Multipliers**: Calibrates benchmarks across 5 global tiers:
+   - `US Tier 1` (SF Bay Area, NYC, Seattle - 100% benchmark)
+   - `US Tier 2` (Austin, Boston, Denver, Chicago - 88%)
+   - `UK & Western Europe` (London, Berlin, Amsterdam - 76%)
+   - `Canada & Australia` (Toronto, Sydney - 80%)
+   - `Global Remote / APAC / LatAm` (65%)
+3. **High-ROI Skill Value Boosters**: Quantifies the annual dollar lift and percentage premium for high-demand skills (*Kubernetes +8%, PyTorch +12%, GenAI/LLM +14%, Distributed Systems +10%, Rust +11%*).
+4. **Interactive Recruiter Roleplay Simulator**:
+   - Real-time **Leverage Index** (0–100%) and **Recruiter Acceptance Probability**.
+   - **Tactical Balance** metric scoring candidate firmness vs. collaborative politeness.
+   - Simulated hiring lead dialogue with concessions (higher base, signing bonuses, or equity grants).
+   - Instant **Coach Critique** after every turn highlighting tactical strengths and recommended follow-up phrasing.
+5. **5 Battle-Tested Counter-Offer Scripts**:
+   - 📌 *Strategy 1: Market Data & Specialization Anchor*
+   - ⚡ *Strategy 2: Competing Offer Alignment*
+   - 🌉 *Strategy 3: Total Comp Bridge (Base + Signing Bonus)*
+   - 📈 *Strategy 4: Accelerated 6-Month Performance Review*
+   - 📞 *Strategy 5: Verbal Phone Pitch (Live Talking Points)*
 
 ---
 
