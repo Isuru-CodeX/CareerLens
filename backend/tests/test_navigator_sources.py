@@ -257,3 +257,38 @@ def test_navigator_api_endpoints():
     res_cooldown = client.post("/api/navigator/refresh", headers=headers)
     assert res_cooldown.status_code == 202
     assert res_cooldown.json().get("status") in ("rate_limited", "refresh_started")
+
+
+def test_calibrated_country_compensation_tiers():
+    """
+    Verifies that country-specific seniority progression factors accurately calibrate
+    entry-level/junior and mid-level market compensation rates to verified ground-truth values.
+    """
+    # 1. Sri Lanka (LKR)
+    sl_junior = NavigatorService.calculate_role_compensation("Software Engineer", country_code="lk", experience_level="junior")
+    sl_mid = NavigatorService.calculate_role_compensation("Software Engineer", country_code="lk", experience_level="mid")
+    assert sl_junior["currency"] == "LKR"
+    # Junior software engineer in Sri Lanka is ~Rs. 80k-130k/mo (1.0M - 1.5M/yr)
+    assert 1000000 <= sl_junior["median"] <= 1500000
+    assert 80000 <= sl_junior["monthly_median"] <= 130000
+    # Mid-level in Sri Lanka is ~Rs. 180k-250k/mo (2.1M - 2.8M/yr)
+    assert 2000000 <= sl_mid["median"] <= 3000000
+    assert 160000 <= sl_mid["monthly_median"] <= 250000
+    # Junior should be approx ~50-55% of mid-level
+    assert 0.45 <= (sl_junior["median"] / sl_mid["median"]) <= 0.60
+
+    # 2. India (INR)
+    in_junior = NavigatorService.calculate_role_compensation("Software Engineer", country_code="in", experience_level="junior")
+    in_mid = NavigatorService.calculate_role_compensation("Software Engineer", country_code="in", experience_level="mid")
+    assert in_junior["currency"] == "INR"
+    # Junior in India is ~4.5 - 7.5 LPA
+    assert 450000 <= in_junior["median"] <= 750000
+    # Mid-level in India is ~12 - 18 LPA
+    assert 1200000 <= in_mid["median"] <= 1800000
+
+    # 3. United States (USD)
+    us_junior = NavigatorService.calculate_role_compensation("Software Engineer", country_code="us", experience_level="junior")
+    us_mid = NavigatorService.calculate_role_compensation("Software Engineer", country_code="us", experience_level="mid")
+    assert us_junior["currency"] == "USD"
+    assert 80000 <= us_junior["median"] <= 105000
+    assert 130000 <= us_mid["median"] <= 160000
