@@ -39,3 +39,4 @@ def detect_work_mode(text: str | None, remote_flag: bool | None = None) -> str:
         return "onsite"
         
     return "onsite"
+

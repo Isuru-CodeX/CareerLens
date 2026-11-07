@@ -189,3 +189,4 @@ def manual_refresh(
         "status": "refresh_started",
         "message": "Live market crawl scheduled. Fresh job postings and salary distributions will be updated in background."
     }
+

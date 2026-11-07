@@ -84,3 +84,4 @@ def summarize(values: List[float], min_samples: int = 8) -> Optional[Dict[str, A
         }
     except Exception:
         return None
+

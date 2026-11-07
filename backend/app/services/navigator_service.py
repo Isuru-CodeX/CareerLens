@@ -548,3 +548,4 @@ class NavigatorService:
     def record_manual_refresh() -> None:
         global _LAST_MANUAL_REFRESH
         _LAST_MANUAL_REFRESH = datetime.now(timezone.utc)
+

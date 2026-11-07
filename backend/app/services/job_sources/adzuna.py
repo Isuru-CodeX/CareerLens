@@ -101,3 +101,4 @@ async def fetch_adzuna(
             await _query(cli)
 
     return out
+

@@ -22,3 +22,4 @@ class RawJob:
     period: str = "year"  # year | month | hour
     estimated: bool = False  # True when the API guessed the salary
     posted_at: Optional[datetime] = None
+

@@ -76,3 +76,4 @@ async def fetch_arbeitnow(
             await _query(cli)
 
     return out
+
