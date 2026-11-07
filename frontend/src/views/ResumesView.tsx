@@ -25,6 +25,7 @@ import { api } from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { ExperienceIntelligencePanel } from '../components/ExperienceIntelligencePanel';
+import { ResumeBuilderStudio } from '../components/resume/ResumeBuilderStudio';
 import { useAuth } from '../context/useAuth';
 
 interface ResumesViewProps {
@@ -39,6 +40,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
   const { user, loginDemo } = useAuth();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'library' | 'builder' | 'intelligence'>('library');
   const [uploadModalOpen, setUploadModalOpen] = useState(openUploadOnMount);
   const [activeResumeForEdit, setActiveResumeForEdit] = useState<Resume | null>(null);
   const [resumeToDelete, setResumeToDelete] = useState<Resume | null>(null);
@@ -233,7 +235,43 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
         </div>
       </div>
 
-      {/* Resumes Grid */}
+      {/* Sub-tab Switcher: Vault vs Builder */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveTab('library')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'library'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          Resume Library ({resumes.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('builder')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeTab === 'builder'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Interactive Resume Builder (Pillar 6)</span>
+        </button>
+      </div>
+
+      {activeTab === 'builder' && (
+        <ResumeBuilderStudio
+          resumes={resumes}
+          initialResume={resumes[0]}
+        />
+      )}
+
+      {activeTab === 'library' && (
+        <>
+          {/* Resumes Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
           {[1, 2, 3].map((i) => (
@@ -410,6 +448,8 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
             </motion.div>
           ))}
         </div>
+      )}
+        </>
       )}
 
       {/* Upload Modal */}

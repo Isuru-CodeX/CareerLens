@@ -9,15 +9,21 @@ import {
   Globe,
   Loader2,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Cpu,
+  ShieldCheck,
+  Layers
 } from 'lucide-react';
-import { Resume, JobMatch, Preset } from '../types';
+import { Resume, JobMatch, Preset, VectorRagMatchResponse, AtsStressTestResponse, ResumeTailorResponse } from '../types';
 import { api } from '../services/api';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { DeepMatchPanel } from '../components/deepmatch/DeepMatchPanel';
 import { AnalysisProgress } from '../components/deepmatch/AnalysisProgress';
 import { PresetSelect } from '../components/PresetSelect';
+import { VectorRagPanel } from '../components/deepmatch/VectorRagPanel';
+import { AtsStressTestPanel } from '../components/deepmatch/AtsStressTestPanel';
+import { TailoredResumePanel } from '../components/deepmatch/TailoredResumePanel';
 
 interface JobMatchViewProps {
   initialResumeId?: string;
@@ -66,6 +72,79 @@ Preferred:
   const [matchResult, setMatchResult] = useState<JobMatch | null>(null);
   const [isMatching, setIsMatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pillar 1 & 6 Extended Modes
+  const [activeAnalysisMode, setActiveAnalysisMode] = useState<'deep' | 'vector_rag' | 'ats_stress' | 'tailor'>('deep');
+  const [vectorRagResult, setVectorRagResult] = useState<VectorRagMatchResponse | null>(null);
+  const [isComputingRag, setIsComputingRag] = useState(false);
+  const [atsStressResult, setAtsStressResult] = useState<AtsStressTestResponse | null>(null);
+  const [isRunningAts, setIsRunningAts] = useState(false);
+  const [tailorResult, setTailorResult] = useState<ResumeTailorResponse | null>(null);
+  const [isTailoring, setIsTailoring] = useState(false);
+
+  // Trigger Vector RAG
+  const handleFetchVectorRag = async () => {
+    setActiveAnalysisMode('vector_rag');
+    if (vectorRagResult) return;
+    setIsComputingRag(true);
+    try {
+      const res = await api.performVectorRagMatch({
+        resume_id: selectedResumeId !== 'all' ? selectedResumeId : undefined,
+        job_text: jobText,
+        job_title: jobTitle,
+        company: company
+      });
+      setVectorRagResult(res);
+    } catch (err: any) {
+      console.error('Vector RAG error:', err);
+    } finally {
+      setIsComputingRag(false);
+    }
+  };
+
+  // Trigger ATS Stress Test
+  const handleFetchAtsStress = async () => {
+    setActiveAnalysisMode('ats_stress');
+    if (atsStressResult) return;
+    setIsRunningAts(true);
+    try {
+      let res: AtsStressTestResponse;
+      if (selectedResumeId && selectedResumeId !== 'all') {
+        res = await api.runAtsStressTestResume(selectedResumeId);
+      } else {
+        const activeRes = resumes[0];
+        if (activeRes) {
+          res = await api.runAtsStressTestResume(activeRes.id);
+        } else {
+          res = await api.runAtsStressTestRaw(jobText);
+        }
+      }
+      setAtsStressResult(res);
+    } catch (err: any) {
+      console.error('ATS Stress test error:', err);
+    } finally {
+      setIsRunningAts(false);
+    }
+  };
+
+  // Trigger 1-Click Tailoring
+  const handleFetchTailor = async () => {
+    setActiveAnalysisMode('tailor');
+    if (tailorResult) return;
+    setIsTailoring(true);
+    try {
+      const activeId = selectedResumeId && selectedResumeId !== 'all' ? selectedResumeId : (resumes[0]?.id || '');
+      const res = await api.tailorResumeForJob(activeId, {
+        job_text: jobText,
+        target_role: jobTitle
+      });
+      setTailorResult(res);
+    } catch (err: any) {
+      console.error('Tailor error:', err);
+    } finally {
+      setIsTailoring(false);
+    }
+  };
 
   const fetchPresets = async () => {
     try {
@@ -460,20 +539,137 @@ Preferred:
         </div>
       )}
 
-      {/* Match Results */}
-      {matchResult && matchResult.analysis && (
-        <div className="space-y-6">
-          <DeepMatchPanel
-            report={matchResult.analysis}
-            onTailor={() =>
-              onNavigate('ai', {
-                tab: 'rewrite',
-                jobDescription: jobText,
-                targetRole: jobTitle
-              })
-            }
-          />
+      {/* Analysis Mode Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setActiveAnalysisMode('deep')}
+            className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+              activeAnalysisMode === 'deep'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Deep Match (Grounding)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleFetchVectorRag}
+            className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+              activeAnalysisMode === 'vector_rag'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            <span>Vector RAG (Cosine Similarity)</span>
+            {isComputingRag && <Loader2 className="w-3 h-3 animate-spin" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleFetchAtsStress}
+            className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+              activeAnalysisMode === 'ats_stress'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>4-Tier ATS Stress Test</span>
+            {isRunningAts && <Loader2 className="w-3 h-3 animate-spin" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleFetchTailor}
+            className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+              activeAnalysisMode === 'tailor'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>1-Click Targeted Tailor</span>
+            {isTailoring && <Loader2 className="w-3 h-3 animate-spin" />}
+          </button>
         </div>
+
+        <span className="text-[11px] font-semibold text-slate-400 px-2">
+          Pillars 1 &amp; 6 Algorithmic Engine
+        </span>
+      </div>
+
+      {/* Render Active Analysis Mode */}
+      {activeAnalysisMode === 'vector_rag' && (
+        <div>
+          {isComputingRag && !vectorRagResult && (
+            <div className="p-16 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+              <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                Generating 256-D Normalized Vector Embeddings &amp; Cross-Encoder Cosine Alignment...
+              </p>
+            </div>
+          )}
+          {vectorRagResult && (
+            <VectorRagPanel data={vectorRagResult} onTailorAction={handleFetchTailor} />
+          )}
+        </div>
+      )}
+
+      {activeAnalysisMode === 'ats_stress' && (
+        <div>
+          {isRunningAts && !atsStressResult && (
+            <div className="p-16 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+              <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto" />
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                Stress-testing document against Workday, Greenhouse, Taleo, and Lever parsing engines...
+              </p>
+            </div>
+          )}
+          {atsStressResult && (
+            <AtsStressTestPanel data={atsStressResult} />
+          )}
+        </div>
+      )}
+
+      {activeAnalysisMode === 'tailor' && (
+        <div>
+          {isTailoring && !tailorResult && (
+            <div className="p-16 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+              <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto" />
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                Re-ranking accomplishment vectors and elevating evidenced keywords...
+              </p>
+            </div>
+          )}
+          {tailorResult && (
+            <TailoredResumePanel data={tailorResult} onOpenBuilder={() => onNavigate('resumes', { tab: 'builder' })} />
+          )}
+        </div>
+      )}
+
+      {activeAnalysisMode === 'deep' && (
+        <>
+          {/* Match Results */}
+          {matchResult && matchResult.analysis && (
+            <div className="space-y-6">
+              <DeepMatchPanel
+                report={matchResult.analysis}
+                onTailor={() =>
+                  onNavigate('ai', {
+                    tab: 'rewrite',
+                    jobDescription: jobText,
+                    targetRole: jobTitle
+                  })
+                }
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Fallback Legacy Results if no deep analysis object present */}

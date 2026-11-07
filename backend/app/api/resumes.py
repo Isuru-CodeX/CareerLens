@@ -1,7 +1,7 @@
 import os
 import uuid
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Response
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -13,8 +13,10 @@ from app.models.models import (
     CareerProfile, ProfileExperience, ProfileSkill, ExperienceSource, SkillSource
 )
 from app.schemas.schemas import (
-    ResumeOut, ParsedSectionOut, ParsedSectionUpdate, AnalysisRunOut
+    ResumeOut, ParsedSectionOut, ParsedSectionUpdate, AnalysisRunOut,
+    ResumeTailorRequest, ResumeTailorResponse
 )
+from app.services.tailor_service import TailorService
 from app.services.parsing_service import ParsingService
 from app.services.analysis_service import AnalysisService
 from app.services.pdf_service import PDFService
@@ -708,4 +710,69 @@ async def sync_resume_to_profile(
         "message": f"Successfully imported CV '{resume.file_name}' into your profile!",
         "summary": summary_info
     }
+
+# =========================================================================
+# PILLAR 6: 1-CLICK TARGETED RESUME ADAPTATION & BUILDER API
+# =========================================================================
+
+@router.post("/{resume_id}/tailor", response_model=ResumeTailorResponse)
+def tailor_resume_for_target_job(
+    resume_id: str,
+    payload: Dict[str, Any],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Pillar 6: Auto-tailor this resume for a specific target job posting.
+    Re-ranks bullet accomplishments based on vector similarity, elevates matching keywords,
+    and produces a focused executive summary while keeping original facts strictly intact.
+    """
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    resume_text = resume.raw_text or ""
+    if not resume_text.strip():
+        raise HTTPException(status_code=400, detail="Resume has no extracted text content.")
+
+    job_text = payload.get("job_text", "")
+    target_role = payload.get("target_role")
+    jd_id = payload.get("job_description_id")
+
+    if jd_id:
+        from app.models.models import JobDescription
+        jd = db.query(JobDescription).filter(
+            JobDescription.id == jd_id,
+            JobDescription.user_id == current_user.id
+        ).first()
+        if jd:
+            job_text = jd.raw_text
+            target_role = target_role or jd.title
+
+    if not job_text.strip():
+        raise HTTPException(status_code=400, detail="Target job description text is required for targeted adaptation.")
+
+    tailored_result = TailorService.tailor_resume_for_job(
+        resume_text=resume_text,
+        job_text=job_text,
+        target_role=target_role
+    )
+
+    record_user_activity(
+        db, current_user.id, "resume_auto_tailored",
+        f"Auto-tailored resume '{resume.file_name}' for target role '{tailored_result['tailored_title']}'",
+        entity_type="resume", entity_id=resume.id
+    )
+
+    log_audit(db, current_user.id, "RESUME_TARGET_TAILORED", {
+        "resume_id": resume.id,
+        "target_role": tailored_result["tailored_title"],
+        "elevated_keywords_count": len(tailored_result["elevated_keywords"])
+    })
+
+    return tailored_result
+
 

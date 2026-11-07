@@ -626,3 +626,94 @@ class CvImportStartResponse(BaseModel):
     job_id: str
     message: str = "CV upload accepted. Processing started in background."
 
+# ==========================================
+# Pillar 1 & 4 & 6 Upgrade Schemas
+# ==========================================
+
+class VectorRagMatchRequest(BaseModel):
+    resume_id: Optional[str] = None
+    resume_text: Optional[str] = None
+    job_description_id: Optional[str] = None
+    job_text: Optional[str] = None
+    job_title: Optional[str] = None
+    company: Optional[str] = None
+
+class AlignedChunkPair(BaseModel):
+    requirement: str
+    is_required: bool
+    matching_accomplishment: str
+    section: str
+    cosine_similarity: float
+    confidence_tier: str
+
+class SemanticGapItem(BaseModel):
+    requirement: str
+    is_required: bool
+    closest_resume_text: str
+    closest_similarity: float
+    actionable_bridge: str
+
+class VectorRagMatchResponse(BaseModel):
+    overall_hybrid_score: int
+    semantic_vector_score: int
+    keyword_overlap_score: int
+    chunks_evaluated: Dict[str, Any]
+    aligned_chunks: List[AlignedChunkPair] = []
+    semantic_gaps: List[SemanticGapItem] = []
+    concept_alignment_insights: List[str] = []
+
+class AtsSystemScore(BaseModel):
+    ats_name: str
+    score: int
+    status: str
+    issues: List[Dict[str, Any]] = []
+    passed_checks: List[str] = []
+
+class AtsStressTestResponse(BaseModel):
+    overall_ats_score: int
+    overall_risk_rating: str
+    summary: str
+    file_name: Optional[str] = None
+    systems: Dict[str, AtsSystemScore]
+    all_issues: List[Dict[str, Any]] = []
+    actionable_mitigation_checklist: List[str] = []
+
+class ExtensionJobClipRequest(BaseModel):
+    title: str = Field(..., min_length=2)
+    company: str = Field(..., min_length=1)
+    location: Optional[str] = "Remote"
+    salary_range: Optional[str] = None
+    raw_text: str = Field(..., min_length=10)
+    source_url: Optional[str] = None
+    platform: Optional[str] = "LinkedIn"
+    stage: Optional[str] = "interested"
+
+class ExtensionJobClipResponse(BaseModel):
+    success: bool
+    application_id: str
+    job_description_id: str
+    title: str
+    company: str
+    stage: str
+    match_score: Optional[int] = None
+    message: str
+
+class ResumeTailorRequest(BaseModel):
+    resume_id: str
+    job_description_id: Optional[str] = None
+    job_text: Optional[str] = None
+    target_role: Optional[str] = None
+
+class TailoredSection(BaseModel):
+    section_name: str
+    items: List[str]
+
+class ResumeTailorResponse(BaseModel):
+    tailored_title: str
+    tailored_summary: str
+    reordered_accomplishments: List[Dict[str, Any]]
+    elevated_keywords: List[str]
+    tailored_match_score_delta: int
+    factuality_guarantee: str
+
+

@@ -9,6 +9,7 @@ import { CareerKnowledgeGraph } from '../components/career/CareerKnowledgeGraph'
 import { SalaryPredictorStudio } from '../components/career/SalaryPredictorStudio';
 import { NegotiationCoachStudio } from '../components/career/NegotiationCoachStudio';
 import { LiveMarketJobsStudio } from '../components/career/LiveMarketJobsStudio';
+import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { Resume, CareerProfile } from '../types';
 import { api } from '../services/api';
 import { useLoader } from '../context/useLoader';
@@ -136,75 +137,82 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   };
 
   return (
-    <div className="w-full min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 sm:pt-8 pb-16 space-y-6 sm:space-y-8">
-      {/* View Header with Sub-tab Switcher */}
-      <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-        <div className="space-y-2.5 min-w-0 flex-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider border border-indigo-200/60 dark:border-indigo-800/60">
-            <Compass className="w-4 h-4 shrink-0" />
-            <span>Pillars 3 & 5 • Algorithmic Career Engine</span>
+    <div className="w-full min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-16 space-y-6 sm:space-y-8">
+      {/* Top Disclaimer Banner */}
+      <DisclaimerBanner compact />
+
+      {/* Modern, Elegant Career Intelligence Hero Card */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/90 to-slate-900 border border-indigo-900/40 p-6 sm:p-8 text-white shadow-xl shadow-indigo-500/10">
+        <div className="relative z-10 space-y-5">
+          <div className="space-y-2.5">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-xs uppercase tracking-wider border border-indigo-500/30">
+              <Compass className="w-4 h-4 text-indigo-400 animate-pulse" />
+              <span>Global Career Intelligence & Market Compensation</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
+              Career Navigator & Salary Intelligence
+            </h1>
+            <p className="text-xs sm:text-sm text-indigo-200/80 font-medium max-w-3xl leading-relaxed">
+              Explore real-time global market salary benchmarks, directed Dijkstra career path bridging, ML compensation predictions, and AI-driven negotiation counter-offer simulations.
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-            Career Navigator & Salary Intelligence
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-3xl leading-relaxed">
-            Explore live market salary benchmarks, directed Dijkstra career path bridging, ML compensation predictions, and HR counter-offer simulations.
-          </p>
-        </div>
 
-        {/* Tab Pill Switcher */}
-        <div className="flex flex-wrap items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1 self-start 2xl:self-center">
-          <button
-            type="button"
-            onClick={() => handleTabSelect('market')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'market'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Globe className="w-4 h-4" />
-            <span>Live Salary Explorer</span>
-          </button>
+          {/* Clean, Full-Width Responsive Sub-Tab Switcher */}
+          <div className="pt-4 border-t border-indigo-900/60">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              <button
+                type="button"
+                onClick={() => handleTabSelect('market')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 shrink-0 cursor-pointer ${
+                  activeTab === 'market'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 ring-1 ring-indigo-400'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <Globe className="w-4 h-4 shrink-0" />
+                <span>Live Salary Explorer</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabSelect('graph')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'graph'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Compass className="w-4 h-4" />
-            <span>Career Graph & Bridge</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => handleTabSelect('graph')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 shrink-0 cursor-pointer ${
+                  activeTab === 'graph'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 ring-1 ring-indigo-400'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <Compass className="w-4 h-4 shrink-0" />
+                <span>Career Graph & Bridge</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabSelect('salary')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'salary'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Salary Predictor</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => handleTabSelect('salary')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 shrink-0 cursor-pointer ${
+                  activeTab === 'salary'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 ring-1 ring-indigo-400'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <DollarSign className="w-4 h-4 shrink-0" />
+                <span>Salary Predictor</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabSelect('coach')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'coach'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>Negotiation Coach</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => handleTabSelect('coach')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 shrink-0 cursor-pointer ${
+                  activeTab === 'coach'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 ring-1 ring-indigo-400'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4 shrink-0" />
+                <span>Negotiation Coach</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

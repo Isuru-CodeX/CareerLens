@@ -7,13 +7,16 @@ from app.core.dependencies import get_current_user, log_audit
 from app.models.models import User, Resume, JobDescription, JobMatch, Preset, CareerProfile
 from app.schemas.schemas import (
     JobDescriptionCreate, JobDescriptionOut, MatchRequest, JobMatchOut,
-    JobUrlExtractRequest, JobUrlExtractResponse
+    JobUrlExtractRequest, JobUrlExtractResponse,
+    VectorRagMatchRequest, VectorRagMatchResponse, AtsStressTestResponse
 )
 from app.services.matching_service import MatchingService
 from app.services.job_extractor_service import JobExtractorService
 from app.services.deep_match.service import DeepMatchService, to_legacy
 from app.services.deep_match.heuristics_v2 import jd_years
 from app.services.activity_service import record_user_activity
+from app.services.vector_rag_service import VectorRagService
+from app.services.ats_emulator_service import AtsEmulatorService
 
 logger = logging.getLogger("careerlens.jobs")
 
@@ -265,3 +268,121 @@ def get_match(
     if not match:
         raise HTTPException(status_code=404, detail="Match not found.")
     return match
+
+# =========================================================================
+# PILLAR 1: HYBRID SEMANTIC SEARCH & VECTOR RAG + ATS STRESS-TEST ENGINE
+# =========================================================================
+
+@router.post("/jobs/vector-rag/match", response_model=VectorRagMatchResponse)
+async def perform_vector_rag_match(
+    req: VectorRagMatchRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Executes dense vector chunk embedding, cosine similarity bipartite matching,
+    cross-encoder semantic alignment, and hybrid scoring.
+    """
+    resume_text = req.resume_text or ""
+    file_name = None
+
+    if req.resume_id:
+        resume = db.query(Resume).filter(
+            Resume.id == req.resume_id,
+            Resume.user_id == current_user.id
+        ).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found.")
+        resume_text = resume.raw_text or ""
+        file_name = resume.file_name
+
+    if not resume_text:
+        # Fallback to latest resume
+        latest = db.query(Resume).filter(
+            Resume.user_id == current_user.id
+        ).order_by(Resume.created_at.desc()).first()
+        if latest:
+            resume_text = latest.raw_text or ""
+            file_name = latest.file_name
+
+    if not resume_text.strip():
+        raise HTTPException(status_code=400, detail="No resume content provided for vector RAG matching.")
+
+    job_text = req.job_text or ""
+    target_title = req.job_title
+    target_company = req.company
+
+    if req.job_description_id:
+        jd = db.query(JobDescription).filter(
+            JobDescription.id == req.job_description_id,
+            JobDescription.user_id == current_user.id
+        ).first()
+        if not jd:
+            raise HTTPException(status_code=404, detail="Job description not found.")
+        job_text = jd.raw_text
+        target_title = target_title or jd.title
+        target_company = target_company or jd.company
+
+    if not job_text.strip():
+        raise HTTPException(status_code=400, detail="Job description text is required for vector RAG matching.")
+
+    result = VectorRagService.perform_hybrid_rag_matching(
+        resume_text=resume_text,
+        job_text=job_text,
+        job_title=target_title,
+        company=target_company
+    )
+
+    log_audit(db, current_user.id, "VECTOR_RAG_MATCH_COMPUTED", {
+        "hybrid_score": result["overall_hybrid_score"],
+        "semantic_score": result["semantic_vector_score"],
+        "job_title": target_title
+    })
+
+    return result
+
+@router.post("/jobs/ats-stress-test/raw", response_model=AtsStressTestResponse)
+def run_ats_stress_test_raw(
+    payload: Dict[str, str],
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Stress-tests arbitrary raw resume text against Workday, Greenhouse, Taleo, and Lever.
+    """
+    text = payload.get("text", "")
+    file_name = payload.get("file_name", "Pasted Resume Text")
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Resume text is required for ATS stress-testing.")
+
+    return AtsEmulatorService.run_full_stress_test(text, file_name=file_name)
+
+@router.post("/jobs/ats-stress-test/resume/{resume_id}", response_model=AtsStressTestResponse)
+def run_ats_stress_test_for_resume(
+    resume_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Stress-tests an existing stored resume against Workday, Greenhouse, Taleo, and Lever.
+    """
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    text = resume.raw_text or ""
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Resume has no extracted text.")
+
+    res = AtsEmulatorService.run_full_stress_test(text, file_name=resume.file_name)
+
+    log_audit(db, current_user.id, "ATS_STRESS_TEST_RUN", {
+        "resume_id": resume_id,
+        "overall_score": res["overall_ats_score"],
+        "risk_rating": res["overall_risk_rating"]
+    })
+
+    return res
+

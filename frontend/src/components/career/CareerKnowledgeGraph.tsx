@@ -401,18 +401,19 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         </div>
 
         {/* Bridge Role Selectors with Bulletproof Responsive Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-3.5 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-3.5 items-end w-full min-w-0">
           {/* Baseline Role */}
           <div className="md:col-span-1 xl:col-span-5 space-y-1.5 min-w-0">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
               <span>Current / Baseline Role</span>
             </label>
-            <div className="relative min-w-0 overflow-hidden">
+            <div className="relative min-w-0 w-full overflow-hidden">
               <select
                 value={currentRoleId}
                 onChange={(e) => setCurrentRoleId(e.target.value)}
-                className="w-full min-w-0 max-w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer"
+                style={{ maxWidth: '100%', minWidth: 0 }}
+                className="w-full min-w-0 max-w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer block"
               >
                 {(graphData?.nodes || []).map((n) => (
                   <option key={`curr_${n.id}`} value={n.id}>
@@ -429,11 +430,12 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
               <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
               <span>Target / Dream Role</span>
             </label>
-            <div className="relative min-w-0 overflow-hidden">
+            <div className="relative min-w-0 w-full overflow-hidden">
               <select
                 value={targetRoleId}
                 onChange={(e) => setTargetRoleId(e.target.value)}
-                className="w-full min-w-0 max-w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer"
+                style={{ maxWidth: '100%', minWidth: 0 }}
+                className="w-full min-w-0 max-w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer block"
               >
                 {(graphData?.nodes || []).map((n) => (
                   <option key={`tgt_${n.id}`} value={n.id}>
@@ -444,16 +446,16 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
             </div>
           </div>
 
-          {/* Calculate Path Button (never wraps or truncates to Calculate P...) */}
+          {/* Calculate Path Button (Guaranteed never to wrap or truncate to Calculate P...) */}
           <div className="md:col-span-2 xl:col-span-2 min-w-0">
             <button
               type="button"
               onClick={handleComputeBridge}
               disabled={computingBridge}
-              className="w-full h-[42px] px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-98 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
+              className="w-full h-[42px] min-w-[155px] px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-98 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               {computingBridge ? <RefreshCw className="w-4 h-4 animate-spin shrink-0" /> : <Zap className="w-4 h-4 shrink-0" />}
-              <span>Calculate Path</span>
+              <span className="whitespace-nowrap">Calculate Path</span>
             </button>
           </div>
         </div>

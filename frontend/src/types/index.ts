@@ -876,6 +876,106 @@ export interface NavigatorIndustryItem {
   openings_count?: number;
 }
 
+// ==========================================
+// PILLAR 1: VECTOR RAG & ATS STRESS TEST TYPES
+// ==========================================
+
+export interface AlignedChunkPair {
+  requirement: string;
+  is_required: boolean;
+  matching_accomplishment: string;
+  section: string;
+  cosine_similarity: number;
+  confidence_tier: string;
+}
+
+export interface SemanticGapItem {
+  requirement: string;
+  is_required: boolean;
+  closest_resume_text: string;
+  closest_similarity: number;
+  actionable_bridge: string;
+}
+
+export interface VectorRagMatchResponse {
+  overall_hybrid_score: number;
+  semantic_vector_score: number;
+  keyword_overlap_score: number;
+  chunks_evaluated: {
+    resume_chunks_count: number;
+    job_requirements_count: number;
+    aligned_count: number;
+    gap_count: number;
+  };
+  aligned_chunks: AlignedChunkPair[];
+  semantic_gaps: SemanticGapItem[];
+  concept_alignment_insights: string[];
+}
+
+export interface AtsSystemScore {
+  ats_name: string;
+  score: number;
+  status: 'PASSED' | 'WARNING' | 'FAILED' | string;
+  issues: Array<{
+    severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | string;
+    code: string;
+    message: string;
+  }>;
+  passed_checks: string[];
+}
+
+export interface AtsStressTestResponse {
+  overall_ats_score: number;
+  overall_risk_rating: string;
+  summary: string;
+  file_name?: string | null;
+  systems: {
+    workday: AtsSystemScore;
+    greenhouse: AtsSystemScore;
+    taleo: AtsSystemScore;
+    lever: AtsSystemScore;
+  };
+  all_issues: Array<{
+    system: string;
+    severity: string;
+    code: string;
+    message: string;
+  }>;
+  actionable_mitigation_checklist: string[];
+}
+
+// ==========================================
+// PILLAR 4 & 6: EXTENSION CLIP & RESUME TAILOR TYPES
+// ==========================================
+
+export interface ExtensionJobClipResponse {
+  success: boolean;
+  application_id: string;
+  job_description_id: string;
+  title: string;
+  company: string;
+  stage: string;
+  match_score?: number | null;
+  message: string;
+}
+
+export interface ResumeTailorResponse {
+  tailored_title: string;
+  tailored_summary: string;
+  reordered_accomplishments: Array<{
+    id: string;
+    section: string;
+    text: string;
+    similarity_score: number;
+    aligned_requirement: string;
+    is_top_priority: boolean;
+  }>;
+  elevated_keywords: string[];
+  tailored_match_score_delta: number;
+  factuality_guarantee: string;
+}
+
+
 
 
 

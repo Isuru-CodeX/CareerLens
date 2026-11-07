@@ -39,7 +39,11 @@ import {
   JobRoleItem,
   JobPostingItem,
   RoleSalaryResponse,
-  NavigatorIndustryItem
+  NavigatorIndustryItem,
+  VectorRagMatchResponse,
+  AtsStressTestResponse,
+  ExtensionJobClipResponse,
+  ResumeTailorResponse
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -996,6 +1000,71 @@ class ApiService {
   async triggerNavigatorRefresh(): Promise<{ status: string; message: string; retry_after_seconds?: number }> {
     return this.request('/navigator/refresh', {
       method: 'POST'
+    });
+  }
+
+  // ==========================================
+  // PILLAR 1: HYBRID VECTOR RAG & ATS STRESS-TEST API
+  // ==========================================
+
+  async performVectorRagMatch(data: {
+    resume_id?: string;
+    resume_text?: string;
+    job_description_id?: string;
+    job_text?: string;
+    job_title?: string;
+    company?: string;
+  }): Promise<VectorRagMatchResponse> {
+    return this.request<VectorRagMatchResponse>('/jobs/vector-rag/match', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async runAtsStressTestRaw(text: string, fileName?: string): Promise<AtsStressTestResponse> {
+    return this.request<AtsStressTestResponse>('/jobs/ats-stress-test/raw', {
+      method: 'POST',
+      body: JSON.stringify({ text, file_name: fileName || 'Uploaded Resume' })
+    });
+  }
+
+  async runAtsStressTestResume(resumeId: string): Promise<AtsStressTestResponse> {
+    return this.request<AtsStressTestResponse>(`/jobs/ats-stress-test/resume/${resumeId}`, {
+      method: 'POST'
+    });
+  }
+
+  // ==========================================
+  // PILLAR 4 & 6: EXTENSION CLIP & RESUME TAILOR API
+  // ==========================================
+
+  async clipJobFromExtension(data: {
+    title: string;
+    company: string;
+    location?: string;
+    salary_range?: string;
+    raw_text: string;
+    source_url?: string;
+    platform?: string;
+    stage?: string;
+  }): Promise<ExtensionJobClipResponse> {
+    return this.request<ExtensionJobClipResponse>('/applications/extension/clip', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async tailorResumeForJob(
+    resumeId: string,
+    data: {
+      job_description_id?: string;
+      job_text?: string;
+      target_role?: string;
+    }
+  ): Promise<ResumeTailorResponse> {
+    return this.request<ResumeTailorResponse>(`/resumes/${resumeId}/tailor`, {
+      method: 'POST',
+      body: JSON.stringify(data)
     });
   }
 }
