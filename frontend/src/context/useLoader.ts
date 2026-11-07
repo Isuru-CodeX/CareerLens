@@ -8,3 +8,4 @@ export const useLoader = (): LoadingContextType => {
   }
   return context;
 };
+

@@ -155,7 +155,7 @@ const MainLayout: React.FC = () => {
           onQuickUpload={handleQuickUpload}
         />
 
-        <main className="flex-1 w-full min-w-0 pb-16">
+        <main className="flex-1 w-full min-w-0 pt-2 sm:pt-4 pb-16">
           {currentView === 'dashboard' && (
             <DashboardView
               onNavigate={handleNavigate}

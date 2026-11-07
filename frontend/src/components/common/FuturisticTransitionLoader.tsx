@@ -184,3 +184,4 @@ export const FuturisticTransitionLoader: React.FC<FuturisticTransitionLoaderProp
     </div>
   );
 };
+

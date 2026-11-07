@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Globe,
   RefreshCw,
@@ -26,6 +26,7 @@ import {
   NavigatorIndustryItem
 } from '../../types';
 import { api } from '../../services/api';
+import { useLoader } from '../../context/useLoader';
 
 interface LiveMarketJobsStudioProps {
   onNavigateToSalary?: (roleTitle: string) => void;
@@ -55,6 +56,7 @@ const DEFAULT_COUNTRIES: CountryMeta[] = [
   { code: 'sg', name: 'Singapore', flag: '🇸🇬', currency: 'SGD', symbol: 'S$' },
   { code: 'jp', name: 'Japan', flag: '🇯🇵', currency: 'JPY', symbol: '¥' },
   { code: 'in', name: 'India', flag: '🇮🇳', currency: 'INR', symbol: '₹' },
+  { code: 'lk', name: 'Sri Lanka', flag: '🇱🇰', currency: 'LKR', symbol: 'Rs. ' },
   { code: 'ae', name: 'United Arab Emirates', flag: '🇦🇪', currency: 'AED', symbol: 'AED' },
   { code: 'es', name: 'Spain', flag: '🇪🇸', currency: 'EUR', symbol: '€' },
   { code: 'se', name: 'Sweden', flag: '🇸🇪', currency: 'SEK', symbol: 'kr' },
@@ -75,7 +77,6 @@ const TIMEFRAMES = [
   { id: 'today', label: 'Today (Intraday)' },
   { id: '7d', label: '7 Days' },
   { id: '30d', label: '30 Days' },
-  { id: 'week', label: '12 Weeks (W-o-W)' },
   { id: 'year', label: '5 Years (Y-o-Y)' },
 ];
 
@@ -102,6 +103,7 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
 
   const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
   const [loadingDetails, setLoadingDetails] = useState<boolean>(false);
+  const [refreshNonce, setRefreshNonce] = useState<number>(0);
 
   // Animated Calibration Loading Screen (Radar Animation)
   const [isCalibrating, setIsCalibrating] = useState<boolean>(true);
@@ -130,33 +132,18 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
     return () => { active = false; };
   }, []);
 
-  // Fetch Roles with active country & experience filters
-  const fetchRoles = useCallback(() => {
-    setLoadingRoles(true);
-    api.getNavigatorRoles({
-      industry_id: selectedIndustryId || undefined,
-      q: searchQuery.trim() || undefined,
-      country: selectedCountry,
-      experience_level: selectedExperience
-    })
-      .then((data) => {
-        setRoles(data);
-        if (data.length > 0) {
-          if (initialRoleTitle) {
-            const match = data.find(r => r.title.toLowerCase() === initialRoleTitle.toLowerCase());
-            setSelectedRole(match || data[0]);
-          } else if (!selectedRole || !data.some(r => r.id === selectedRole.id)) {
-            setSelectedRole(data[0]);
-          }
-        }
-      })
-      .catch((err) => console.error('Failed to fetch navigator roles:', err))
-      .finally(() => setLoadingRoles(false));
-  }, [selectedIndustryId, searchQuery, selectedCountry, selectedExperience, initialRoleTitle, selectedRole]);
+  const { triggerTransition } = useLoader();
+  const initialRoleAppliedRef = useRef(false);
+  const selectedRoleRef = useRef<JobRoleItem | null>(null);
 
-  // Trigger fetch on parameter changes
   useEffect(() => {
-    let active = true;
+    selectedRoleRef.current = selectedRole;
+  }, [selectedRole]);
+
+  // Fetch Roles with active country & experience filters
+  useEffect(() => {
+    const isMounted = { current: true };
+
     api.getNavigatorRoles({
       industry_id: selectedIndustryId || undefined,
       q: searchQuery.trim() || undefined,
@@ -164,24 +151,38 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
       experience_level: selectedExperience
     })
       .then((data) => {
-        if (!active) return;
+        if (!isMounted.current) return;
         setRoles(data);
         if (data.length > 0) {
-          if (initialRoleTitle) {
+          if (!initialRoleAppliedRef.current && initialRoleTitle) {
+            initialRoleAppliedRef.current = true;
             const match = data.find(r => r.title.toLowerCase() === initialRoleTitle.toLowerCase());
             setSelectedRole(match || data[0]);
-          } else if (!selectedRole || !data.some(r => r.id === selectedRole.id)) {
-            setSelectedRole(data[0]);
+          } else {
+            const currentSelected = selectedRoleRef.current;
+            if (currentSelected) {
+              const stillExists = data.find(r => r.id === currentSelected.id);
+              setSelectedRole(stillExists || data[0]);
+            } else {
+              setSelectedRole(data[0]);
+            }
           }
         }
       })
       .catch((err) => console.error('Failed to fetch navigator roles:', err))
       .finally(() => {
-        if (active) setLoadingRoles(false);
+        if (isMounted.current) setLoadingRoles(false);
       });
 
-    return () => { active = false; };
-  }, [selectedIndustryId, searchQuery, selectedCountry, selectedExperience, initialRoleTitle, selectedRole]);
+    return () => { isMounted.current = false; };
+  }, [selectedIndustryId, searchQuery, selectedCountry, selectedExperience, initialRoleTitle, refreshNonce]);
+
+  // Explicitly select a role to inspect its live chart and breakdowns
+  const handleSelectRole = (role: JobRoleItem) => {
+    if (selectedRole?.id === role.id) return;
+    setLoadingDetails(true);
+    setSelectedRole(role);
+  };
 
   // Load detailed Remote.com salary breakdown for selected role
   useEffect(() => {
@@ -208,7 +209,7 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
   // Initial Calibration Screen timer (Remote.com style radar loading)
   useEffect(() => {
     const t1 = setTimeout(() => {
-      setCalibrationPhase('Harmonizing 18 national currencies and Purchasing Power Parity (PPP)...');
+      setCalibrationPhase('Harmonizing 19 national currencies and Purchasing Power Parity (PPP)...');
     }, 600);
     const t2 = setTimeout(() => {
       setCalibrationPhase('Live compensation indices successfully calibrated!');
@@ -224,10 +225,25 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
     };
   }, []);
 
+  // Country Change with futuristic transition loader
+  const handleCountryChange = (newCountryCode: string) => {
+    if (newCountryCode === selectedCountry) return;
+    const targetCountry = countries.find(c => c.code === newCountryCode);
+    const countryName = targetCountry ? targetCountry.name : newCountryCode.toUpperCase();
+    triggerTransition({
+      title: `Calibrating ${countryName} Telemetry...`,
+      subtitle: `Harmonizing 2026 local market compensation benchmarks, tax brackets, and purchasing power for ${countryName}...`,
+      badge: 'Remote.com Telemetry',
+      icon: 'globe',
+      accentColor: 'emerald'
+    }, 450);
+    setSelectedCountry(newCountryCode);
+  };
+
   // Manual Trigger Refresh with Animated Calibration Screen
   const handleManualSync = () => {
     setIsCalibrating(true);
-    setCalibrationPhase('Refreshing real-time compensation indices across 18 countries...');
+    setCalibrationPhase('Refreshing real-time compensation indices across 19 countries...');
     api.triggerNavigatorRefresh()
       .then(() => {
         setCalibrationPhase('Applying updated volatility metrics and percentile distributions...');
@@ -237,12 +253,18 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
       })
       .finally(() => {
         setTimeout(() => {
-          fetchRoles();
+          setRefreshNonce((n) => n + 1);
           setCalibrationPhase('Rates up-to-date!');
           setTimeout(() => setIsCalibrating(false), 500);
         }, 900);
       });
   };
+
+  // Persistent Total Roles Count across all industries (does not shrink when filtered)
+  const totalRolesCount = useMemo(() => {
+    const fromIndustries = industries.reduce((acc, ind) => acc + (ind.role_count || 0), 0);
+    return fromIndustries > 0 ? fromIndustries : (selectedIndustryId === null && roles.length > 0 ? roles.length : 46);
+  }, [industries, roles.length, selectedIndustryId]);
 
   // Active Country Meta
   const currentCountry = useMemo(() => {
@@ -353,7 +375,7 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
-              Comprehensive compensation intelligence modeled after Remote.com. Calibrated across 18 countries, 45+ roles, and 5 experience tiers.
+              Comprehensive compensation intelligence modeled after Remote.com. Calibrated across 19 countries, 45+ roles, and 5 experience tiers.
             </p>
           </div>
         </div>
@@ -386,12 +408,12 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
             />
           </div>
 
-          {/* 18-Country Dropdown */}
+          {/* 19-Country Dropdown */}
           <div className="md:col-span-4 relative">
             <label className="sr-only">Country</label>
             <select
               value={selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value)}
+              onChange={(e) => handleCountryChange(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
             >
               {countries.map((c) => (
@@ -474,7 +496,7 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
                   : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              All Industries ({roles.length})
+              All Industries ({totalRolesCount})
             </button>
             {industries.map((ind) => (
               <button
@@ -512,7 +534,7 @@ export const LiveMarketJobsStudio: React.FC<LiveMarketJobsStudioProps> = ({
                 return (
                   <div
                     key={role.id}
-                    onClick={() => setSelectedRole(role)}
+                    onClick={() => handleSelectRole(role)}
                     className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-indigo-50/60 dark:bg-indigo-950/30 border-indigo-500/80 shadow-md ring-1 ring-indigo-500/30'

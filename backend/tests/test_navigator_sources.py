@@ -224,7 +224,7 @@ def test_navigator_api_endpoints():
     assert res_ind.status_code == 200
     industries = res_ind.json()
     assert len(industries) >= 4
-    tech_ind = next((i for i in industries if i["name"] == "Technology"), None)
+    tech_ind = next((i for i in industries if "Technology" in i["name"]), None)
     assert tech_ind is not None
 
     # Test GET /api/navigator/roles

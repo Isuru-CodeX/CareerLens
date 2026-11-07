@@ -136,7 +136,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pb-16 space-y-6 sm:space-y-8">
+    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 sm:pt-8 lg:pt-10 pb-16 space-y-6 sm:space-y-8">
       {/* View Header with Sub-tab Switcher */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
         <div className="space-y-2 min-w-0 flex-1">

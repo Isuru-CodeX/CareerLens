@@ -31,27 +31,28 @@ _LAST_MANUAL_REFRESH: Optional[datetime] = None
 MANUAL_REFRESH_COOLDOWN_SECONDS = 600
 
 # ---------------------------------------------------------------------------
-# Global Country Registry (18 Countries)
+# Global Country Registry (19 Countries including Sri Lanka)
 # ---------------------------------------------------------------------------
 GLOBAL_COUNTRIES: Dict[str, Dict[str, Any]] = {
-    "us": {"name": "United States", "currency": "USD", "symbol": "$", "rate": 1.0, "ppp": 1.0, "flag": "🇺🇸"},
-    "gb": {"name": "United Kingdom", "currency": "GBP", "symbol": "£", "rate": 0.79, "ppp": 0.65, "flag": "🇬🇧"},
-    "de": {"name": "Germany", "currency": "EUR", "symbol": "€", "rate": 0.92, "ppp": 0.72, "flag": "🇩🇪"},
-    "ca": {"name": "Canada", "currency": "CAD", "symbol": "C$", "rate": 1.36, "ppp": 1.15, "flag": "🇨🇦"},
-    "au": {"name": "Australia", "currency": "AUD", "symbol": "A$", "rate": 1.54, "ppp": 1.25, "flag": "🇦🇺"},
-    "nl": {"name": "Netherlands", "currency": "EUR", "symbol": "€", "rate": 0.92, "ppp": 0.75, "flag": "🇳🇱"},
-    "ch": {"name": "Switzerland", "currency": "CHF", "symbol": "CHF", "rate": 0.89, "ppp": 1.15, "flag": "🇨🇭"},
-    "fr": {"name": "France", "currency": "EUR", "symbol": "€", "rate": 0.92, "ppp": 0.68, "flag": "🇫🇷"},
-    "ie": {"name": "Ireland", "currency": "EUR", "symbol": "€", "rate": 0.92, "ppp": 0.76, "flag": "🇮🇪"},
-    "sg": {"name": "Singapore", "currency": "SGD", "symbol": "S$", "rate": 1.34, "ppp": 1.05, "flag": "🇸🇬"},
-    "jp": {"name": "Japan", "currency": "JPY", "symbol": "¥", "rate": 154.0, "ppp": 82.0, "flag": "🇯🇵"},
-    "in": {"name": "India", "currency": "INR", "symbol": "₹", "rate": 84.5, "ppp": 18.5, "flag": "🇮🇳"},
-    "ae": {"name": "United Arab Emirates", "currency": "AED", "symbol": "AED", "rate": 3.67, "ppp": 3.10, "flag": "🇦🇪"},
-    "es": {"name": "Spain", "currency": "EUR", "symbol": "€", "rate": 0.92, "ppp": 0.58, "flag": "🇪🇸"},
-    "se": {"name": "Sweden", "currency": "SEK", "symbol": "kr", "rate": 10.6, "ppp": 7.8, "flag": "🇸🇪"},
-    "br": {"name": "Brazil", "currency": "BRL", "symbol": "R$", "rate": 5.4, "ppp": 2.2, "flag": "🇧🇷"},
-    "pl": {"name": "Poland", "currency": "PLN", "symbol": "zł", "rate": 4.0, "ppp": 2.4, "flag": "🇵🇱"},
-    "nz": {"name": "New Zealand", "currency": "NZD", "symbol": "NZ$", "rate": 1.66, "ppp": 1.20, "flag": "🇳🇿"},
+    "us": {"name": "United States", "currency": "USD", "symbol": "$", "rate": 1.0, "local_mult": 1.0, "ppp": 1.0, "flag": "🇺🇸"},
+    "gb": {"name": "United Kingdom", "currency": "GBP", "symbol": "£", "rate": 0.79, "local_mult": 0.52, "ppp": 0.65, "flag": "🇬🇧"},
+    "de": {"name": "Germany", "currency": "EUR", "symbol": "€", "rate": 0.92, "local_mult": 0.55, "ppp": 0.72, "flag": "🇩🇪"},
+    "ca": {"name": "Canada", "currency": "CAD", "symbol": "C$", "rate": 1.36, "local_mult": 0.85, "ppp": 1.15, "flag": "🇨🇦"},
+    "au": {"name": "Australia", "currency": "AUD", "symbol": "A$", "rate": 1.54, "local_mult": 0.95, "ppp": 1.25, "flag": "🇦🇺"},
+    "nl": {"name": "Netherlands", "currency": "EUR", "symbol": "€", "rate": 0.92, "local_mult": 0.54, "ppp": 0.75, "flag": "🇳🇱"},
+    "ch": {"name": "Switzerland", "currency": "CHF", "symbol": "CHF", "rate": 0.89, "local_mult": 0.95, "ppp": 1.15, "flag": "🇨🇭"},
+    "fr": {"name": "France", "currency": "EUR", "symbol": "€", "rate": 0.92, "local_mult": 0.44, "ppp": 0.68, "flag": "🇫🇷"},
+    "ie": {"name": "Ireland", "currency": "EUR", "symbol": "€", "rate": 0.92, "local_mult": 0.58, "ppp": 0.76, "flag": "🇮🇪"},
+    "sg": {"name": "Singapore", "currency": "SGD", "symbol": "S$", "rate": 1.34, "local_mult": 0.76, "ppp": 1.05, "flag": "🇸🇬"},
+    "jp": {"name": "Japan", "currency": "JPY", "symbol": "¥", "rate": 154.0, "local_mult": 46.0, "ppp": 82.0, "flag": "🇯🇵"},
+    "in": {"name": "India", "currency": "INR", "symbol": "₹", "rate": 84.5, "local_mult": 14.5, "ppp": 18.5, "flag": "🇮🇳"},
+    "lk": {"name": "Sri Lanka", "currency": "LKR", "symbol": "Rs. ", "rate": 305.0, "local_mult": 24.0, "ppp": 0.32, "flag": "🇱🇰"},
+    "ae": {"name": "United Arab Emirates", "currency": "AED", "symbol": "AED", "rate": 3.67, "local_mult": 1.85, "ppp": 3.10, "flag": "🇦🇪"},
+    "es": {"name": "Spain", "currency": "EUR", "symbol": "€", "rate": 0.92, "local_mult": 0.38, "ppp": 0.58, "flag": "🇪🇸"},
+    "se": {"name": "Sweden", "currency": "SEK", "symbol": "kr", "rate": 10.6, "local_mult": 4.5, "ppp": 7.8, "flag": "🇸🇪"},
+    "br": {"name": "Brazil", "currency": "BRL", "symbol": "R$", "rate": 5.4, "local_mult": 1.15, "ppp": 2.2, "flag": "🇧🇷"},
+    "pl": {"name": "Poland", "currency": "PLN", "symbol": "zł", "rate": 4.0, "local_mult": 1.35, "ppp": 2.4, "flag": "🇵🇱"},
+    "nz": {"name": "New Zealand", "currency": "NZD", "symbol": "NZ$", "rate": 1.66, "local_mult": 0.88, "ppp": 1.20, "flag": "🇳🇿"},
 }
 
 EXPERIENCE_TIERS: Dict[str, Dict[str, Any]] = {
@@ -197,8 +198,69 @@ REALISTIC_BENCHMARKS: Dict[str, Dict[str, float]] = {
     "Legal Operations Analyst": {"p10": 74000, "p25": 86000, "median": 104000, "p75": 126000, "p90": 152000},
 }
 
-# In-Demand Technical Skills with Pay Premiums (Remote.com style)
+# ---------------------------------------------------------------------------
+# Domain Fallback Premiums by Industry
+# ---------------------------------------------------------------------------
+INDUSTRY_SKILL_PREMIUMS: Dict[str, List[Dict[str, str]]] = {
+    "Healthcare & Life Sciences": [
+        {"skill": "Clinical Trial Data Standards (CDISC / GCP)", "boost": "+17%"},
+        {"skill": "Electronic Health Record Integration (Epic / HL7)", "boost": "+15%"},
+        {"skill": "Pharmacovigilance & Patient Safety Protocols", "boost": "+14%"},
+        {"skill": "HIPAA & Health Regulatory Compliance", "boost": "+12%"},
+    ],
+    "Legal & Compliance": [
+        {"skill": "Global Privacy Governance (GDPR / CCPA / CPRA)", "boost": "+18%"},
+        {"skill": "Contract Lifecycle Management (CLM Automation)", "boost": "+14%"},
+        {"skill": "AML / KYC Regulatory Auditing & Risk Controls", "boost": "+16%"},
+        {"skill": "Data Processing Agreements (DPA) & Cross-Border Law", "boost": "+15%"},
+    ],
+    "Finance, Banking & FinTech": [
+        {"skill": "Complex Financial Modeling & Valuation (DCF / LBO)", "boost": "+18%"},
+        {"skill": "US GAAP, SOX & SEC Statutory Reporting", "boost": "+14%"},
+        {"skill": "Risk & Capital Management (Basel III / VaR)", "boost": "+16%"},
+        {"skill": "Algorithmic Trading & High-Frequency Execution", "boost": "+20%"},
+    ],
+    "Marketing & Growth": [
+        {"skill": "Performance Marketing & ROAS Bidding Strategy", "boost": "+16%"},
+        {"skill": "Product Go-To-Market (GTM) Strategy & Launches", "boost": "+15%"},
+        {"skill": "Customer Lifetime Value (CAC / LTV) Modeling", "boost": "+14%"},
+        {"skill": "Omnichannel Brand Positioning & Narrative Design", "boost": "+12%"},
+    ],
+    "Operations & Management": [
+        {"skill": "Scaled Agile Coaching (SAFe / Agile Delivery)", "boost": "+15%"},
+        {"skill": "Business Process Optimization (Lean Six Sigma)", "boost": "+14%"},
+        {"skill": "Enterprise Talent Sourcing & Executive Recruiting", "boost": "+13%"},
+        {"skill": "Vendor Governance & SLA Contract Performance", "boost": "+12%"},
+    ],
+    "Engineering & Hardware": [
+        {"skill": "High-Speed PCB Design & Signal Integrity (Altium)", "boost": "+17%"},
+        {"skill": "ROS2 Robotics Middleware & Sensor Fusion", "boost": "+18%"},
+        {"skill": "Finite Element Analysis (FEA / Thermal CAD)", "boost": "+15%"},
+        {"skill": "Embedded RTOS & Microcontroller Firmware", "boost": "+16%"},
+    ],
+    "Product & Design": [
+        {"skill": "Enterprise Design System & Token Architecture", "boost": "+16%"},
+        {"skill": "Technical PRD Authoring & System Alignment", "boost": "+15%"},
+        {"skill": "Quantitative Usability Analytics & A/B Testing", "boost": "+14%"},
+        {"skill": "Accessibility Compliance (WCAG 2.1 AA Standards)", "boost": "+12%"},
+    ],
+    "Data Science & Analytics": [
+        {"skill": "LLM Fine-Tuning & Multi-Modal Evaluation", "boost": "+20%"},
+        {"skill": "Lakehouse Data Mesh (Iceberg / Databricks)", "boost": "+17%"},
+        {"skill": "Stochastic Quantitative Modeling & Time Series", "boost": "+18%"},
+        {"skill": "dbt Semantic Layer & Dimensional Modeling", "boost": "+14%"},
+    ],
+    "Technology & Software": [
+        {"skill": "Distributed High-Concurrency Architecture", "boost": "+16%"},
+        {"skill": "Multi-Cloud Kubernetes & Platform Engineering", "boost": "+15%"},
+        {"skill": "Vector Embeddings & Hybrid RAG Retrieval", "boost": "+18%"},
+        {"skill": "Zero Trust Security & DevSecOps Pipelines", "boost": "+14%"},
+    ],
+}
+
+# In-Demand Technical Skills with Pay Premiums (Role-Specific)
 ROLE_SKILL_PREMIUMS: Dict[str, List[Dict[str, str]]] = {
+    # Technology & Software
     "Software Engineer": [
         {"skill": "System Architecture & High Concurrency", "boost": "+14%"},
         {"skill": "Cloud Infrastructure (AWS / GCP)", "boost": "+12%"},
@@ -210,6 +272,24 @@ ROLE_SKILL_PREMIUMS: Dict[str, List[Dict[str, str]]] = {
         {"skill": "Next.js / React 19 Performance", "boost": "+12%"},
         {"skill": "PostgreSQL & Vector Embeddings", "boost": "+14%"},
         {"skill": "Enterprise Security & Auth", "boost": "+11%"},
+    ],
+    "Frontend Software Engineer": [
+        {"skill": "Micro-Frontends & Design Tokens", "boost": "+14%"},
+        {"skill": "Web Vitals & Client-Side Rendering Optimization", "boost": "+13%"},
+        {"skill": "State Machine Architecture (Zustand / Redux)", "boost": "+11%"},
+        {"skill": "TypeScript Strict Monorepo Architecture", "boost": "+12%"},
+    ],
+    "Backend Systems Engineer": [
+        {"skill": "Distributed Transaction Consistency & gRPC", "boost": "+16%"},
+        {"skill": "High-Throughput Database Sharding & Partitioning", "boost": "+15%"},
+        {"skill": "Kafka / Event Streaming Topology", "boost": "+17%"},
+        {"skill": "Low-Latency Caching (Redis Cluster)", "boost": "+13%"},
+    ],
+    "DevOps & Platform Engineer": [
+        {"skill": "Kubernetes Cluster Multi-Tenancy & Operators", "boost": "+17%"},
+        {"skill": "Terraform Infrastructure as Code (IaC)", "boost": "+14%"},
+        {"skill": "GitOps CI/CD Pipelines (ArgoCD)", "boost": "+15%"},
+        {"skill": "Observability & OpenTelemetry (Grafana/Datadog)", "boost": "+13%"},
     ],
     "Cloud Solutions Architect": [
         {"skill": "Multi-Region Disaster Recovery", "boost": "+17%"},
@@ -228,7 +308,251 @@ ROLE_SKILL_PREMIUMS: Dict[str, List[Dict[str, str]]] = {
         {"skill": "dbt & Dataform Transformation", "boost": "+13%"},
         {"skill": "Real-Time Streaming (Kafka / Flink)", "boost": "+18%"},
         {"skill": "Spark Performance Tuning", "boost": "+15%"},
-    ]
+    ],
+    "Cybersecurity Architect": [
+        {"skill": "Cloud Security Posture Management (CSPM)", "boost": "+17%"},
+        {"skill": "Threat Modeling & SIEM Incident Automation", "boost": "+16%"},
+        {"skill": "Zero Trust Network Access (ZTNA)", "boost": "+18%"},
+        {"skill": "SOC2 & FedRAMP Compliance Leadership", "boost": "+15%"},
+    ],
+    "Mobile Application Developer": [
+        {"skill": "Cross-Platform Flutter / React Native Native Bridging", "boost": "+15%"},
+        {"skill": "Offline-First Sync & SQLite Embedded Storage", "boost": "+14%"},
+        {"skill": "Swift / Kotlin Performance Profiling", "boost": "+13%"},
+        {"skill": "Mobile CI/CD & Fastlane Automation", "boost": "+12%"},
+    ],
+    "QA & Automation Engineer": [
+        {"skill": "Playwright & Cypress End-to-End Orchestration", "boost": "+15%"},
+        {"skill": "Distributed Load Testing (k6 / Locust)", "boost": "+14%"},
+        {"skill": "API Contract Testing & Schema Verification", "boost": "+13%"},
+        {"skill": "CI/CD Test Parallelization & Flakiness Triaging", "boost": "+12%"},
+    ],
+    "Systems & Embedded Engineer": [
+        {"skill": "FreeRTOS & Embedded Linux Kernel Customization", "boost": "+17%"},
+        {"skill": "Hardware Communication Protocols (CAN / SPI / I2C)", "boost": "+14%"},
+        {"skill": "Ultra-Low Power Firmware Optimization", "boost": "+15%"},
+        {"skill": "Rust on Embedded Bare-Metal Microcontrollers", "boost": "+18%"},
+    ],
+
+    # Data Science & Analytics
+    "Data Scientist": [
+        {"skill": "Predictive Modeling & Scikit-Learn Frameworks", "boost": "+15%"},
+        {"skill": "Causal Inference & Advanced A/B Testing", "boost": "+16%"},
+        {"skill": "Feature Store Architecture (Feast / Hopsworks)", "boost": "+14%"},
+        {"skill": "Python / SQL Pipeline Automation", "boost": "+13%"},
+    ],
+    "Business Intelligence Analyst": [
+        {"skill": "Tableau & Power BI Enterprise Data Modeling", "boost": "+14%"},
+        {"skill": "Complex SQL CTEs & Window Functions", "boost": "+13%"},
+        {"skill": "Data Storytelling & Executive Scorecards", "boost": "+12%"},
+        {"skill": "Snowflake / BigQuery Semantic Modeling", "boost": "+15%"},
+    ],
+    "Data Analyst": [
+        {"skill": "Advanced SQL & Relational Query Tuning", "boost": "+14%"},
+        {"skill": "Interactive Dashboard Construction", "boost": "+12%"},
+        {"skill": "Cohort Analysis & Customer Retention Metrics", "boost": "+13%"},
+        {"skill": "Python Data Manipulation (Pandas / Polars)", "boost": "+13%"},
+    ],
+    "AI / Deep Learning Researcher": [
+        {"skill": "Transformer Architecture & Attention Innovations", "boost": "+22%"},
+        {"skill": "Reinforcement Learning from Human Feedback (RLHF)", "boost": "+21%"},
+        {"skill": "Multi-Modal Vision-Language Architecture", "boost": "+20%"},
+        {"skill": "Low-Bit Quantization & Efficient Inference (AWQ/GPTQ)", "boost": "+18%"},
+    ],
+    "Quantitative Analyst / Modeler": [
+        {"skill": "Stochastic Calculus & Derivative Asset Pricing", "boost": "+20%"},
+        {"skill": "Monte Carlo Simulation & High-Concurrency Modeling", "boost": "+18%"},
+        {"skill": "Econometric Time Series Risk Models", "boost": "+16%"},
+        {"skill": "C++ High-Performance Numerical Computing", "boost": "+19%"},
+    ],
+    "Big Data Architect": [
+        {"skill": "Data Mesh & Distributed Lakehouse Topologies", "boost": "+18%"},
+        {"skill": "Apache Spark Streaming at Multi-Petabyte Scale", "boost": "+17%"},
+        {"skill": "Databricks Unity Catalog & Enterprise Lineage", "boost": "+15%"},
+        {"skill": "Cloud Data Storage Tiering & Cost Governance", "boost": "+16%"},
+    ],
+
+    # Product & Design
+    "Product Manager": [
+        {"skill": "Customer Discovery & User Outcome Roadmapping", "boost": "+15%"},
+        {"skill": "Data-Driven Metric Trees & Experimentation Prioritization", "boost": "+14%"},
+        {"skill": "Agile Backlog Grooming & Sprint Velocity Alignment", "boost": "+12%"},
+        {"skill": "Executive Stakeholder Alignment & GTM Integration", "boost": "+16%"},
+    ],
+    "Technical Product Manager": [
+        {"skill": "Developer API Architecture & SDK Specifications", "boost": "+17%"},
+        {"skill": "Microservices Migration & Cloud Platform Strategy", "boost": "+16%"},
+        {"skill": "Technical Feasibility Analysis & System Dependencies", "boost": "+14%"},
+        {"skill": "Developer Experience (DX) & Portal Design", "boost": "+13%"},
+    ],
+    "UI/UX Designer": [
+        {"skill": "Design System Architecture & Token Foundations", "boost": "+16%"},
+        {"skill": "Advanced Figma Component Variant Logic", "boost": "+14%"},
+        {"skill": "Micro-Interactions & Accessible Motion Design", "boost": "+13%"},
+        {"skill": "User Journey Mapping & Information Architecture", "boost": "+12%"},
+    ],
+    "Design Systems Lead": [
+        {"skill": "Multi-Platform Design Token Automation", "boost": "+18%"},
+        {"skill": "Cross-Functional Engineering Sync & Component Parity", "boost": "+16%"},
+        {"skill": "WCAG 2.1 AAA Accessibility Governance", "boost": "+15%"},
+        {"skill": "Design System Versioning & Deprecation Strategies", "boost": "+14%"},
+    ],
+    "User Experience Researcher": [
+        {"skill": "Qualitative Generative User Research & Coding", "boost": "+15%"},
+        {"skill": "Quantitative Usability Benchmarking & SUS Scoring", "boost": "+14%"},
+        {"skill": "Eye-Tracking & Usability Lab Study Design", "boost": "+16%"},
+        {"skill": "Voice of Customer Synthesis & Product Triangulation", "boost": "+13%"},
+    ],
+
+    # Finance, Banking & FinTech
+    "Financial Analyst": [
+        {"skill": "Three-Statement Corporate Financial Modeling", "boost": "+15%"},
+        {"skill": "Discounted Cash Flow (DCF) & Sensitivity Valuation", "boost": "+16%"},
+        {"skill": "Budget Variance Analytics & Rolling Forecasts", "boost": "+13%"},
+        {"skill": "ERP Financial Reporting (NetSuite / SAP)", "boost": "+14%"},
+    ],
+    "Investment Banking Associate": [
+        {"skill": "Mergers & Acquisitions (M&A) Transaction Modeling", "boost": "+19%"},
+        {"skill": "Leveraged Buyout (LBO) Debt Structuring", "boost": "+20%"},
+        {"skill": "Syndicated Equity & Debt Capital Markets Advisory", "boost": "+17%"},
+        {"skill": "Board-Level Pitch Book & Confidential Memoranda", "boost": "+16%"},
+    ],
+    "Risk Management Specialist": [
+        {"skill": "Value at Risk (VaR) & Macro Stress Testing", "boost": "+17%"},
+        {"skill": "Credit Risk Scoring & Basel III Capital Adequacy", "boost": "+16%"},
+        {"skill": "Counterparty Exposure & Collateral Modeling", "boost": "+15%"},
+        {"skill": "Enterprise Risk Governance & Audit Committee Reporting", "boost": "+14%"},
+    ],
+    "Senior Corporate Accountant": [
+        {"skill": "US GAAP Technical Revenue Recognition (ASC 606)", "boost": "+16%"},
+        {"skill": "SOX 404 Internal Controls Certification & Testing", "boost": "+15%"},
+        {"skill": "Automated Month-End General Ledger Close Workflows", "boost": "+13%"},
+        {"skill": "Statutory Financial Statement Prep & Audit Coordination", "boost": "+14%"},
+    ],
+    "Quantitative Trader": [
+        {"skill": "High-Frequency Algorithmic Market-Making", "boost": "+22%"},
+        {"skill": "Statistical Arbitrage & Cointegration Pairs Trading", "boost": "+20%"},
+        {"skill": "C++ Ultra Low-Latency Execution Infrastructure", "boost": "+19%"},
+        {"skill": "Options Volatility Skew & Exotic Derivatives Pricing", "boost": "+18%"},
+    ],
+
+    # Healthcare & Life Sciences
+    "Clinical Data Manager": [
+        {"skill": "CDISC SDTM & ADaM Clinical Study Data Mapping", "boost": "+18%"},
+        {"skill": "EDC Database Setup (Medidata Rave / Veeva EDC)", "boost": "+16%"},
+        {"skill": "FDA GCP Regulatory Audit & Inspection Readiness", "boost": "+15%"},
+        {"skill": "Advanced SAS Clinical Biostatistics Programming", "boost": "+17%"},
+    ],
+    "Health Informatics Specialist": [
+        {"skill": "Epic Systems & Cerner EHR Custom Configuration", "boost": "+17%"},
+        {"skill": "HL7 v2 & FHIR Interoperability Interface Standards", "boost": "+18%"},
+        {"skill": "Clinical Decision Support (CDS) Rules & Alert Tuning", "boost": "+15%"},
+        {"skill": "HIPAA Privacy, Security & Protected Health Info (PHI)", "boost": "+13%"},
+    ],
+    "Bioinformatics Scientist": [
+        {"skill": "Next-Generation Sequencing (NGS) Variant Calling", "boost": "+19%"},
+        {"skill": "Single-Cell RNA-seq & Transcriptomics Analysis", "boost": "+18%"},
+        {"skill": "Protein Structure Prediction (AlphaFold / ESMFold)", "boost": "+21%"},
+        {"skill": "Bioconductor & Custom Genomics Python Pipelines", "boost": "+16%"},
+    ],
+    "Pharmacist": [
+        {"skill": "Board Certified Pharmacotherapy (BCPS Credential)", "boost": "+16%"},
+        {"skill": "Pharmacovigilance & Adverse Drug Reaction Surveillance", "boost": "+15%"},
+        {"skill": "Medical Science Liaison (MSL) KOL Advisory Engagement", "boost": "+17%"},
+        {"skill": "Investigational Drug Protocols & Clinical Trials", "boost": "+14%"},
+    ],
+
+    # Marketing & Growth
+    "Digital Marketing Director": [
+        {"skill": "Multi-Million Omnichannel Budget Allocation", "boost": "+17%"},
+        {"skill": "Marketing Mix Modeling (MMM) & Attribution", "boost": "+16%"},
+        {"skill": "Global Public Relations & Brand Reputation Strategy", "boost": "+15%"},
+        {"skill": "Executive Team & Agency Partner Management", "boost": "+14%"},
+    ],
+    "Product Marketing Manager": [
+        {"skill": "Go-To-Market (GTM) Product Launch Architecture", "boost": "+17%"},
+        {"skill": "Competitive Intelligence & Sales Battlecards", "boost": "+15%"},
+        {"skill": "Pricing & Packaging Tier Optimization", "boost": "+16%"},
+        {"skill": "Value Proposition Messaging & Customer Case Studies", "boost": "+13%"},
+    ],
+    "Growth & Performance Marketer": [
+        {"skill": "Paid Search & Social ROAS Algorithmic Bidding", "boost": "+17%"},
+        {"skill": "CAC / LTV Unit Economics & Funnel Optimization", "boost": "+16%"},
+        {"skill": "Google Analytics 4 & Server-Side Tagging (GTM)", "boost": "+14%"},
+        {"skill": "Viral Loop & Referral Program Growth Experiments", "boost": "+13%"},
+    ],
+    "Content & Brand Strategist": [
+        {"skill": "SEO Authority Clustering & Organic Keyword Moats", "boost": "+15%"},
+        {"skill": "Executive Thought Leadership & Ghostwriting", "boost": "+14%"},
+        {"skill": "Multi-Channel Editorial Calendar Orchestration", "boost": "+12%"},
+        {"skill": "Brand Voice Guidelines & Messaging Architecture", "boost": "+13%"},
+    ],
+
+    # Operations & Management
+    "Operations Manager": [
+        {"skill": "Lean Six Sigma Process Re-Engineering (DMAIC)", "boost": "+16%"},
+        {"skill": "Vendor Contract Negotiation & SLA Compliance", "boost": "+15%"},
+        {"skill": "Cross-Functional Delivery & Capacity Planning", "boost": "+14%"},
+        {"skill": "Internal Workflow Automation & Tooling Efficiency", "boost": "+13%"},
+    ],
+    "Technical Recruiter": [
+        {"skill": "Passive Engineering Talent Sourcing & Boolean Queries", "boost": "+16%"},
+        {"skill": "Executive Compensation Benchmarking & Closing", "boost": "+15%"},
+        {"skill": "Applicant Tracking Architecture (Greenhouse / Lever)", "boost": "+13%"},
+        {"skill": "Diversity, Equity & Inclusion (DEI) Pipeline Building", "boost": "+14%"},
+    ],
+    "People Operations / HRBP": [
+        {"skill": "Organizational Restructuring & Span of Control Design", "boost": "+17%"},
+        {"skill": "Talent Calibration & Performance Management Cycles", "boost": "+15%"},
+        {"skill": "Employee Relations & Sensitive Workplace Investigations", "boost": "+14%"},
+        {"skill": "Succession Planning & Leadership Development", "boost": "+13%"},
+    ],
+    "Agile Coach / Scrum Master": [
+        {"skill": "Scaled Agile Framework (SAFe / LeSS) Implementation", "boost": "+16%"},
+        {"skill": "Cross-Team Dependency Mapping & Release Trains", "boost": "+15%"},
+        {"skill": "Sprint Velocity & Retrospective Psychological Safety", "boost": "+13%"},
+        {"skill": "Jira & Confluence Enterprise Administration", "boost": "+12%"},
+    ],
+
+    # Engineering & Hardware
+    "Electrical / Hardware Engineer": [
+        {"skill": "Multi-Layer High-Speed PCB Layout (Altium / Allegro)", "boost": "+18%"},
+        {"skill": "High-Frequency Signal & Power Integrity (SI/PI)", "boost": "+17%"},
+        {"skill": "EMC / EMI Shielding & FCC Regulatory Compliance", "boost": "+16%"},
+        {"skill": "Mixed-Signal Schematic Capture & SPICE Simulation", "boost": "+14%"},
+    ],
+    "Robotics Systems Engineer": [
+        {"skill": "ROS2 Real-Time Middleware & Micro-ROS Architecture", "boost": "+19%"},
+        {"skill": "Multi-Sensor Fusion (LiDAR / Camera / IMU Kalman)", "boost": "+18%"},
+        {"skill": "Autonomous Mobile Robot (AMR) Kinematic Planning", "boost": "+17%"},
+        {"skill": "C++ / Real-Time Linux (PREEMPT_RT) Controllers", "boost": "+16%"},
+    ],
+    "Mechanical Design Engineer": [
+        {"skill": "Parametric 3D Solid Modeling & DFM / DFA (SolidWorks)", "boost": "+16%"},
+        {"skill": "Finite Element Analysis (FEA Structural & Thermal)", "boost": "+17%"},
+        {"skill": "Geometric Dimensioning & Tolerancing (GD&T ASME Y14.5)", "boost": "+15%"},
+        {"skill": "Rapid Prototyping & Precision Machining Tooling", "boost": "+13%"},
+    ],
+
+    # Legal & Compliance
+    "Privacy & Data Governance Counsel": [
+        {"skill": "Comprehensive GDPR & CCPA/CPRA Privacy Governance", "boost": "+19%"},
+        {"skill": "Data Processing Agreements (DPA) & Standard Clauses", "boost": "+17%"},
+        {"skill": "Privacy Impact Assessments (PIA / DPIA Frameworks)", "boost": "+16%"},
+        {"skill": "Global Cross-Border Data Transfer Risk Mitigation", "boost": "+18%"},
+    ],
+    "Corporate Compliance Specialist": [
+        {"skill": "Anti-Money Laundering (AML / KYC / BSA) Auditing", "boost": "+17%"},
+        {"skill": "Regulatory Exam Readiness & Policy Writing", "boost": "+16%"},
+        {"skill": "Foreign Corrupt Practices Act (FCPA) & Sanctions", "boost": "+15%"},
+        {"skill": "Corporate Ethics Whistleblower System Oversight", "boost": "+14%"},
+    ],
+    "Legal Operations Analyst": [
+        {"skill": "Contract Lifecycle Management (CLM / Ironclad / Agiloft)", "boost": "+16%"},
+        {"skill": "Outside Counsel Billing & Legal Spend Analytics", "boost": "+15%"},
+        {"skill": "e-Discovery Document Review Platform Administration", "boost": "+14%"},
+        {"skill": "Legal Technology Automation & Intake Ticketing", "boost": "+13%"},
+    ],
 }
 
 
@@ -238,7 +562,19 @@ class NavigatorService:
     def ensure_seed_data(db: Session) -> None:
         """
         Seeds all canonical industries, roles, and baseline snapshots if not present.
+        Prunes any outdated/legacy industries to ensure no duplicate roles or industries exist.
         """
+        # 1. Prune legacy industries not in modern DEFAULT_TAXONOMY
+        legacy_industries = [
+            ind for ind in db.query(Industry).all()
+            if ind.name not in DEFAULT_TAXONOMY
+        ]
+        for leg in legacy_industries:
+            logger.info("Pruning legacy industry: %s", leg.name)
+            db.delete(leg)
+        if legacy_industries:
+            db.commit()
+
         existing_industries = {ind.name: ind for ind in db.query(Industry).all()}
         now = datetime.now(timezone.utc)
 
@@ -309,8 +645,8 @@ class NavigatorService:
             {"p10": 95000, "p25": 115000, "median": 138000, "p75": 168000, "p90": 205000}
         )
 
-        # Country multiplier combines PPP and local market rate
-        country_mult = c_data["ppp"]
+        # Country multiplier uses calibrated realistic local market rates (Remote.com standard)
+        country_mult = c_data.get("local_mult", c_data.get("ppp", 1.0))
         exp_mult = exp_tier["factor"]
         total_mult = country_mult * exp_mult
 
@@ -436,6 +772,17 @@ class NavigatorService:
         return points
 
     @staticmethod
+    def get_industry_for_role(role_title: str) -> str:
+        """Determines the canonical industry category for any given role title."""
+        norm = role_title.lower().strip()
+        for ind_name, roles_map in DEFAULT_TAXONOMY.items():
+            for r_title in roles_map.keys():
+                r_norm = r_title.lower()
+                if r_norm == norm or r_norm in norm or norm in r_norm:
+                    return ind_name
+        return "Technology & Software"
+
+    @staticmethod
     def get_role_salary_explorer(
         role_id: int,
         role_title: str,
@@ -448,15 +795,25 @@ class NavigatorService:
         """
         comp = NavigatorService.calculate_role_compensation(role_title, country_code, experience_level)
         trend = NavigatorService.generate_trend_history(role_title, country_code, experience_level, timeframe)
-        premiums = ROLE_SKILL_PREMIUMS.get(
-            role_title,
-            [
-                {"skill": "Technical Architecture & System Design", "boost": "+14%"},
-                {"skill": "Cloud Infrastructure (AWS / GCP)", "boost": "+12%"},
-                {"skill": "AI / Automation Acceleration", "boost": "+16%"},
-                {"skill": "Leadership & Cross-Functional Delivery", "boost": "+15%"},
-            ]
-        )
+        
+        # 1. Exact match in role-specific skill premiums
+        premiums = ROLE_SKILL_PREMIUMS.get(role_title)
+        
+        # 2. Fuzzy match in role-specific skill premiums
+        if not premiums:
+            norm_title = role_title.lower()
+            for r_key, p_list in ROLE_SKILL_PREMIUMS.items():
+                if r_key.lower() in norm_title or norm_title in r_key.lower():
+                    premiums = p_list
+                    break
+        
+        # 3. Industry-domain fallback (Healthcare gets clinical skills, Legal gets law/compliance, etc.)
+        if not premiums:
+            ind_name = NavigatorService.get_industry_for_role(role_title)
+            premiums = INDUSTRY_SKILL_PREMIUMS.get(
+                ind_name,
+                INDUSTRY_SKILL_PREMIUMS["Technology & Software"]
+            )
 
         return {
             "role_id": role_id,
