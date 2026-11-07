@@ -251,18 +251,20 @@ class SalaryPredictorService:
         target_salary: float,
         candidate_pitch: str,
         turn_no: int = 1,
-        history: Optional[List[Dict[str, Any]]] = None
+        history: Optional[List[Dict[str, Any]]] = None,
+        difficulty: Optional[str] = "standard"
     ) -> Dict[str, Any]:
         """
         Interactive game-theory roleplay simulator.
         Evaluates candidate negotiation response, calculates leverage, firmness vs. politeness metrics,
-        and generates a realistic HR recruiter counter-response with actionable coach feedback.
+        and generates a realistic HR recruiter counter-response with actionable coach feedback and upgradable clauses.
         """
         pitch = candidate_pitch.strip()
         offer = float(current_offer or 120000)
         target = float(target_salary or 140000)
         gap = max(0.0, target - offer)
         gap_pct = (gap / offer) * 100 if offer > 0 else 15.0
+        is_hard_mode = (difficulty or "standard").lower() == "hard"
 
         # Heuristic detection for game-theory evaluation
         pitch_lower = pitch.lower()
@@ -276,128 +278,172 @@ class SalaryPredictorService:
         # 2. Market Data Anchor (+20 leverage)
         has_market_data = any(w in pitch_lower for w in [
             "market rate", "industry data", "market standard", "levels.fyi", "compensation benchmarks",
-            "median", "75th percentile", "fair market"
+            "median", "75th percentile", "fair market", "bls"
         ])
 
         # 3. High-Impact Value & ROI Framing (+20 leverage)
         has_value_framing = any(w in pitch_lower for w in [
             "revenue", "latency", "scale", "delivered", "architecture", "lead", "business impact",
-            "cross-functional", "deliver results", "production systems", "immediate impact"
+            "cross-functional", "deliver results", "production systems", "immediate impact", "patient",
+            "compliance", "curriculum", "portfolio"
         ])
 
         # 4. Flexibility & Total Comp Compromise (+15 tactical politeness)
         has_total_comp_flex = any(w in pitch_lower for w in [
             "sign-on", "signing bonus", "equity", "rsus", "stock options", "performance bonus",
-            "total compensation", "accelerated review", "milestone"
+            "total compensation", "accelerated review", "milestone", "remote", "flexible"
         ])
 
         # 5. Politeness vs Firmness Score
         polite_terms = len(re.findall(r"\b(thank you|appreciate|excited|thrilled|love to join|collaborative|understand|respect)\b", pitch_lower))
         firm_terms = len(re.findall(r"\b(target|expect|seeking|align|require|necessary|minimum|anchor|firm)\b", pitch_lower))
 
-        # Balanced politeness is 2-4 polite phrases; firmness 1-3 terms
         firmness_score = min(100, int((firm_terms / 3.0) * 100))
         politeness_score = min(100, int((polite_terms / 4.0) * 100))
 
         # Overall Game-Theory Leverage Score (0-100)
-        leverage_score = 40  # Baseline
+        leverage_score = 35 if is_hard_mode else 40
         if has_competing_offer:
             leverage_score += 25
         if has_market_data:
-            leverage_score += 15
+            leverage_score += 18
         if has_value_framing:
             leverage_score += 15
         if has_total_comp_flex:
-            leverage_score += 10
+            leverage_score += 12
         if len(pitch.split()) < 15:
-            leverage_score -= 20  # Too brief / ungrounded
+            leverage_score -= 25
 
-        leverage_score = max(20, min(95, leverage_score))
+        leverage_score = max(15, min(95, leverage_score))
 
-        # Recruiter Acceptance Probability
-        # If gap is reasonable (<15%) and leverage is high, acceptance is very high
-        gap_penalty = min(40, int(gap_pct * 1.5))
-        acceptance_prob = max(15, min(92, leverage_score - gap_penalty + 15))
+        # In Hard Mode, gap penalty is steeper and recruiter holds line
+        gap_penalty = min(50 if is_hard_mode else 40, int(gap_pct * (2.0 if is_hard_mode else 1.5)))
+        acceptance_prob = max(10, min(90, leverage_score - gap_penalty + (5 if is_hard_mode else 15)))
 
-        # LLM Generated Dialogue with curated deterministic fallback
-        client = LLMClient()
-        recruiter_reply = ""
-        coach_critique = ""
-
-        if client.available:
-            history_prompt = ""
-            if history:
-                history_prompt = "Dialogue history:\n" + "\n".join([
-                    f"Turn {h.get('turn')}: Candidate said: '{h.get('candidate_pitch')}'\nRecruiter replied: '{h.get('recruiter_reply')}'"
-                    for h in history
-                ])
-
-            prompt = (
-                f"You are a Senior Corporate Technical Recruiter conducting a live salary negotiation for a {role_title} role.\n"
-                f"Initial Offer: ${offer:,.0f}. Candidate Target: ${target:,.0f} (Gap: {gap_pct:.1f}%).\n"
-                f"Current Turn: {turn_no}.\n"
-                f"{history_prompt}\n"
-                f"Candidate just said: '{pitch}'\n\n"
-                f"Evaluate this response. Formulate a realistic, professional Recruiter response and a brief Coach critique.\n"
-                f"If candidate presented good leverage (competing offers, market benchmarks, flexibility), make a partial concession\n"
-                f"(e.g. increase base by 40-70% of gap, or offer a sign-on bonus).\n"
-                f"Provide JSON with keys: recruiter_reply, coach_critique, concession_amount_usd, recruiter_sentiment (favorable|neutral|firm)."
-            )
-            data = client.generate_json(prompt)
-            if data and data.get("recruiter_reply"):
-                recruiter_reply = data["recruiter_reply"]
-                coach_critique = data.get("coach_critique", "")
-                concession = float(data.get("concession_amount_usd", gap * 0.45))
+        # Concession Scaling
+        if is_hard_mode:
+            # Requires multi-factor justification
+            signals_count = sum([has_competing_offer, has_market_data, has_value_framing, has_total_comp_flex])
+            if signals_count >= 2 and leverage_score >= 65:
+                concession = min(gap, round(gap * 0.45 / 1000) * 1000)
+                recruiter_reply = (
+                    f"I appreciate your directness and the clear market data points you brought to the discussion. "
+                    f"Our departmental salary ranges are tightly controlled, but seeing your competing timeline and "
+                    f"proven track record, I took this directly to our executive committee. "
+                    f"We can approve an adjusted base of ${offer + concession:,.0f}, and add a formal 6-month accelerated review "
+                    f"checkpoint to revisit the remaining gap based on production milestones. Would that work for you?"
+                )
+                coach_critique = (
+                    "Excellent composure under Hard Mode. By providing multiple evidence anchors, you forced the recruiter "
+                    "to seek an executive exception and offer a performance clause."
+                )
+            elif signals_count >= 1:
+                concession = min(gap, round(gap * 0.20 / 1000) * 1000)
+                recruiter_reply = (
+                    f"We certainly understand your perspective, but our team equity policies are very strict. "
+                    f"We benchmarked our opening ${offer:,.0f} offer carefully. At this stage, I can only stretch base by ${concession:,.0f} "
+                    f"to ${offer + concession:,.0f}. However, we could potentially explore a signing bonus or additional remote days if you are able to commit this week."
+                )
+                coach_critique = (
+                    "The recruiter is pushing back hard on base salary parity. Next turn, lean into non-base concessions: "
+                    "ask for a signing bonus or a guaranteed 6-month performance review."
+                )
             else:
-                concession = gap * (leverage_score / 140.0)
+                concession = 0.0
+                recruiter_reply = (
+                    f"Thank you for sharing your thoughts. Unfortunately, without verified competing compensation or specific "
+                    f"domain scope justifications, we cannot move past our initial ${offer:,.0f} figure. "
+                    f"Our full benefits, bonus plan, and learning allowances make this a highly competitive total package."
+                )
+                coach_critique = (
+                    "Hard Mode rejection: Your message lacked concrete data citations or competing leverage. "
+                    "Anchor your next response with verified 75th-percentile market data and specific business ROI."
+                )
         else:
-            concession = gap * (leverage_score / 140.0)
-
-        # Fallback realistic recruiter dialogue
-        if not recruiter_reply:
+            # Standard Mode
             if leverage_score >= 75:
                 concession = min(gap, round(gap * 0.70 / 1000) * 1000)
                 recruiter_reply = (
                     f"Thank you for being transparent about your market expectations and current search status. "
-                    f"The hiring team was very impressed by your architecture background and immediate domain fit. "
-                    f"While our standard engineering salary band caps out closer to ${offer + concession:,.0f}, "
-                    f"I spoke directly with the VP of Engineering, and we can adjust the base offer up to ${offer + concession:,.0f}, "
-                    f"plus an additional ${min(20000, round(gap * 0.4 / 1000) * 1000):,.0f} sign-on bonus to bridge the gap. "
-                    f"Would this allow you to comfortably accept our offer and start next month?"
+                    f"The hiring team was very impressed by your domain depth and immediate fit. "
+                    f"While our standard salary band caps out closer to ${offer + concession:,.0f}, "
+                    f"I spoke directly with the VP, and we can adjust the base offer up to ${offer + concession:,.0f}, "
+                    f"plus an additional sign-on bridge. Would this allow you to comfortably accept our offer?"
                 )
                 coach_critique = (
                     "Outstanding execution. Framing your request with specific market anchors and competing leverage "
-                    "prompted the recruiter to immediately seek an executive exception and offer a sign-on bridge."
+                    "prompted the recruiter to immediately seek an executive exception."
                 )
             elif leverage_score >= 50:
                 concession = min(gap, round(gap * 0.40 / 1000) * 1000)
                 recruiter_reply = (
-                    f"I appreciate you sharing those details with me. We are very eager to have you join our team. "
-                    f"Our compensation bands are tied to internal equity among our current team, but I can meet you partway: "
-                    f"we can increase the base salary to ${offer + concession:,.0f}, and I can also look into adding extra equity shares. "
+                    f"I appreciate you sharing those details. We are very eager to have you join our team. "
+                    f"Our compensation bands are tied to internal equity, but I can meet you partway: "
+                    f"we can increase the base salary to ${offer + concession:,.0f}, and explore a signing bonus. "
                     f"How does that sound to you?"
                 )
                 coach_critique = (
-                    "Solid progress. You secured a partial concession. In your next message, consider asking whether the remaining difference "
-                    "can be structured as a first-year sign-on bonus or tied to an accelerated 6-month performance review."
+                    "Solid progress. You secured a partial concession. Consider asking whether the remaining difference "
+                    "can be structured as an upfront sign-on bonus or tied to an accelerated 6-month performance review."
                 )
             else:
                 concession = min(gap, round(gap * 0.15 / 1000) * 1000)
                 recruiter_reply = (
                     f"We certainly understand where you are coming from. However, our initial offer of ${offer:,.0f} was carefully "
-                    f"benchmarked to our team parity and candidate experience level. At most, we could potentially stretch to "
-                    f"${offer + concession:,.0f}. We do offer comprehensive health benefits, learning stipends, and an annual bonus plan."
+                    f"benchmarked to candidate experience level. At most, we could stretch to ${offer + concession:,.0f}. "
+                    f"We do offer comprehensive health benefits, learning stipends, and an annual bonus plan."
                 )
                 coach_critique = (
-                    "The counter-offer lacked tangible market citations or business value proof points, leading the recruiter to hold their ground. "
-                    "Next time, explicitly reference industry benchmark percentiles and specific high-impact systems you will drive."
+                    "The counter-offer lacked tangible market citations or business value proof points. "
+                    "Explicitly reference industry benchmark percentiles and specific high-impact systems you will drive."
                 )
 
         new_offer = offer + concession
 
+        # Structured Upgradable Offer Clauses
+        sign_on_val = min(25000, max(5000, round(gap * 0.35 / 1000) * 1000)) if (has_competing_offer or leverage_score >= 70) else 0
+        clauses = [
+            {
+                "id": "base_salary",
+                "name": "Base Annual Compensation",
+                "status": "unlocked" if concession > 0 else "initial",
+                "value": f"${new_offer:,.0f}/yr",
+                "condition": "Guaranteed annual cash distribution"
+            },
+            {
+                "id": "review_6m",
+                "name": "6-Month Accelerated Performance Review",
+                "status": "unlocked" if (turn_no >= 2 or has_total_comp_flex or leverage_score >= 65) else "pending",
+                "value": f"Contractual review to ${target:,.0f}",
+                "condition": "Subject to meeting 6-month delivery milestones"
+            },
+            {
+                "id": "sign_on_bonus",
+                "name": "Upfront Signing Bonus",
+                "status": "unlocked" if sign_on_val > 0 else "locked",
+                "value": f"${sign_on_val:,.0f}" if sign_on_val > 0 else "$0 (Locked)",
+                "condition": "12-month prorated retention agreement"
+            },
+            {
+                "id": "flexible_wfh",
+                "name": "Hybrid / Remote Work Schedule",
+                "status": "unlocked" if turn_no >= 2 else "standard",
+                "value": "2-3 Days Remote / Week",
+                "condition": "Approved by hiring team"
+            },
+            {
+                "id": "learning_stipend",
+                "name": "Professional Development & Credentials Stipend",
+                "status": "unlocked",
+                "value": "$4,500 / year",
+                "condition": "Applicable for certifications, conferences, and coursework"
+            }
+        ]
+
         return {
             "turn_no": turn_no,
             "candidate_pitch": pitch,
+            "difficulty": "hard" if is_hard_mode else "standard",
             "metrics": {
                 "leverage_score": leverage_score,
                 "acceptance_probability": acceptance_prob,
@@ -417,10 +463,11 @@ class SalaryPredictorService:
                 "concession_amount": concession,
                 "gap_remaining": max(0.0, target - new_offer)
             },
+            "clauses_unlocked": clauses,
             "recruiter_reply": recruiter_reply,
             "coach_critique": coach_critique,
             "suggested_next_move": (
-                "If acceptable, verbally confirm and request updated written offer letter."
+                "If acceptable, verbally confirm and request an updated written offer letter with these clauses."
                 if acceptance_prob >= 75
                 else "Pivot to non-base compensation: ask for an accelerated 6-month performance salary review or a signing bonus."
             )

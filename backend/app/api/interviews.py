@@ -342,6 +342,52 @@ def _audio_to_wav(content: bytes) -> bytes:
         return content
 
 
+_vosk_model = None
+
+def _get_vosk_model():
+    global _vosk_model
+    if _vosk_model is None:
+        try:
+            import vosk
+            vosk.SetLogLevel(-1)
+            _vosk_model = vosk.Model(lang="en-us")
+        except Exception as e:
+            logger.warning(f"Could not load Vosk offline model: {e}")
+            _vosk_model = None
+    return _vosk_model
+
+def _transcribe_offline_vosk(wav_bytes: bytes) -> str:
+    try:
+        import vosk
+        import wave
+        import json
+        model = _get_vosk_model()
+        if not model:
+            return ""
+        with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
+            sample_rate = wf.getframerate()
+            rec = vosk.KaldiRecognizer(model, sample_rate)
+            rec.SetWords(True)
+            text_parts = []
+            while True:
+                data = wf.readframes(4000)
+                if len(data) == 0:
+                    break
+                if rec.AcceptWaveform(data):
+                    res = json.loads(rec.Result())
+                    t = res.get("text", "").strip()
+                    if t:
+                        text_parts.append(t)
+            final_res = json.loads(rec.FinalResult())
+            final_t = final_res.get("text", "").strip()
+            if final_t:
+                text_parts.append(final_t)
+            return " ".join(text_parts).strip()
+    except Exception as e:
+        logger.warning(f"Vosk offline transcription error: {e}")
+        return ""
+
+
 @router.post("/transcribe")
 async def transcribe_interview_audio(
     file: UploadFile = File(...),
@@ -349,9 +395,9 @@ async def transcribe_interview_audio(
 ):
     """
     Server-side audio transcription engine.
-    Processes audio (WebM/WAV/PCM) using SpeechRecognition with automatic loudness normalization
-    and intelligent chunking for long speech sessions (>10s), ensuring complete accuracy
-    even when browser Web Speech encounters network or firewall blocks.
+    Processes audio (WebM/WAV/PCM) using offline Vosk speech recognition with automatic loudness normalization
+    and Google Speech API fallback, ensuring complete accuracy even when browser Web Speech
+    encounters network or firewall blocks.
     """
     content = await file.read()
     logger.info(f"Received audio file for transcription: size={len(content)} bytes")
@@ -360,55 +406,65 @@ async def transcribe_interview_audio(
 
     wav_bytes = _audio_to_wav(content)
     transcript = ""
+
+    # Strategy 1: Offline Vosk transcription (Zero network dependency, fast, private)
     try:
-        import math
-        import speech_recognition as sr
+        vosk_text = _transcribe_offline_vosk(wav_bytes)
+        if vosk_text and vosk_text.strip():
+            transcript = vosk_text.strip()
+            logger.info(f"Offline Vosk transcribed: '{transcript[:60]}...'")
+    except Exception as vosk_err:
+        logger.warning(f"Vosk transcription failed: {vosk_err}")
 
-        r = sr.Recognizer()
-        r.energy_threshold = 200
-        r.dynamic_energy_threshold = False
+    # Strategy 2: Google Speech Recognition fallback if Vosk had no speech
+    if not transcript:
+        try:
+            import math
+            import speech_recognition as sr
 
-        with sr.AudioFile(io.BytesIO(wav_bytes)) as source:
-            total_audio = r.record(source)
-            duration = len(total_audio.frame_data) / (total_audio.sample_rate * total_audio.sample_width)
-
-        # Strategy 1: If audio <= 12 seconds, transcribe directly in one pass
-        if duration <= 12.0:
-            try:
-                transcript = r.recognize_google(total_audio, language="en-US")
-                logger.info(f"Direct Google Speech transcribed ({duration:.1f}s): '{transcript[:60]}...'")
-            except sr.UnknownValueError:
-                transcript = ""
-            except sr.RequestError as e:
-                logger.warning(f"Direct Google Speech request error: {e}")
-                transcript = ""
-
-        # Strategy 2: If duration > 12s OR Strategy 1 yielded no speech, use intelligent sliding chunking
-        if not transcript and duration > 3.0:
-            chunk_duration = 9.0
-            total_chunks = math.ceil(duration / chunk_duration)
-            recognized_chunks: List[str] = []
+            r = sr.Recognizer()
+            r.energy_threshold = 200
+            r.dynamic_energy_threshold = False
 
             with sr.AudioFile(io.BytesIO(wav_bytes)) as source:
-                for chunk_idx in range(total_chunks):
-                    try:
-                        chunk_audio = r.record(source, duration=chunk_duration)
-                        chunk_text = r.recognize_google(chunk_audio, language="en-US")
-                        if chunk_text and chunk_text.strip():
-                            recognized_chunks.append(chunk_text.strip())
-                    except sr.UnknownValueError:
-                        continue
-                    except Exception as chunk_err:
-                        logger.debug(f"Chunk {chunk_idx} transcription error: {chunk_err}")
-                        continue
+                total_audio = r.record(source)
+                duration = len(total_audio.frame_data) / (total_audio.sample_rate * total_audio.sample_width)
 
-            if recognized_chunks:
-                transcript = " ".join(recognized_chunks)
-                logger.info(f"Chunked Google Speech transcribed ({len(recognized_chunks)} chunks): '{transcript[:60]}...'")
+            if duration <= 12.0:
+                try:
+                    transcript = r.recognize_google(total_audio, language="en-US")
+                    logger.info(f"Direct Google Speech transcribed ({duration:.1f}s): '{transcript[:60]}...'")
+                except sr.UnknownValueError:
+                    transcript = ""
+                except sr.RequestError as e:
+                    logger.warning(f"Direct Google Speech request error: {e}")
+                    transcript = ""
 
-    except Exception as e:
-        logger.warning(f"Server audio transcription error: {e}")
-        transcript = ""
+            if not transcript and duration > 3.0:
+                chunk_duration = 9.0
+                total_chunks = math.ceil(duration / chunk_duration)
+                recognized_chunks: List[str] = []
+
+                with sr.AudioFile(io.BytesIO(wav_bytes)) as source:
+                    for chunk_idx in range(total_chunks):
+                        try:
+                            chunk_audio = r.record(source, duration=chunk_duration)
+                            chunk_text = r.recognize_google(chunk_audio, language="en-US")
+                            if chunk_text and chunk_text.strip():
+                                recognized_chunks.append(chunk_text.strip())
+                        except sr.UnknownValueError:
+                            continue
+                        except Exception as chunk_err:
+                            logger.debug(f"Chunk {chunk_idx} transcription error: {chunk_err}")
+                            continue
+
+                if recognized_chunks:
+                    transcript = " ".join(recognized_chunks)
+                    logger.info(f"Chunked Google Speech transcribed ({len(recognized_chunks)} chunks): '{transcript[:60]}...'")
+
+        except Exception as e:
+            logger.warning(f"Server audio transcription error: {e}")
+            transcript = ""
 
     words = [w for w in transcript.split() if w]
     return {

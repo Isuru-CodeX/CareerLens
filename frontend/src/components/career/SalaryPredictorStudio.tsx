@@ -8,38 +8,103 @@ import {
   Building2,
   RefreshCw,
   Sliders,
-  ShieldCheck
+  ShieldCheck,
+  CheckCircle2,
+  Globe2,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import {
   SalaryPredictionResponse,
   SalaryMetadataResponse,
-  Resume
+  Resume,
+  VerifiedSalaryBenchmark
 } from '../../types';
 import { api } from '../../services/api';
 
 interface SalaryPredictorStudioProps {
+  initialIndustry?: string;
   initialRole?: string;
   resumes?: Resume[];
   onLaunchNegotiation?: (role: string, offer: number, target: number) => void;
 }
 
-const POPULAR_ROLES = [
-  'Senior Full Stack Engineer',
-  'Frontend Software Engineer',
-  'Backend Distributed Systems Engineer',
-  'DevOps & Cloud Architect',
-  'Machine Learning & AI Engineer',
-  'Data Platform Engineer',
-  'Cybersecurity Engineer',
-  'Engineering Manager'
+const INDUSTRY_OPTIONS = [
+  { id: 'tech', label: 'Technology & Software Engineering' },
+  { id: 'healthcare', label: 'Healthcare & Clinical Medicine' },
+  { id: 'finance', label: 'Finance, Banking & Accounting' },
+  { id: 'education', label: 'Education & Academic Instruction' },
+  { id: 'legal', label: 'Legal & Corporate Compliance' },
+  { id: 'marketing', label: 'Marketing, Growth & Design' },
+];
+
+const INDUSTRY_ROLES_MAP: Record<string, string[]> = {
+  tech: [
+    'Senior Full Stack Engineer',
+    'Frontend Software Engineer',
+    'Backend Distributed Systems Engineer',
+    'DevOps & Cloud Architect',
+    'Machine Learning & AI Engineer',
+    'Data Platform Engineer',
+    'Cybersecurity Engineer',
+    'Engineering Manager'
+  ],
+  healthcare: [
+    'Staff Registered Nurse (RN)',
+    'Clinical Nurse Specialist (CNS)',
+    'Nurse Practitioner (NP)',
+    'Certified Nursing Assistant (CNA)',
+    'Medical Laboratory Scientist',
+    'Hospital Clinical Administrator'
+  ],
+  finance: [
+    'Senior Financial Analyst',
+    'Junior Financial Analyst',
+    'Investment Portfolio Analyst',
+    'Financial Risk Manager',
+    'Corporate Controller / Accounting Manager',
+    'Chief Financial Officer (CFO)'
+  ],
+  education: [
+    'Secondary Education Teacher',
+    'Primary Education Teacher',
+    'Instructional Systems Designer',
+    'Curriculum & Learning Specialist',
+    'Academic Dean / Department Chair'
+  ],
+  legal: [
+    'Corporate Paralegal Specialist',
+    'Legal Assistant / Paralegal',
+    'Senior Litigation Associate',
+    'Corporate Compliance Officer',
+    'General Counsel / Legal Director'
+  ],
+  marketing: [
+    'Senior Growth & Performance Marketer',
+    'Digital Marketing Specialist',
+    'Product Marketing Manager',
+    'Brand & Communications Lead',
+    'Chief Marketing Officer (CMO)'
+  ]
+};
+
+const CURRENCIES = [
+  { code: 'USD', symbol: '$', label: 'USD ($)' },
+  { code: 'EUR', symbol: '€', label: 'EUR (€)' },
+  { code: 'GBP', symbol: '£', label: 'GBP (£)' },
+  { code: 'CAD', symbol: 'CA$', label: 'CAD (CA$)' },
+  { code: 'AUD', symbol: 'A$', label: 'AUD (A$)' }
 ];
 
 export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
+  initialIndustry = 'tech',
   initialRole,
   resumes = [],
   onLaunchNegotiation
 }) => {
+  const [selectedIndustry, setSelectedIndustry] = useState<string>(initialIndustry || 'tech');
   const [roleTitle, setRoleTitle] = useState<string>(initialRole || 'Senior Full Stack Engineer');
+  const [currency, setCurrency] = useState<string>('USD');
   const [experienceYears, setExperienceYears] = useState<number>(4.5);
   const [locationTier, setLocationTier] = useState<string>('us_tier1');
   const [companyTier, setCompanyTier] = useState<string>('growth_scaleup');
@@ -54,12 +119,38 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
   const [prediction, setPrediction] = useState<SalaryPredictionResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Sync initialRole if it changes externally
+  // Verified Official Market Benchmark State (BLS OEWS, O*NET, Mercer)
+  const [verifiedBenchmark, setVerifiedBenchmark] = useState<VerifiedSalaryBenchmark | null>(null);
+  const [verifyingBenchmark, setVerifyingBenchmark] = useState<boolean>(false);
+
+  // Sync external props
+  useEffect(() => {
+    if (initialIndustry && initialIndustry !== selectedIndustry) {
+      setSelectedIndustry(initialIndustry);
+      const roles = INDUSTRY_ROLES_MAP[initialIndustry] || INDUSTRY_ROLES_MAP.tech;
+      if (!initialRole) {
+        setRoleTitle(roles[0]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialIndustry]);
+
   useEffect(() => {
     if (initialRole) {
       setRoleTitle(initialRole);
     }
   }, [initialRole]);
+
+  // Handle Industry change
+  const handleIndustryChange = (ind: string) => {
+    setSelectedIndustry(ind);
+    const availableRoles = INDUSTRY_ROLES_MAP[ind] || INDUSTRY_ROLES_MAP.tech;
+    setRoleTitle(availableRoles[0]);
+  };
+
+  // Format currency helper
+  const currencySymbol = CURRENCIES.find((c) => c.code === currency)?.symbol || '$';
+  const formatMoney = (val: number) => `${currencySymbol}${Math.round(val).toLocaleString()}`;
 
   // Load Metadata
   useEffect(() => {
@@ -71,6 +162,25 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
       .catch((err) => console.error('Failed to load salary metadata:', err));
     return () => { active = false; };
   }, []);
+
+  // Fetch Verified Government & Industry Official Benchmark
+  const fetchVerifiedBenchmark = async () => {
+    setVerifyingBenchmark(true);
+    try {
+      const countryCode = locationTier.includes('uk') ? 'UK' : 'US';
+      const data = await api.getVerifiedSalaryBenchmark({
+        industry_id: selectedIndustry,
+        role_title: roleTitle.trim(),
+        country: countryCode,
+        currency
+      });
+      setVerifiedBenchmark(data);
+    } catch (err: any) {
+      console.warn('Failed to load verified salary benchmark:', err);
+    } finally {
+      setVerifyingBenchmark(false);
+    }
+  };
 
   // Run Prediction
   const runPrediction = async () => {
@@ -92,11 +202,12 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
     }
   };
 
-  // Run on initial mount and when parameters change
+  // Run on parameters change
   useEffect(() => {
     runPrediction();
+    fetchVerifiedBenchmark();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roleTitle, experienceYears, locationTier, companyTier, selectedSkills]);
+  }, [roleTitle, selectedIndustry, currency, experienceYears, locationTier, companyTier, selectedSkills]);
 
   // Toggle skill selection
   const toggleSkill = (skillName: string) => {
@@ -167,11 +278,55 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
               </h3>
             </div>
 
-            {/* Target Role Input & Quick Presets */}
+            {/* Industry & Currency Selectors */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                  Industry Domain
+                </label>
+                <select
+                  value={selectedIndustry}
+                  onChange={(e) => handleIndustryChange(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                >
+                  {INDUSTRY_OPTIONS.map((ind) => (
+                    <option key={ind.id} value={ind.id}>
+                      {ind.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Globe2 className="w-3.5 h-3.5 text-indigo-600" />
+                  Benchmark Currency
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Target Role Input & Cascade Role Presets */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Target Role / Title
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Target Role / Title
+                </label>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold uppercase">
+                  Filtered by {selectedIndustry}
+                </span>
+              </div>
               <input
                 type="text"
                 value={roleTitle}
@@ -180,9 +335,9 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
               />
 
-              {/* Quick Role Suggestions */}
+              {/* Cascade Role Suggestions based on selected industry */}
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {POPULAR_ROLES.map((r) => (
+                {(INDUSTRY_ROLES_MAP[selectedIndustry] || INDUSTRY_ROLES_MAP.tech).map((r) => (
                   <button
                     key={r}
                     type="button"
@@ -388,6 +543,86 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                 </div>
               </div>
 
+              {/* Verified Official Market-Pay Benchmark (Task 4) */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                        Verified Official Market-Pay Benchmark
+                      </h4>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        Grounded in BLS OEWS, O*NET, and international labor statistics
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {verifiedBenchmark?.confidence ? `${verifiedBenchmark.confidence.toUpperCase()} CONFIDENCE` : 'HIGH CONFIDENCE'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={fetchVerifiedBenchmark}
+                      disabled={verifyingBenchmark}
+                      className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${verifyingBenchmark ? 'animate-spin' : ''}`} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
+                </div>
+
+                {verifiedBenchmark ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Base Minimum</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-200">
+                          {formatMoney(verifiedBenchmark.base)}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase">25th Percentile</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-200">
+                          {formatMoney(verifiedBenchmark.p25)}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 ring-1 ring-indigo-500/20">
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 block uppercase">Official Median</span>
+                        <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">
+                          {formatMoney(verifiedBenchmark.median)}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800">
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block uppercase">75th Percentile</span>
+                        <span className="text-sm font-black text-emerald-700 dark:text-emerald-300">
+                          {formatMoney(verifiedBenchmark.p75)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-slate-500">
+                      <div>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">Source: </span>
+                        <span>{verifiedBenchmark.sources?.[0]?.name || 'BLS OEWS / O*NET Official Statistics'}</span>
+                        {verifiedBenchmark.sample_size ? (
+                          <span> (n = {verifiedBenchmark.sample_size.toLocaleString()})</span>
+                        ) : null}
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">Last Verified: </span>
+                        <span>{new Date(verifiedBenchmark.retrieved_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Loading verified official salary statistics...</p>
+                )}
+              </div>
+
               {/* 4 Percentile Market Distribution Bar */}
               <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -397,7 +632,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                       Market Base Salary Distribution Bands
                     </h4>
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400">USD Annual</span>
+                  <span className="text-[11px] font-semibold text-slate-400">{currency} Annual</span>
                 </div>
 
                 {/* Percentile Cards Grid */}
@@ -405,7 +640,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                   <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center space-y-1">
                     <p className="text-[10px] font-bold uppercase text-slate-400">25th Percentile</p>
                     <p className="text-base font-black text-slate-800 dark:text-slate-200">
-                      ${(prediction.percentiles.p25 / 1000).toFixed(0)}k
+                      {formatMoney(prediction.percentiles.p25)}
                     </p>
                     <p className="text-[10px] text-slate-400">Conservative / Entry</p>
                   </div>
@@ -413,7 +648,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                   <div className="p-3.5 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-center space-y-1 ring-1 ring-indigo-500/30">
                     <p className="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400">50th (Median)</p>
                     <p className="text-base font-black text-indigo-700 dark:text-indigo-300">
-                      ${(prediction.percentiles.p50 / 1000).toFixed(0)}k
+                      {formatMoney(prediction.percentiles.p50)}
                     </p>
                     <p className="text-[10px] text-indigo-600/70 dark:text-indigo-400/70">Fair Market Baseline</p>
                   </div>
@@ -421,7 +656,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                   <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center space-y-1">
                     <p className="text-[10px] font-bold uppercase text-slate-400">75th Percentile</p>
                     <p className="text-base font-black text-slate-800 dark:text-slate-200">
-                      ${(prediction.percentiles.p75 / 1000).toFixed(0)}k
+                      {formatMoney(prediction.percentiles.p75)}
                     </p>
                     <p className="text-[10px] text-slate-400">Strong Candidate</p>
                   </div>
@@ -429,42 +664,73 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                   <div className="p-3.5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-center space-y-1">
                     <p className="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">90th Percentile</p>
                     <p className="text-base font-black text-purple-700 dark:text-purple-300">
-                      ${(prediction.percentiles.p90 / 1000).toFixed(0)}k
+                      {formatMoney(prediction.percentiles.p90)}
                     </p>
                     <p className="text-[10px] text-purple-600/70 dark:text-purple-400/70">Principal / Staff Tier</p>
                   </div>
                 </div>
 
-                {/* Suggested Counter-Offer Anchor CTA */}
-                <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 tracking-wider">
-                      Optimal Counter-Offer Anchor
-                    </span>
-                    <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">
-                      ${prediction.suggested_negotiation_anchor.toLocaleString()}
-                    </p>
-                    <p className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80 font-medium">
-                      Positioned just above the 75th percentile to anchor high without pricing yourself out.
-                    </p>
+                {/* Offer Context & Anchors (Task 9) */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                      <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                        Offer Context & Negotiation Anchors
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400">Data-Backed Strategy</span>
                   </div>
 
-                  {onLaunchNegotiation && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onLaunchNegotiation(
-                          prediction.role_title,
-                          prediction.percentiles.p50,
-                          prediction.suggested_negotiation_anchor
-                        )
-                      }
-                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Practice Offer Negotiation</span>
-                    </button>
-                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Walk-Away Floor</span>
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-300">
+                        {formatMoney(prediction.percentiles.p25)}
+                      </p>
+                      <p className="text-[10px] text-slate-500">Minimum acceptable base below which you decline.</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">Target Outcome</span>
+                      <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                        {formatMoney(prediction.percentiles.p50)}
+                      </p>
+                      <p className="text-[10px] text-slate-500">Market median baseline for your verified experience.</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Opening Ask (Anchor)</span>
+                      <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                        {formatMoney(prediction.suggested_negotiation_anchor)}
+                      </p>
+                      <p className="text-[10px] text-slate-500">Positioned near 75th percentile with room to compromise.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                    <div className="text-[11px] text-slate-500 font-medium space-y-0.5">
+                      <p className="font-bold text-slate-700 dark:text-slate-300">Non-Salary Bargaining Levers:</p>
+                      <p>Accelerated 6-Month Review • Sign-on Bonus • Flexible Remote Schedule • Learning Stipend</p>
+                    </div>
+
+                    {onLaunchNegotiation && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onLaunchNegotiation(
+                            prediction.role_title,
+                            prediction.percentiles.p50,
+                            prediction.suggested_negotiation_anchor
+                          )
+                        }
+                        className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
+                      >
+                        <span>Simulate in Negotiation Coach</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 

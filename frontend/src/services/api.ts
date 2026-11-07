@@ -30,6 +30,8 @@ import {
   SuitableAnswer,
   CareerKnowledgeGraphData,
   CareerBridgeResponse,
+  CareerIndustry,
+  VerifiedSalaryBenchmark,
   SalaryMetadataResponse,
   SalaryPredictionResponse,
   NegotiationTurnResponse,
@@ -814,8 +816,13 @@ class ApiService {
   // -------------------------------------------------------------------------
   // Pillar 3 & 5: Career Path Knowledge Graph & Salary Negotiation Coach
   // -------------------------------------------------------------------------
-  async getCareerKnowledgeGraph(): Promise<CareerKnowledgeGraphData> {
-    return this.request<CareerKnowledgeGraphData>('/career/graph');
+  async getCareerIndustries(): Promise<CareerIndustry[]> {
+    return this.request<CareerIndustry[]>('/career/industries');
+  }
+
+  async getCareerKnowledgeGraph(industryId?: string): Promise<CareerKnowledgeGraphData> {
+    const q = industryId && industryId !== 'all' ? `?industry_id=${encodeURIComponent(industryId)}` : '';
+    return this.request<CareerKnowledgeGraphData>(`/career/graph${q}`);
   }
 
   async computeCareerBridge(data: {
@@ -832,6 +839,45 @@ class ApiService {
 
   async getSalaryMetadata(): Promise<SalaryMetadataResponse> {
     return this.request<SalaryMetadataResponse>('/career/salary/metadata');
+  }
+
+  async getVerifiedSalaryBenchmark(
+    roleOrParams: string | { role_title: string; industry_id?: string; industry?: string; country?: string; currency?: string; years_experience?: number },
+    industry?: string,
+    country?: string,
+    currency?: string,
+    yearsExperience?: number
+  ): Promise<VerifiedSalaryBenchmark> {
+    const params = new URLSearchParams();
+    if (typeof roleOrParams === 'object') {
+      params.set('role_title', roleOrParams.role_title);
+      if (roleOrParams.industry_id || roleOrParams.industry) {
+        params.set('industry', (roleOrParams.industry_id || roleOrParams.industry)!);
+      }
+      if (roleOrParams.country) params.set('country', roleOrParams.country);
+      if (roleOrParams.currency) params.set('currency', roleOrParams.currency);
+      if (roleOrParams.years_experience) params.set('years_experience', String(roleOrParams.years_experience));
+    } else {
+      params.set('role_title', roleOrParams);
+      if (industry) params.set('industry', industry);
+      if (country) params.set('country', country);
+      if (currency) params.set('currency', currency);
+      if (yearsExperience) params.set('years_experience', String(yearsExperience));
+    }
+    return this.request<VerifiedSalaryBenchmark>(`/career/salary/benchmark?${params.toString()}`);
+  }
+
+  async verifySalaryOnline(data: {
+    role_title: string;
+    industry?: string;
+    country?: string;
+    currency?: string;
+    years_experience?: number;
+  }): Promise<VerifiedSalaryBenchmark> {
+    return this.request<VerifiedSalaryBenchmark>('/career/salary/verify-online', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   }
 
   async predictSalary(data: {
@@ -854,6 +900,7 @@ class ApiService {
     candidate_pitch: string;
     turn_no: number;
     history?: any[];
+    difficulty?: 'standard' | 'hard';
   }): Promise<NegotiationTurnResponse> {
     return this.request<NegotiationTurnResponse>('/career/negotiate/turn', {
       method: 'POST',

@@ -7,13 +7,14 @@ Endpoints for:
 - Ready-to-copy battle-tested counter-offer scripts
 """
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.models import User, Resume
-from app.services.career_graph_service import CareerGraphService
+from app.services.career_graph_service import CareerGraphService, INDUSTRIES
+from app.services.salary_service import SalaryService
 from app.services.salary_predictor_service import (
     SalaryPredictorService,
     LOCATION_TIERS,
@@ -47,6 +48,15 @@ class NegotiationTurnRequest(BaseModel):
     candidate_pitch: str
     turn_no: int = Field(default=1, ge=1)
     history: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+    difficulty: Optional[str] = "standard"
+
+
+class VerifySalaryRequest(BaseModel):
+    role_title: str
+    industry: Optional[str] = None
+    country: Optional[str] = "US"
+    currency: Optional[str] = "USD"
+    years_experience: Optional[float] = 3.0
 
 
 class NegotiationScriptsRequest(BaseModel):
@@ -61,15 +71,26 @@ class NegotiationScriptsRequest(BaseModel):
 # Pillar 3: Career Path Knowledge Graph Endpoints
 # -------------------------------------------------------------------------
 
+@router.get("/industries")
+def get_career_industries(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns supported multi-profession career industries (Tech, Healthcare, Finance, Education, Legal, Marketing).
+    """
+    return CareerGraphService.get_industries()
+
+
 @router.get("/graph")
 def get_career_knowledge_graph(
+    industry_id: Optional[str] = Query(None, description="Industry domain filter (e.g. 'tech', 'healthcare', 'finance')"),
     current_user: User = Depends(get_current_user)
 ):
     """
     Returns the complete Directed Career Knowledge Graph including roles, competencies,
-    progression edges, and level hierarchies.
+    progression edges, and level hierarchies, optionally filtered by industry.
     """
-    return CareerGraphService.get_graph_data()
+    return CareerGraphService.get_graph_data(industry_id=industry_id)
 
 
 @router.post("/bridge")
@@ -151,6 +172,46 @@ def predict_salary_compensation(
     )
 
 
+@router.get("/salary/benchmark")
+def get_verified_salary_benchmark(
+    role_title: str = Query(..., description="Target role name (e.g. Registered Nurse, Senior Full Stack Engineer)"),
+    industry: Optional[str] = Query(None, description="Industry domain"),
+    country: Optional[str] = Query("US", description="Country code"),
+    currency: Optional[str] = Query("USD", description="Currency symbol"),
+    years_experience: Optional[float] = Query(3.0, description="Years of experience"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns official government & enterprise wage data (BLS, O*NET, Mercer)
+    with source citations, sample sizes, and strict band validation.
+    """
+    return SalaryService.get_verified_benchmark(
+        role_title=role_title,
+        industry=industry,
+        country=country,
+        currency=currency,
+        years_experience=years_experience
+    )
+
+
+@router.post("/salary/verify-online")
+def verify_salary_online(
+    req: VerifySalaryRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Real-time AI online salary verification citing live market surveys.
+    Strictly constrained to real numbers and verifiable survey URLs.
+    """
+    return SalaryService.verify_online_compensation(
+        role_title=req.role_title,
+        industry=req.industry,
+        country=req.country,
+        currency=req.currency,
+        years_experience=req.years_experience
+    )
+
+
 @router.post("/negotiate/turn")
 def evaluate_negotiation_turn(
     req: NegotiationTurnRequest,
@@ -159,7 +220,7 @@ def evaluate_negotiation_turn(
     """
     Interactive game-theory negotiation simulator.
     Evaluates candidate pitch, computes leverage index, firmness vs. politeness metrics,
-    and returns a realistic spoken HR recruiter counter-response with tactical coach feedback.
+    and returns a realistic spoken HR recruiter counter-response with upgradable offer clauses.
     """
     return SalaryPredictorService.evaluate_negotiation_turn(
         role_title=req.role_title,
@@ -167,7 +228,8 @@ def evaluate_negotiation_turn(
         target_salary=req.target_salary,
         candidate_pitch=req.candidate_pitch,
         turn_no=req.turn_no,
-        history=req.history
+        history=req.history,
+        difficulty=req.difficulty or "standard"
     )
 
 

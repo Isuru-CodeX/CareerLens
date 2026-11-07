@@ -13,7 +13,8 @@ import {
   TrendingUp,
   RefreshCw,
   Zap,
-  Target
+  Target,
+  Briefcase
 } from 'lucide-react';
 import {
   CareerNode,
@@ -24,31 +25,68 @@ import {
 import { api } from '../../services/api';
 
 interface CareerKnowledgeGraphProps {
+  initialIndustry?: string;
   resumes?: Resume[];
   onNavigateToSalary?: (roleTitle: string) => void;
 }
 
 const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; fill: string; dot: string }> = {
+  // Tech
   Frontend: { bg: 'bg-sky-50 dark:bg-sky-950/60', border: 'border-sky-300 dark:border-sky-800', text: 'text-sky-700 dark:text-sky-300', fill: '#0284c7', dot: 'bg-sky-500' },
   'Full Stack': { bg: 'bg-indigo-50 dark:bg-indigo-950/60', border: 'border-indigo-300 dark:border-indigo-800', text: 'text-indigo-700 dark:text-indigo-300', fill: '#4f46e5', dot: 'bg-indigo-500' },
   Backend: { bg: 'bg-emerald-50 dark:bg-emerald-950/60', border: 'border-emerald-300 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-300', fill: '#059669', dot: 'bg-emerald-500' },
   'DevOps & Cloud': { bg: 'bg-amber-50 dark:bg-amber-950/60', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-300', fill: '#d97706', dot: 'bg-amber-500' },
   'Data & AI': { bg: 'bg-purple-50 dark:bg-purple-950/60', border: 'border-purple-300 dark:border-purple-800', text: 'text-purple-700 dark:text-purple-300', fill: '#9333ea', dot: 'bg-purple-500' },
   Security: { bg: 'bg-rose-50 dark:bg-rose-950/60', border: 'border-rose-300 dark:border-rose-800', text: 'text-rose-700 dark:text-rose-300', fill: '#e11d48', dot: 'bg-rose-500' },
-  Management: { bg: 'bg-teal-50 dark:bg-teal-950/60', border: 'border-teal-300 dark:border-teal-800', text: 'text-teal-700 dark:text-teal-300', fill: '#0d9488', dot: 'bg-teal-500' }
+  Management: { bg: 'bg-teal-50 dark:bg-teal-950/60', border: 'border-teal-300 dark:border-teal-800', text: 'text-teal-700 dark:text-teal-300', fill: '#0d9488', dot: 'bg-teal-500' },
+
+  // Healthcare
+  'Patient Care': { bg: 'bg-pink-50 dark:bg-pink-950/60', border: 'border-pink-300 dark:border-pink-800', text: 'text-pink-700 dark:text-pink-300', fill: '#db2777', dot: 'bg-pink-500' },
+  'Clinical Nursing': { bg: 'bg-cyan-50 dark:bg-cyan-950/60', border: 'border-cyan-300 dark:border-cyan-800', text: 'text-cyan-700 dark:text-cyan-300', fill: '#0891b2', dot: 'bg-cyan-500' },
+  'Nursing Leadership': { bg: 'bg-blue-50 dark:bg-blue-950/60', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-700 dark:text-blue-300', fill: '#2563eb', dot: 'bg-blue-500' },
+  'Advanced Practice': { bg: 'bg-violet-50 dark:bg-violet-950/60', border: 'border-violet-300 dark:border-violet-800', text: 'text-violet-700 dark:text-violet-300', fill: '#7c3aed', dot: 'bg-violet-500' },
+  'Hospital Executive': { bg: 'bg-fuchsia-50 dark:bg-fuchsia-950/60', border: 'border-fuchsia-300 dark:border-fuchsia-800', text: 'text-fuchsia-700 dark:text-fuchsia-300', fill: '#c026d3', dot: 'bg-fuchsia-500' },
+
+  // Finance
+  'Corporate Finance': { bg: 'bg-emerald-50 dark:bg-emerald-950/60', border: 'border-emerald-300 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-300', fill: '#059669', dot: 'bg-emerald-500' },
+  Accounting: { bg: 'bg-lime-50 dark:bg-lime-950/60', border: 'border-lime-300 dark:border-lime-800', text: 'text-lime-700 dark:text-lime-300', fill: '#65a30d', dot: 'bg-lime-500' },
+  'Investment Banking': { bg: 'bg-amber-50 dark:bg-amber-950/60', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-300', fill: '#d97706', dot: 'bg-amber-500' },
+  'Executive Finance': { bg: 'bg-yellow-50 dark:bg-yellow-950/60', border: 'border-yellow-300 dark:border-yellow-800', text: 'text-yellow-700 dark:text-yellow-300', fill: '#ca8a04', dot: 'bg-yellow-500' },
+
+  // Education
+  'Instructional Support': { bg: 'bg-orange-50 dark:bg-orange-950/60', border: 'border-orange-300 dark:border-orange-800', text: 'text-orange-700 dark:text-orange-300', fill: '#ea580c', dot: 'bg-orange-500' },
+  'Classroom Instruction': { bg: 'bg-amber-50 dark:bg-amber-950/60', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-300', fill: '#d97706', dot: 'bg-amber-500' },
+  'Educational Technology': { bg: 'bg-indigo-50 dark:bg-indigo-950/60', border: 'border-indigo-300 dark:border-indigo-800', text: 'text-indigo-700 dark:text-indigo-300', fill: '#4f46e5', dot: 'bg-indigo-500' },
+  'Academic Leadership': { bg: 'bg-sky-50 dark:bg-sky-950/60', border: 'border-sky-300 dark:border-sky-800', text: 'text-sky-700 dark:text-sky-300', fill: '#0284c7', dot: 'bg-sky-500' },
+  'Academic Administration': { bg: 'bg-purple-50 dark:bg-purple-950/60', border: 'border-purple-300 dark:border-purple-800', text: 'text-purple-700 dark:text-purple-300', fill: '#9333ea', dot: 'bg-purple-500' },
+
+  // Legal
+  'Legal Operations': { bg: 'bg-slate-50 dark:bg-slate-800/80', border: 'border-slate-300 dark:border-slate-700', text: 'text-slate-700 dark:text-slate-300', fill: '#475569', dot: 'bg-slate-500' },
+  'Regulatory Compliance': { bg: 'bg-red-50 dark:bg-red-950/60', border: 'border-red-300 dark:border-red-800', text: 'text-red-700 dark:text-red-300', fill: '#dc2626', dot: 'bg-red-500' },
+  'Corporate Law': { bg: 'bg-indigo-50 dark:bg-indigo-950/60', border: 'border-indigo-300 dark:border-indigo-800', text: 'text-indigo-700 dark:text-indigo-300', fill: '#4f46e5', dot: 'bg-indigo-500' },
+  'Executive Legal': { bg: 'bg-rose-50 dark:bg-rose-950/60', border: 'border-rose-300 dark:border-rose-800', text: 'text-rose-700 dark:text-rose-300', fill: '#e11d48', dot: 'bg-rose-500' },
+
+  // Marketing
+  'Content & Social': { bg: 'bg-pink-50 dark:bg-pink-950/60', border: 'border-pink-300 dark:border-pink-800', text: 'text-pink-700 dark:text-pink-300', fill: '#db2777', dot: 'bg-pink-500' },
+  'Growth Marketing': { bg: 'bg-emerald-50 dark:bg-emerald-950/60', border: 'border-emerald-300 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-300', fill: '#059669', dot: 'bg-emerald-500' },
+  'Design & UX': { bg: 'bg-violet-50 dark:bg-violet-950/60', border: 'border-violet-300 dark:border-violet-800', text: 'text-violet-700 dark:text-violet-300', fill: '#7c3aed', dot: 'bg-violet-500' },
+  'Marketing Leadership': { bg: 'bg-blue-50 dark:bg-blue-950/60', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-700 dark:text-blue-300', fill: '#2563eb', dot: 'bg-blue-500' },
+  'Executive Marketing': { bg: 'bg-purple-50 dark:bg-purple-950/60', border: 'border-purple-300 dark:border-purple-800', text: 'text-purple-700 dark:text-purple-300', fill: '#9333ea', dot: 'bg-purple-500' }
 };
 
 export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
+  initialIndustry = 'all',
   resumes = [],
   onNavigateToSalary
 }) => {
   const [graphData, setGraphData] = useState<CareerKnowledgeGraphData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedNode, setSelectedNode] = useState<CareerNode | null>(null);
+  const [selectedIndustry, setSelectedIndustry] = useState<string>(initialIndustry);
 
   // Pathfinding Bridge State
-  const [currentRoleId, setCurrentRoleId] = useState<string>('junior_frontend');
-  const [targetRoleId, setTargetRoleId] = useState<string>('senior_fullstack');
+  const [currentRoleId, setCurrentRoleId] = useState<string>('');
+  const [targetRoleId, setTargetRoleId] = useState<string>('');
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
   const [bridgeResult, setBridgeResult] = useState<CareerBridgeResponse | null>(null);
   const [computingBridge, setComputingBridge] = useState<boolean>(false);
@@ -58,20 +96,20 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
 
-  // Load Graph Data
+  // Load Graph Data for Active Industry
   useEffect(() => {
     let active = true;
     setLoading(true);
-    api.getCareerKnowledgeGraph()
+    api.getCareerKnowledgeGraph(selectedIndustry)
       .then((data) => {
         if (!active) return;
         setGraphData(data);
         if (data.nodes.length > 0) {
-          const defaultCurrent = data.nodes.find((n) => n.id === 'junior_frontend') || data.nodes[0];
-          const defaultTarget = data.nodes.find((n) => n.id === 'senior_fullstack') || data.nodes[1];
-          setSelectedNode(defaultCurrent);
-          setCurrentRoleId(defaultCurrent.id);
-          setTargetRoleId(defaultTarget.id);
+          const firstNode = data.nodes[0];
+          const secondNode = data.nodes.length > 1 ? data.nodes[data.nodes.length - 1] : firstNode;
+          setSelectedNode(firstNode);
+          setCurrentRoleId(firstNode.id);
+          setTargetRoleId(secondNode.id);
         }
       })
       .catch((err) => console.error('Failed to load career knowledge graph:', err))
@@ -79,7 +117,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, []);
+  }, [selectedIndustry]);
 
   // Set default resume if available
   useEffect(() => {
@@ -104,38 +142,33 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
       });
       setBridgeResult(res);
     } catch (err: any) {
-      console.error('Career bridge calculation failed:', err);
+      console.error('Failed to compute career bridge:', err);
     } finally {
       setComputingBridge(false);
     }
   };
 
-  // Run initial bridge calculation when graph loads
-  useEffect(() => {
-    if (graphData && currentRoleId && targetRoleId && !bridgeResult) {
-      handleComputeBridge();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphData]);
-
-  // Filtered nodes
+  // Filter nodes by query, category, and level
   const filteredNodes = useMemo(() => {
-    if (!graphData) return [];
+    if (!graphData?.nodes) return [];
     return graphData.nodes.filter((node) => {
       const matchesSearch =
         searchQuery === '' ||
         node.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        node.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        node.core_skills.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
+        node.core_skills.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (node.industry_name && node.industry_name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchesCat = selectedCategory === 'all' || node.category === selectedCategory;
-      const matchesLevel = selectedLevel === 'all' || node.level === selectedLevel;
+      const matchesCategory =
+        selectedCategory === 'all' || node.category === selectedCategory;
 
-      return matchesSearch && matchesCat && matchesLevel;
+      const matchesLevel =
+        selectedLevel === 'all' || node.level === selectedLevel;
+
+      return matchesSearch && matchesCategory && matchesLevel;
     });
   }, [graphData, searchQuery, selectedCategory, selectedLevel]);
 
-  // Group nodes by Level for layout columns
+  // Group nodes by seniority level (1: Entry, 2: Mid, 3: Senior, 4: Lead/Executive)
   const nodesByLevel = useMemo(() => {
     const map: Record<number, CareerNode[]> = { 1: [], 2: [], 3: [], 4: [] };
     filteredNodes.forEach((node) => {
@@ -146,23 +179,26 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
     return map;
   }, [filteredNodes]);
 
-  // Check if role is in active bridge path
+  // Path helper
   const isNodeInPath = (nodeId: string) => {
-    if (!bridgeResult || !bridgeResult.path) return false;
-    return bridgeResult.path.includes(nodeId);
+    return bridgeResult?.path?.includes(nodeId) || false;
   };
 
   const getPathIndex = (nodeId: string) => {
-    if (!bridgeResult || !bridgeResult.path) return -1;
+    if (!bridgeResult?.path) return -1;
     return bridgeResult.path.indexOf(nodeId);
   };
 
-  if (loading) {
+  // Active industry label
+  const activeIndustryObj = (graphData?.industries || []).find((i) => i.id === selectedIndustry);
+  const activeIndustryLabel = activeIndustryObj ? activeIndustryObj.name : 'All Professional Domains';
+
+  if (loading && !graphData) {
     return (
-      <div className="p-12 text-center space-y-4">
+      <div className="p-16 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-4">
         <RefreshCw className="w-8 h-8 animate-spin text-indigo-600 mx-auto" />
         <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-          Compiling Career Knowledge Graph taxonomy & directed transitions...
+          Compiling Career Knowledge Graph taxonomy & directed transitions across industries...
         </p>
       </div>
     );
@@ -170,8 +206,9 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
 
   return (
     <div className="space-y-6 sm:space-y-8 min-w-0">
-      {/* Top Controls: Pathfinding Engine Toolbar */}
+      {/* Top Controls: Pathfinding Engine Toolbar & Industry Selector */}
       <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 overflow-hidden">
+        {/* Header row with Industry Selector & Resume Sync */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
@@ -183,29 +220,52 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
             </h2>
           </div>
 
-          {/* Resume Sync Selector */}
-          {resumes.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">Sync with Resume:</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Industry Selector Dropdown (Task 5) */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Industry:</span>
+              </span>
               <select
-                value={selectedResumeId}
-                onChange={(e) => setSelectedResumeId(e.target.value)}
-                className="max-w-xs px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate"
+                value={selectedIndustry}
+                onChange={(e) => setSelectedIndustry(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/70 text-xs font-bold text-indigo-700 dark:text-indigo-300 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
-                {resumes.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.title || r.file_name} ({r.role_category || 'General'})
-                  </option>
-                ))}
+                <option value="all">🌐 All Professions</option>
+                <option value="tech">💻 Technology & Software</option>
+                <option value="healthcare">🩺 Healthcare & Medicine</option>
+                <option value="finance">🏛️ Finance & Banking</option>
+                <option value="education">🎓 Education & Academia</option>
+                <option value="legal">⚖️ Legal & Compliance</option>
+                <option value="marketing">📣 Marketing & Creative</option>
               </select>
             </div>
-          )}
+
+            {/* Resume Sync Selector */}
+            {resumes.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500">Sync Candidate:</span>
+                <select
+                  value={selectedResumeId}
+                  onChange={(e) => setSelectedResumeId(e.target.value)}
+                  className="max-w-[180px] px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate"
+                >
+                  {resumes.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.title || r.file_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Bridge Role Selectors */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-end">
-          {/* Baseline Role (5 cols on lg) */}
-          <div className="lg:col-span-5 space-y-1.5 min-w-0">
+        {/* Bridge Role Selectors with Flexible Full-Width Layout */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-3.5 min-w-0">
+          {/* Baseline Role */}
+          <div className="flex-1 space-y-1.5 min-w-0">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
               <span>Current / Baseline Role</span>
@@ -225,15 +285,15 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
             </div>
           </div>
 
-          {/* Arrow Divider (1 col on lg, centered between them) */}
-          <div className="hidden lg:flex lg:col-span-1 items-center justify-center pb-1.5">
+          {/* Arrow Divider */}
+          <div className="hidden lg:flex items-center justify-center pb-2 px-1 shrink-0">
             <div className="w-9 h-9 rounded-2xl bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
               <ArrowRight className="w-4 h-4" />
             </div>
           </div>
 
-          {/* Target Role (4 cols on lg) */}
-          <div className="lg:col-span-4 space-y-1.5 min-w-0">
+          {/* Target Role */}
+          <div className="flex-1 space-y-1.5 min-w-0">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
               <span>Target / Dream Role</span>
@@ -253,30 +313,33 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
             </div>
           </div>
 
-          {/* Calculate Path Button (2 cols on lg, or full width on mobile/tablet) */}
-          <div className="lg:col-span-2 min-w-0">
+          {/* Calculate Path Button (never wraps or truncates to Calculate P...) */}
+          <div className="flex-none min-w-0">
             <button
               type="button"
               onClick={handleComputeBridge}
               disabled={computingBridge}
-              className="w-full h-[42px] px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0"
+              className="w-full lg:w-auto h-[42px] px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer shrink-0 whitespace-nowrap"
             >
               {computingBridge ? <RefreshCw className="w-4 h-4 animate-spin shrink-0" /> : <Zap className="w-4 h-4 shrink-0" />}
-              <span className="truncate">Calculate Path</span>
+              <span>Calculate Path</span>
             </button>
           </div>
         </div>
 
-        {/* Filters and Search row */}
+        {/* Filters and Search row (Task 1: Search icon alignment fixed) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
           <div className="relative flex-1 min-w-0 sm:max-w-xs">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+            />
             <input
-              type="text"
+              type="search"
               placeholder="Search roles or skills..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+              className="h-10 w-full pl-10 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -286,7 +349,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[140px] truncate"
+                className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[140px] truncate"
               >
                 <option value="all">All Domains</option>
                 {(graphData?.categories || []).map((c) => (
@@ -300,13 +363,13 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
               <select
                 value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300"
+                className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 <option value="all">All Tiers</option>
                 <option value={1}>L1 (Entry 0-2y)</option>
                 <option value={2}>L2 (Mid 2-5y)</option>
                 <option value={3}>L3 (Senior 5-8y)</option>
-                <option value={4}>L4 (Staff/Lead 8y+)</option>
+                <option value={4}>L4 (Lead / Exec 8y+)</option>
               </select>
             </div>
           </div>
@@ -318,25 +381,29 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         {/* Left: 4-Tier Interactive Knowledge Matrix (8 Cols) */}
         <div className="lg:col-span-8 space-y-6 min-w-0">
           <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6 overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+            {/* Header: Renamed to Career Progression Hierarchy (Task 6) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                  Technical Progression Hierarchy
+                  Career Progression Hierarchy
                 </h3>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
+                  {activeIndustryLabel}
+                </span>
               </div>
               <span className="text-xs text-slate-500 font-semibold">
-                Showing {filteredNodes.length} nodes across 4 tiers
+                Showing {filteredNodes.length} roles across 4 tiers
               </span>
             </div>
 
-            {/* 4 Levels Rendered as Structured Visual Progression Columns */}
+            {/* 4 Seniority Levels Rendered as Structured Visual Progression Columns */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {[
                 { level: 1, title: 'Tier 1: Entry', subtitle: '0-2 Yrs Experience' },
                 { level: 2, title: 'Tier 2: Mid Level', subtitle: '2-5 Yrs Experience' },
                 { level: 3, title: 'Tier 3: Senior', subtitle: '5-8 Yrs Experience' },
-                { level: 4, title: 'Tier 4: Staff / Lead', subtitle: '8+ Yrs Experience' }
+                { level: 4, title: 'Tier 4: Lead / Exec', subtitle: '8+ Yrs Experience' }
               ].map((tier) => (
                 <div key={tier.level} className="space-y-3 min-w-0">
                   <div className="pb-2 border-b-2 border-indigo-500/20">
@@ -349,7 +416,13 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                       const inPath = isNodeInPath(node.id);
                       const pathIdx = getPathIndex(node.id);
                       const isSelected = selectedNode?.id === node.id;
-                      const catStyle = CATEGORY_COLORS[node.category] || CATEGORY_COLORS['Full Stack'];
+                      const catStyle = CATEGORY_COLORS[node.category] || CATEGORY_COLORS['Full Stack'] || {
+                        bg: 'bg-slate-50 dark:bg-slate-800',
+                        border: 'border-slate-200 dark:border-slate-700',
+                        text: 'text-slate-700 dark:text-slate-300',
+                        fill: '#64748b',
+                        dot: 'bg-slate-500'
+                      };
 
                       return (
                         <div
@@ -395,7 +468,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
 
                     {(nodesByLevel[tier.level] || []).length === 0 && (
                       <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-[11px] text-slate-400">
-                        No matches in tier
+                        No roles in tier
                       </div>
                     )}
                   </div>
@@ -404,12 +477,12 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
             </div>
           </div>
 
-          {/* Path Bridge Feasibility Scorecard */}
+          {/* Path Bridge Feasibility Scorecard & Roadmap (Task 7) */}
           {bridgeResult && (
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
+            <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6 overflow-hidden min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-indigo-600" />
+                  <TrendingUp className="w-5 h-5 text-indigo-600 shrink-0" />
                   <div>
                     <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
                       Optimal Bridge Roadmap Analysis
@@ -424,7 +497,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                   <div className="text-right">
                     <p className="text-[10px] uppercase font-bold text-slate-400">Salary Uplift</p>
                     <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                      +${(bridgeResult.salary_delta / 1000).toFixed(0)}k / year
+                      {bridgeResult.salary_delta >= 0 ? '+' : ''}${(bridgeResult.salary_delta / 1000).toFixed(0)}k / yr
                     </p>
                   </div>
 
@@ -439,6 +512,16 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                 </div>
               </div>
 
+              {/* Notice when candidate has no skills on file */}
+              {bridgeResult.has_candidate_skills === false && (
+                <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 flex items-center gap-3 text-xs">
+                  <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <p className="text-indigo-900 dark:text-indigo-200">
+                    <strong>Tip:</strong> Upload a resume or select your active profile above to calculate exact verified skills vs. missing gaps based on your personal background.
+                  </p>
+                </div>
+              )}
+
               {/* Milestones Sequencer */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -448,7 +531,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                   {bridgeResult.milestones.map((milestone, idx) => (
                     <React.Fragment key={milestone.id}>
                       <div className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-black text-[10px] flex items-center justify-center">
+                        <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-black text-[10px] flex items-center justify-center shrink-0">
                           {idx + 1}
                         </span>
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{milestone.title}</span>
@@ -466,7 +549,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                 {/* Verified Skills */}
                 <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                    <CheckCircle2 className="w-4 h-4" />
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>Verified Skills ({bridgeResult.verified_skills.length})</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
@@ -479,7 +562,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                       </span>
                     ))}
                     {bridgeResult.verified_skills.length === 0 && (
-                      <span className="text-[11px] text-slate-400 italic">No verified skills detected from resume</span>
+                      <span className="text-[11px] text-slate-400 italic">No verified skills on file yet</span>
                     )}
                   </div>
                 </div>
@@ -487,7 +570,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                 {/* Transferrable Skills */}
                 <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4 shrink-0" />
                     <span>Transferrable ({bridgeResult.transferrable_skills.length})</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
@@ -509,7 +592,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                 {/* Missing Prerequisite Gaps */}
                 <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 dark:text-rose-300">
-                    <AlertCircle className="w-4 h-4" />
+                    <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>Missing Gaps ({bridgeResult.missing_skills.length})</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
@@ -522,13 +605,15 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                       </span>
                     ))}
                     {bridgeResult.missing_skills.length === 0 && (
-                      <span className="text-[11px] text-slate-400 italic">No missing gaps! You meet 100% of criteria</span>
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                        🎉 You meet 100% of required competencies!
+                      </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* 3-Phase Structured Learning Roadmap */}
+              {/* 3-Phase Structured Learning Roadmap (Task 7) */}
               {bridgeResult.learning_roadmap.length > 0 && (
                 <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -555,7 +640,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                           ))}
                         </div>
                         <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-200 dark:border-slate-700">
-                          <strong>Project:</strong> {phase.recommended_project}
+                          <strong>Milestone:</strong> {phase.recommended_project}
                         </p>
                       </div>
                     ))}
@@ -586,25 +671,52 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                 </p>
               </div>
 
-              {/* Salary Band Indicator */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-slate-500">Industry Compensation Range</span>
-                  <span className="text-emerald-600 font-black">${(selectedNode.salary_median / 1000).toFixed(0)}k Median</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden flex">
-                  <div className="bg-emerald-500 h-full w-full rounded-full" />
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
-                  <span>${(selectedNode.salary_range.min / 1000).toFixed(0)}k Base</span>
-                  <span>${(selectedNode.salary_range.max / 1000).toFixed(0)}k Top Band</span>
-                </div>
-              </div>
+              {/* Task 2: Industry Compensation Range Progress Bar with Proportional Median Pin */}
+              {(() => {
+                const minSalary = selectedNode.salary_range?.min || 60000;
+                const maxSalary = selectedNode.salary_range?.max || 120000;
+                const medianSalary = selectedNode.salary_median || minSalary;
+                const posPercent = maxSalary > minSalary
+                  ? Math.min(100, Math.max(0, ((medianSalary - minSalary) / (maxSalary - minSalary)) * 100))
+                  : 50;
+
+                return (
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-500">Industry Compensation Range</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                        ${(medianSalary / 1000).toFixed(0)}k Median
+                      </span>
+                    </div>
+
+                    {/* Proportional Range Track with Pin Marker */}
+                    <div className="relative h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 my-1.5">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition-all duration-300"
+                        style={{ width: `${posPercent}%` }}
+                      />
+                      <div
+                        className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-emerald-500 bg-white dark:bg-slate-900 shadow-md transition-all duration-300"
+                        style={{ left: `${posPercent}%` }}
+                        title={`Median: $${(medianSalary / 1000).toFixed(0)}k (${posPercent.toFixed(0)}% position)`}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+                      <span>Base ${(minSalary / 1000).toFixed(0)}k</span>
+                      <span className="text-slate-700 dark:text-slate-300 font-bold">
+                        Median ${(medianSalary / 1000).toFixed(0)}k
+                      </span>
+                      <span>Top Band ${(maxSalary / 1000).toFixed(0)}k</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Core Competencies */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                  Core Technical Requirements
+                  Core Requirements & Skills
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedNode.core_skills.map((skill) => (
@@ -622,7 +734,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
               {selectedNode.advanced_skills && selectedNode.advanced_skills.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                    Advanced High-ROI Skills
+                    Advanced High-ROI Competencies
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedNode.advanced_skills.map((skill) => (

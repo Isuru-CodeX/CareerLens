@@ -265,7 +265,8 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
             source.connect(analyser);
 
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            const checkVolume = () => {
+            let lastVolUpdate = 0;
+            const checkVolume = (timestamp: number) => {
               if (!isRecordingIntentRef.current) return;
               analyser.getByteFrequencyData(dataArray);
               let sum = 0;
@@ -274,8 +275,11 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
               }
               const avg = sum / dataArray.length;
               const level = Math.min(100, Math.round((avg / 128) * 100));
-              setAudioLevel(level);
-              setIsVoiceDetected(level > 12);
+              if (timestamp - lastVolUpdate > 120) {
+                lastVolUpdate = timestamp;
+                setAudioLevel(level);
+                setIsVoiceDetected(level > 12);
+              }
               animationFrameRef.current = requestAnimationFrame(checkVolume);
             };
             animationFrameRef.current = requestAnimationFrame(checkVolume);
@@ -419,13 +423,12 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
               const liveWords = res.transcript.trim();
               setTranscript(liveWords);
               initialTextRef.current = liveWords;
-              setEngineStatus('typing_live');
             }
           } catch {
             // Silently continue recording
           }
         }
-      }, 4500);
+      }, 3500);
 
     } catch (err) {
       console.warn('Web Speech API unavailable:', err);
@@ -1106,33 +1109,124 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 </div>
               </div>
 
-              {/* STAR 4-Pill Breakdown */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40">
-                  <span className="text-[10px] text-slate-400 block font-bold">Situation</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white">
-                    {latestTurnEval.star.situation_score}%
-                  </span>
+              {/* 5-Criterion STAR Scoring Rubric */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <span>5-Criterion Evaluation Rubric</span>
+                  <span className="text-[11px] text-slate-400 font-normal">Weighted STAR Quality Assessment</span>
                 </div>
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40">
-                  <span className="text-[10px] text-slate-400 block font-bold">Task</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white">
-                    {latestTurnEval.star.task_score}%
-                  </span>
-                </div>
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40">
-                  <span className="text-[10px] text-slate-400 block font-bold">Action</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white">
-                    {latestTurnEval.star.action_score}%
-                  </span>
-                </div>
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40">
-                  <span className="text-[10px] text-slate-400 block font-bold">Result</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white">
-                    {latestTurnEval.star.result_score}%
-                  </span>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40 text-left space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-bold">Relevance (20%)</span>
+                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
+                        {latestTurnEval.star.relevance_score ?? latestTurnEval.star.task_score}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${latestTurnEval.star.relevance_score ?? latestTurnEval.star.task_score}%` }} />
+                    </div>
+                    <p className="text-[10px] text-slate-500 line-clamp-1">
+                      {latestTurnEval.star.rubric_breakdown?.relevance?.feedback || "Addresses question directly"}
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40 text-left space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-bold">Structure (20%)</span>
+                      <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
+                        {latestTurnEval.star.structure_score ?? latestTurnEval.star.situation_score}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${latestTurnEval.star.structure_score ?? latestTurnEval.star.situation_score}%` }} />
+                    </div>
+                    <p className="text-[10px] text-slate-500 line-clamp-1">
+                      {latestTurnEval.star.rubric_breakdown?.structure?.feedback || "STAR narrative progression"}
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40 text-left space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-bold">Specific Evidence (25%)</span>
+                      <span className="font-extrabold text-amber-600 dark:text-amber-400">
+                        {latestTurnEval.star.specific_evidence_score ?? latestTurnEval.star.result_score}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-amber-500 h-full rounded-full" style={{ width: `${latestTurnEval.star.specific_evidence_score ?? latestTurnEval.star.result_score}%` }} />
+                    </div>
+                    <p className="text-[10px] text-slate-500 line-clamp-1">
+                      {latestTurnEval.star.rubric_breakdown?.specific_evidence?.feedback || "Quantified metrics & data"}
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40 text-left space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-bold">Industry Depth (20%)</span>
+                      <span className="font-extrabold text-blue-600 dark:text-blue-400">
+                        {latestTurnEval.star.industry_knowledge_score ?? 75}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-blue-500 h-full rounded-full" style={{ width: `${latestTurnEval.star.industry_knowledge_score ?? 75}%` }} />
+                    </div>
+                    <p className="text-[10px] text-slate-500 line-clamp-1">
+                      {latestTurnEval.star.rubric_breakdown?.industry_knowledge?.feedback || "Domain standards & tools"}
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/60 dark:border-emerald-900/40 text-left space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-bold">Communication (15%)</span>
+                      <span className="font-extrabold text-purple-600 dark:text-purple-400">
+                        {latestTurnEval.star.communication_score ?? latestTurnEval.star.action_score}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-purple-500 h-full rounded-full" style={{ width: `${latestTurnEval.star.communication_score ?? latestTurnEval.star.action_score}%` }} />
+                    </div>
+                    <p className="text-[10px] text-slate-500 line-clamp-1">
+                      {latestTurnEval.star.rubric_breakdown?.communication?.feedback || "Assertive ownership & clarity"}
+                    </p>
+                  </div>
                 </div>
               </div>
+
+              {/* What Was Missing Checklist */}
+              {latestTurnEval.star.missing_checklist && latestTurnEval.star.missing_checklist.length > 0 && (
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      What Was Present vs. What Was Missing
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {latestTurnEval.star.missing_checklist.filter((i) => i.passed).length}/{latestTurnEval.star.missing_checklist.length} Passed
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {latestTurnEval.star.missing_checklist.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 ${
+                          item.passed
+                            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-300'
+                            : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-300'
+                        }`}
+                      >
+                        <span className={`mt-0.5 text-xs font-bold ${item.passed ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {item.passed ? '✓' : '✗'}
+                        </span>
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-[11px]">{item.label}</p>
+                          <p className="text-[10px] opacity-80">{item.tip}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Follow-up Probing if applicable */}
               {latestTurnEval.followUp && (
@@ -1406,6 +1500,11 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                   >
                     {detectedFillers} detected
                   </span>
+                  {engineStatus === 'network_offline' && isRecording && (
+                    <span className="px-2 py-0.5 rounded-md font-semibold text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                      ⚡ Local Audio STT Active
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1453,12 +1552,6 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 </div>
               )}
 
-              {engineStatus === 'network_offline' && isRecording && (
-                <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                  <span className="font-bold">ℹ️ Live Speech Sync:</span>
-                  <span>Audio is continuously recording and streaming to server for transcription. Speak clearly!</span>
-                </div>
-              )}
 
               {/* Transcript Text Area (editable) */}
               <div className="relative">

@@ -192,79 +192,196 @@ class InterviewSimulatorService:
     @staticmethod
     def evaluate_star_adherence(transcript: str, question: str) -> Dict[str, Any]:
         """
-        Scores answer adherence to STAR methodology:
-        - Situation (15%): Context established
-        - Task (15%): Clear problem or requirement
-        - Action (35%): Concrete active execution verbs
-        - Result (35%): Quantified outcomes & metrics
+        Scores answer adherence using the 5-criterion interview rubric:
+        1. Relevance (20%): Directly addresses the question prompt
+        2. Structure (20%): STAR methodology framing (Situation, Task, Action, Result)
+        3. Specific Evidence (25%): Quantified outcomes, metrics, concrete technical decisions
+        4. Industry Knowledge (20%): Domain best practices, architectures, real-world constraints
+        5. Communication (15%): First-person ownership, professional clarity, minimal filler
         """
         text_lower = (transcript or "").lower()
+        q_lower = (question or "").lower()
         word_count = len(re.findall(r"\b\w+\b", text_lower))
 
         if word_count < 15:
+            rubric_breakdown = {
+                "relevance": {"score": 30, "weight": 20, "label": "Relevance (20%)", "feedback": "Answer was too brief to fully address the question."},
+                "structure": {"score": 25, "weight": 20, "label": "Structure (20%)", "feedback": "Needs distinct Situation, Task, Action, and Result phases."},
+                "specific_evidence": {"score": 15, "weight": 25, "label": "Specific Evidence (25%)", "feedback": "No quantifiable metrics, percentages, or data points cited."},
+                "industry_knowledge": {"score": 25, "weight": 20, "label": "Industry Knowledge (20%)", "feedback": "Incorporate industry-standard tools, frameworks, and patterns."},
+                "communication": {"score": 35, "weight": 15, "label": "Communication (15%)", "feedback": "Quick initial start, but elaborate with full professional ownership."}
+            }
+            missing_checklist = [
+                {"id": "metrics", "label": "Quantified Business / Technical Outcome (%, $, latency)", "passed": False, "tip": "State specific figures like 'reduced downtime by 40%' or 'saved $50k'."},
+                {"id": "ownership", "label": "Personal Ownership & Actions ('I designed', 'I led')", "passed": False, "tip": "Use active first-person phrasing ('I architected' instead of 'we did')."},
+                {"id": "constraint", "label": "High-Stakes Problem or Constraint Defined", "passed": False, "tip": "Describe the operational hurdle or conflicting requirement upfront."},
+                {"id": "domain_depth", "label": "Industry Standards & Methodologies Mentioned", "passed": False, "tip": "Mention technical frameworks, protocols, or SLA benchmarks."},
+                {"id": "takeaway", "label": "Resolution & Long-Term Engineering Impact", "passed": False, "tip": "Conclude with how this established an enduring best practice."}
+            ]
             return {
                 "situation_score": 25,
                 "task_score": 25,
                 "action_score": 20,
                 "result_score": 15,
-                "overall_star_score": 20,
+                "overall_star_score": 24,
+                "relevance_score": 30,
+                "structure_score": 25,
+                "specific_evidence_score": 15,
+                "industry_knowledge_score": 25,
+                "communication_score": 35,
+                "rubric_breakdown": rubric_breakdown,
+                "missing_checklist": missing_checklist,
                 "is_star_compliant": False,
                 "strengths": ["Quick initial response"],
                 "growth_areas": ["Answer is too brief. Expand on the Situation, specific Actions, and quantified Results."],
                 "follow_up_prompt": "Could you walk me through the specific technical actions you took and the measurable outcome of that project?"
             }
 
-        # Situation Scoring
+        # 1. Relevance Scoring (20%)
+        q_words = [w for w in re.findall(r"\b\w{4,}\b", q_lower) if w not in {"about", "time", "would", "could", "tell", "describe", "your", "with", "project", "challenge", "challenging", "technical"}]
+        q_overlap = sum(1 for w in q_words if w in text_lower)
+        relevance_score = min(100, 70 + (q_overlap * 15 if q_words else (15 if word_count >= 30 else 0)))
+
+        # 2. STAR Components & Structure Scoring (20%)
         s_matches = sum(1 for kw in STAR_KEYWORDS["situation"] if kw in text_lower)
         s_score = min(100, 45 + s_matches * 25)
 
-        # Task Scoring
         t_matches = sum(1 for kw in STAR_KEYWORDS["task"] if kw in text_lower)
         t_score = min(100, 45 + t_matches * 25)
 
-        # Action Scoring
         a_matches = sum(1 for kw in STAR_KEYWORDS["action"] if kw in text_lower)
-        has_first_person = bool(re.search(r"\b(i|my|mine)\b", text_lower))
+        has_first_person = bool(re.search(r"\b(i|my|mine|personally|spearheaded|architected|implemented)\b", text_lower))
         a_score = min(100, (45 if has_first_person else 25) + a_matches * 18)
 
-        # Result Scoring
         r_matches = sum(1 for kw in STAR_KEYWORDS["result"] if kw in text_lower)
-        has_digits = bool(re.search(r"\b\d+[%kmx]?\b", text_lower))
+        has_digits = bool(re.search(r"\b\d+[%kmx\$]?\b", text_lower))
         r_score = min(100, (40 if has_digits else 20) + r_matches * 22)
 
-        # Weighted composite
-        overall_star = round(
+        star_composite = round(
             s_score * 0.15 +
             t_score * 0.15 +
             a_score * 0.35 +
             r_score * 0.35
         )
+        structure_score = round(s_score * 0.25 + t_score * 0.25 + a_score * 0.25 + r_score * 0.25)
+
+        # 3. Specific Evidence Scoring (25%)
+        evidence_points = (45 if has_digits else 20) + min(35, word_count // 3) + (20 if r_score >= 65 else 0)
+        specific_evidence_score = min(100, evidence_points)
+
+        # 4. Industry Knowledge Scoring (20%)
+        ind_terms = [
+            "architecture", "scale", "performance", "pipeline", "latency", "production", "monitoring",
+            "compliance", "stakeholder", "client", "workflow", "standard", "security", "framework",
+            "database", "api", "patient", "curriculum", "portfolio", "litigation", "redis", "cache",
+            "cloud", "infrastructure", "backend", "frontend", "engineer", "lead", "docker", "cluster"
+        ]
+        ind_matches = sum(1 for term in ind_terms if term in text_lower)
+        industry_knowledge_score = min(100, 55 + ind_matches * 12)
+
+        # 5. Communication & Ownership Scoring (15%)
+        communication_score = min(100, (60 if has_first_person else 35) + min(30, word_count // 4) + (10 if word_count >= 50 else 0))
+
+        # Composite Rubric Score
+        overall_composite = round(
+            relevance_score * 0.20 +
+            structure_score * 0.20 +
+            specific_evidence_score * 0.25 +
+            industry_knowledge_score * 0.20 +
+            communication_score * 0.15
+        )
+
+        rubric_breakdown = {
+            "relevance": {
+                "score": relevance_score,
+                "weight": 20,
+                "label": "Relevance (20%)",
+                "feedback": "Directly aligned with the interviewer prompt." if relevance_score >= 70 else "Connect more explicitly to the exact dilemma asked."
+            },
+            "structure": {
+                "score": structure_score,
+                "weight": 20,
+                "label": "STAR Structure (20%)",
+                "feedback": "Clear narrative progression from Context to Outcome." if structure_score >= 70 else "Ensure Situation, Task, Action, and Result are each highlighted."
+            },
+            "specific_evidence": {
+                "score": specific_evidence_score,
+                "weight": 25,
+                "label": "Specific Evidence (25%)",
+                "feedback": "Concrete metrics and quantifiable impacts cited." if specific_evidence_score >= 70 else "Add quantified indicators (e.g. % improvement, hours saved, dollars generated)."
+            },
+            "industry_knowledge": {
+                "score": industry_knowledge_score,
+                "weight": 20,
+                "label": "Industry Knowledge (20%)",
+                "feedback": "Demonstrates deep familiarity with domain patterns and standards." if industry_knowledge_score >= 70 else "Integrate recognized tools, protocols, and best practices."
+            },
+            "communication": {
+                "score": communication_score,
+                "weight": 15,
+                "label": "Communication (15%)",
+                "feedback": "Assertive first-person ownership and clear articulation." if communication_score >= 70 else "Emphasize personal contributions ('I drove', 'I decided') over passive phrasing."
+            }
+        }
+
+        missing_checklist = [
+            {
+                "id": "metrics",
+                "label": "Quantified Business / Technical Outcome (%, $, latency)",
+                "passed": has_digits and r_score >= 55,
+                "tip": "State specific figures like 'reduced downtime by 40%' or 'saved $50k in infrastructure costs'."
+            },
+            {
+                "id": "ownership",
+                "label": "Personal Ownership & Actions ('I designed', 'I led')",
+                "passed": has_first_person and a_score >= 60,
+                "tip": "Clarify your individual decisions vs what the broader team executed."
+            },
+            {
+                "id": "constraint",
+                "label": "High-Stakes Problem or Constraint Defined",
+                "passed": s_matches >= 1 and t_matches >= 1,
+                "tip": "State the business challenge, deadline pressure, or technical limitation upfront."
+            },
+            {
+                "id": "domain_depth",
+                "label": "Industry Standards & Methodologies Mentioned",
+                "passed": ind_matches >= 2,
+                "tip": "Reference specific architectures, industry compliance frameworks, or engineering patterns."
+            },
+            {
+                "id": "takeaway",
+                "label": "Resolution & Long-Term Engineering Impact",
+                "passed": r_matches >= 1,
+                "tip": "Conclude with how this resolution established an enduring operational standard."
+            }
+        ]
 
         strengths = []
         growth_areas = []
 
-        if a_score >= 70:
-            strengths.append("Strong ownership demonstrated with proactive technical action verbs.")
+        if specific_evidence_score >= 70:
+            strengths.append("Excellent focus on quantifiable impact and evidence.")
+        else:
+            growth_areas.append("Quantify your results: cite percentage improvements, latency reductions, or delivery timelines.")
+
+        if a_score >= 70 and has_first_person:
+            strengths.append("Strong ownership demonstrated with proactive leadership and execution verbs.")
         else:
             growth_areas.append("Highlight specific individual actions you took rather than describing what the team did in general.")
 
-        if r_score >= 70:
-            strengths.append("Excellent focus on quantifiable business and engineering impact.")
-        else:
-            growth_areas.append("Quantify the results: mention percentage improvements, latency reductions, or delivery timelines.")
-
-        if s_score >= 70 and t_score >= 70:
-            strengths.append("Clear problem framing and contextual setup.")
+        if structure_score >= 70:
+            strengths.append("Structured narrative flow aligning cleanly with STAR principles.")
         else:
             growth_areas.append("Set up the situation and specific constraints clearly before diving into the implementation.")
 
         # Adaptive Follow-Up Probing Question
         follow_up = None
-        if r_score < 60:
+        if specific_evidence_score < 60:
             follow_up = "What specific metrics, user feedback, or performance benchmarks demonstrated the success of your implementation?"
         elif a_score < 60:
             follow_up = "Which specific architectural or design decisions did you personally spearhead during that phase?"
-        elif overall_star >= 75:
+        elif overall_composite >= 75:
             follow_up = "If you had to tackle that same challenge today with modern tools, what would you engineer differently?"
 
         return {
@@ -272,8 +389,16 @@ class InterviewSimulatorService:
             "task_score": t_score,
             "action_score": a_score,
             "result_score": r_score,
-            "overall_star_score": overall_star,
-            "is_star_compliant": overall_star >= 68,
+            "overall_star_score": max(star_composite, overall_composite),
+            "rubric_composite_score": overall_composite,
+            "relevance_score": relevance_score,
+            "structure_score": structure_score,
+            "specific_evidence_score": specific_evidence_score,
+            "industry_knowledge_score": industry_knowledge_score,
+            "communication_score": communication_score,
+            "rubric_breakdown": rubric_breakdown,
+            "missing_checklist": missing_checklist,
+            "is_star_compliant": overall_composite >= 68,
             "strengths": strengths or ["Articulate professional communication"],
             "growth_areas": growth_areas or ["Maintain this structured storytelling format in future turns"],
             "follow_up_prompt": follow_up

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Compass,
   DollarSign,
@@ -7,7 +7,8 @@ import {
 import { CareerKnowledgeGraph } from '../components/career/CareerKnowledgeGraph';
 import { SalaryPredictorStudio } from '../components/career/SalaryPredictorStudio';
 import { NegotiationCoachStudio } from '../components/career/NegotiationCoachStudio';
-import { Resume } from '../types';
+import { Resume, CareerProfile } from '../types';
+import { api } from '../services/api';
 
 interface CareerNavigatorViewProps {
   resumes?: Resume[];
@@ -17,9 +18,42 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   resumes = []
 }) => {
   const [activeTab, setActiveTab] = useState<'graph' | 'salary' | 'coach'>('graph');
+  const [_userProfile, setUserProfile] = useState<CareerProfile | null>(null);
+  const [activeIndustry, setActiveIndustry] = useState<string>('all');
   const [focusedRole, setFocusedRole] = useState<string>('Senior Full Stack Engineer');
   const [negotiationOffer, setNegotiationOffer] = useState<number>(140000);
   const [negotiationTarget, setNegotiationTarget] = useState<number>(165000);
+
+  // Load User Career Profile to initialize default industry
+  useEffect(() => {
+    let active = true;
+    api.getProfile()
+      .then((profile: CareerProfile) => {
+        if (!active || !profile) return;
+        setUserProfile(profile);
+        if (profile.target_industry) {
+          const norm = profile.target_industry.toLowerCase();
+          if (norm.includes('health') || norm.includes('nurs') || norm.includes('medic')) {
+            setActiveIndustry('healthcare');
+          } else if (norm.includes('finan') || norm.includes('account') || norm.includes('bank')) {
+            setActiveIndustry('finance');
+          } else if (norm.includes('educat') || norm.includes('teach') || norm.includes('academ')) {
+            setActiveIndustry('education');
+          } else if (norm.includes('legal') || norm.includes('law') || norm.includes('complian')) {
+            setActiveIndustry('legal');
+          } else if (norm.includes('market') || norm.includes('design') || norm.includes('creat')) {
+            setActiveIndustry('marketing');
+          } else if (norm.includes('tech') || norm.includes('softw') || norm.includes('engineer')) {
+            setActiveIndustry('tech');
+          }
+        }
+        if (profile.target_title) {
+          setFocusedRole(profile.target_title);
+        }
+      })
+      .catch((err: unknown) => console.error('Failed to load profile for career defaults:', err));
+    return () => { active = false; };
+  }, []);
 
   // Transition from Graph -> Salary Predictor
   const handleNavigateToSalary = (roleTitle: string) => {
@@ -98,6 +132,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
       {/* Active Tab View Rendering */}
       {activeTab === 'graph' && (
         <CareerKnowledgeGraph
+          initialIndustry={activeIndustry}
           resumes={resumes}
           onNavigateToSalary={handleNavigateToSalary}
         />
@@ -105,6 +140,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
 
       {activeTab === 'salary' && (
         <SalaryPredictorStudio
+          initialIndustry={activeIndustry}
           initialRole={focusedRole}
           resumes={resumes}
           onLaunchNegotiation={handleLaunchNegotiation}
@@ -113,6 +149,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
 
       {activeTab === 'coach' && (
         <NegotiationCoachStudio
+          initialIndustry={activeIndustry}
           initialRole={focusedRole}
           initialOffer={negotiationOffer}
           initialTarget={negotiationTarget}

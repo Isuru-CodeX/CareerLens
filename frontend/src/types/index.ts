@@ -427,12 +427,39 @@ export interface SpeechMetrics {
   filler_breakdown: Record<string, number>;
 }
 
+export interface RubricCriterion {
+  score: number;
+  weight: number;
+  label: string;
+  feedback: string;
+}
+
+export interface MissingChecklistItem {
+  id: string;
+  label: string;
+  passed: boolean;
+  tip: string;
+}
+
 export interface StarEvaluation {
   situation_score: number;
   task_score: number;
   action_score: number;
   result_score: number;
   overall_star_score: number;
+  relevance_score?: number;
+  structure_score?: number;
+  specific_evidence_score?: number;
+  industry_knowledge_score?: number;
+  communication_score?: number;
+  rubric_breakdown?: {
+    relevance?: RubricCriterion;
+    structure?: RubricCriterion;
+    specific_evidence?: RubricCriterion;
+    industry_knowledge?: RubricCriterion;
+    communication?: RubricCriterion;
+  };
+  missing_checklist?: MissingChecklistItem[];
   is_star_compliant: boolean;
   strengths: string[];
   growth_areas: string[];
@@ -514,6 +541,8 @@ export interface CareerNode {
   title: string;
   label: string;
   type: string;
+  industry_id?: string;
+  industry_name?: string;
   category: string;
   level: number;
   level_label: string;
@@ -539,10 +568,19 @@ export interface CareerEdge {
   label: string;
 }
 
+export interface CareerIndustry {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+}
+
 export interface CareerKnowledgeGraphData {
   nodes: CareerNode[];
   edges: CareerEdge[];
   categories: string[];
+  industries?: CareerIndustry[];
+  active_industry?: string;
 }
 
 export interface CareerSkillItem {
@@ -572,6 +610,7 @@ export interface CareerBridgeResponse {
   total_estimated_months: number;
   total_transition_months: number;
   feasibility_score: number;
+  has_candidate_skills?: boolean;
   verified_skills: CareerSkillItem[];
   transferrable_skills: CareerSkillItem[];
   missing_skills: CareerSkillItem[];
@@ -652,9 +691,20 @@ export interface SalaryMetadataResponse {
   }>;
 }
 
+export interface OfferClause {
+  id: string;
+  name?: string;
+  title?: string;
+  status?: 'initial' | 'unlocked' | 'pending' | 'locked' | 'standard' | string;
+  type?: string;
+  value?: string;
+  condition: string;
+}
+
 export interface NegotiationTurnResponse {
   turn_no: number;
   candidate_pitch: string;
+  difficulty?: 'standard' | 'hard';
   metrics: {
     leverage_score: number;
     acceptance_probability: number;
@@ -674,9 +724,29 @@ export interface NegotiationTurnResponse {
     concession_amount: number;
     gap_remaining: number;
   };
+  clauses_unlocked?: OfferClause[];
   recruiter_reply: string;
   coach_critique: string;
   suggested_next_move: string;
+}
+
+export interface VerifiedSalaryBenchmark {
+  role: string;
+  industry: string;
+  country: string;
+  currency: string;
+  currency_symbol: string;
+  period: string;
+  base: number;
+  p25: number;
+  median: number;
+  p75: number;
+  top: number;
+  confidence: 'high' | 'medium' | 'low';
+  sample_size: number;
+  sources: Array<{ name: string; url: string; retrieved_at: string }>;
+  notes: string;
+  retrieved_at: string;
 }
 
 export interface CounterOfferScript {
