@@ -353,6 +353,38 @@ class ApiService {
     });
   }
 
+  async syncProfileToResume(
+    id: string,
+    sections?: string[]
+  ): Promise<{
+    status: string;
+    message: string;
+    summary: {
+      target_role_updated: boolean;
+      contact_updated: boolean;
+      summary_updated: boolean;
+      skills_applied: number;
+      experiences_applied: number;
+      education_applied: number;
+    };
+    resume: Resume;
+  }> {
+    return this.request(`/resumes/${id}/sync-from-profile`, {
+      method: 'POST',
+      body: JSON.stringify(sections ? { sections } : {})
+    });
+  }
+
+  async createResumeFromProfile(payload?: {
+    title?: string;
+    target_role?: string;
+  }): Promise<Resume> {
+    return this.request<Resume>('/resumes/create-from-profile', {
+      method: 'POST',
+      body: JSON.stringify(payload || {})
+    });
+  }
+
   getResumeDownloadUrl(id: string): string {
     const token = this.getToken();
     const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';

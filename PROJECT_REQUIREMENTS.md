@@ -40,6 +40,10 @@ Professional executive platform utilizing royal blue, deep navy, and emerald acc
 - Lossless text extraction across PDF, DOCX, and TXT resumes.
 - Structured section segmentation (`contact`, `summary`, `experience`, `education`, `skills`, `projects`).
 - User review drawer allowing field corrections without modifying original immutable files.
+- Bi-directional candidate profile synchronization:
+  - **Apply Profile Details to Resume**: Injects verified user profile details (target role, summary, verified skills, and employment history) directly into the resume document, updating child records and rebuilding raw text.
+  - **Create Resume from Profile**: 1-click ATS-ready resume document compilation from verified profile metadata.
+  - **Review & Import CV to Profile**: Extracts candidate skills, work history, education, and avatar from an uploaded resume into the career profile.
 - Heuristic scoring across structure, readability, quantified impact, and skills coverage.
 - Passive/vague phrase detector suggesting high-impact action verbs.
 

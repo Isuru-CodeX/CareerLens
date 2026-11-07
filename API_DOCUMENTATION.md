@@ -73,6 +73,31 @@ Retrieves full resume metadata, structured parsed sections, and version history.
 ### `PATCH /api/resumes/{id}/sections/{section_id}`
 Allows the user to review and correct an extracted section without modifying the original uploaded file.
 
+### `POST /api/resumes/create-from-profile`
+Generates a brand-new ATS-ready resume document populated directly from the authenticated user's verified candidate profile (`CareerProfile`, `ProfileSkill`, `ProfileExperience`, and `EducationItem`).
+- **Request Body**:
+```json
+{
+  "title": "Alex Morgan - Master Resume",
+  "target_role": "Senior Full Stack Engineer"
+}
+```
+- **Response** `201 Created`: Returns newly created `Resume` entity with parsed sections and initial analysis.
+
+### `POST /api/resumes/{id}/sync-from-profile`
+Injects verified user profile data (target role, contact info, professional summary, verified skills, and work history) directly into an existing resume. Updates structured sections, recalculates raw text, generates a new version history entry, and flushes changes to storage.
+- **Request Body** (optional):
+```json
+{
+  "sections": ["target_role", "contact", "summary", "skills", "experience", "education"]
+}
+```
+- **Response** `200 OK`: Returns `{ "status": "success", "message": "...", "summary": { ... }, "resume": { ... } }`.
+
+### `POST /api/resumes/{id}/sync-to-profile`
+Extracts candidate information (education, work experiences, skills, and contact metadata) from an uploaded CV and synchronizes it into the candidate's career profile.
+- **Response** `200 OK`: Returns `{ "status": "success", "message": "...", "summary": { ... } }`.
+
 ### `POST /api/resumes/{id}/analyse`
 Executes heuristic analysis on the resume. Calculates structure, readability, impact, and skills scores, detects vague phrases, and generates recommendations.
 

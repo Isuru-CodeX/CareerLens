@@ -9,12 +9,13 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit
 from app.models.models import (
-    User, Resume, ResumeVersion, ParsedResumeSection, ResumeSkill, AnalysisRun, Recommendation,
+    User, Resume, ResumeVersion, ParsedResumeSection, ResumeSkill, ResumeExperience, AnalysisRun, Recommendation,
     CareerProfile, ProfileExperience, ProfileSkill, ExperienceSource, SkillSource
 )
 from app.schemas.schemas import (
     ResumeOut, ParsedSectionOut, ParsedSectionUpdate, AnalysisRunOut,
-    ResumeTailorRequest, ResumeTailorResponse
+    ResumeTailorRequest, ResumeTailorResponse,
+    CreateResumeFromProfileRequest, SyncResumeFromProfileRequest
 )
 from app.services.tailor_service import TailorService
 from app.services.parsing_service import ParsingService
@@ -192,6 +193,335 @@ async def upload_resume(
         f"Analyzed resume '{resume.title}' (ATS Score: {analysis_res['overall_score']}%)",
         entity_type="resume", entity_id=resume.id
     )
+
+    return resume
+
+def apply_profile_to_resume(
+    db: Session,
+    user: User,
+    resume: Resume,
+    sections_to_apply: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    profile = db.query(CareerProfile).filter(CareerProfile.user_id == user.id).first()
+    if not profile:
+        profile = CareerProfile(user_id=user.id)
+        db.add(profile)
+        db.flush()
+
+    if not sections_to_apply:
+        sections_to_apply = ["contact", "summary", "skills", "experience", "education", "target_role"]
+
+    summary_info = {
+        "target_role_updated": False,
+        "contact_updated": False,
+        "summary_updated": False,
+        "skills_applied": 0,
+        "experiences_applied": 0,
+        "education_applied": 0
+    }
+
+    # 1. Target Role
+    if "target_role" in sections_to_apply and profile.target_title:
+        resume.target_role = profile.target_title
+        summary_info["target_role_updated"] = True
+
+    # 2. Contact Section
+    if "contact" in sections_to_apply:
+        contact_sec = db.query(ParsedResumeSection).filter(
+            ParsedResumeSection.resume_id == resume.id,
+            ParsedResumeSection.section_type == "contact"
+        ).first()
+        if not contact_sec:
+            contact_sec = ParsedResumeSection(resume_id=resume.id, section_type="contact")
+            db.add(contact_sec)
+
+        loc_parts = [p for p in [profile.city, profile.region, profile.country] if p]
+        loc_str = ", ".join(loc_parts)
+        contact_dict = {
+            "name": user.full_name or "Candidate",
+            "email": user.email,
+            "phone": profile.phone or "",
+            "location": loc_str,
+            "linkedin": profile.linkedin_url or "",
+            "github": profile.github_url or "",
+            "portfolio": profile.portfolio_url or ""
+        }
+        contact_sec.structured_data = contact_dict
+        contact_sec.raw_content = (
+            f"{contact_dict['name']}\n"
+            f"Email: {contact_dict['email']} | Phone: {contact_dict['phone'] or 'N/A'} | Location: {loc_str or 'N/A'}\n"
+            f"LinkedIn: {contact_dict['linkedin'] or 'N/A'} | GitHub: {contact_dict['github'] or 'N/A'}"
+        )
+        contact_sec.is_user_verified = True
+        summary_info["contact_updated"] = True
+
+    # 3. Summary Section
+    if "summary" in sections_to_apply:
+        sum_sec = db.query(ParsedResumeSection).filter(
+            ParsedResumeSection.resume_id == resume.id,
+            ParsedResumeSection.section_type == "summary"
+        ).first()
+        if not sum_sec:
+            sum_sec = ParsedResumeSection(resume_id=resume.id, section_type="summary")
+            db.add(sum_sec)
+
+        sum_text = profile.summary or f"Results-driven {profile.target_title or 'Engineering Professional'} with demonstrated technical acumen, proactive ownership, and cross-functional collaboration skills."
+        sum_sec.structured_data = {"text": sum_text}
+        sum_sec.raw_content = sum_text
+        sum_sec.is_user_verified = True
+        summary_info["summary_updated"] = True
+
+    # 4. Skills Section
+    if "skills" in sections_to_apply:
+        skills_sec = db.query(ParsedResumeSection).filter(
+            ParsedResumeSection.resume_id == resume.id,
+            ParsedResumeSection.section_type == "skills"
+        ).first()
+        if not skills_sec:
+            skills_sec = ParsedResumeSection(resume_id=resume.id, section_type="skills")
+            db.add(skills_sec)
+
+        profile_skills = db.query(ProfileSkill).filter(ProfileSkill.user_id == user.id).all()
+        skill_names = [s.name for s in profile_skills]
+        if not skill_names and profile.target_title:
+            skill_names = ["Problem Solving", "System Design", "Agile Methodologies"]
+        skills_sec.structured_data = {
+            "skills": skill_names,
+            "items": [
+                {
+                    "name": s.name,
+                    "proficiency": s.proficiency_estimate or "Intermediate",
+                    "verification_status": s.verification_status or "mentioned"
+                }
+                for s in profile_skills
+            ]
+        }
+        skills_sec.raw_content = ", ".join(skill_names)
+        skills_sec.is_user_verified = True
+        summary_info["skills_applied"] = len(skill_names)
+
+        # Sync to resume_skills table
+        existing_r_skills = {
+            rs.skill_name.lower(): rs
+            for rs in db.query(ResumeSkill).filter(ResumeSkill.resume_id == resume.id).all()
+        }
+        for s in profile_skills:
+            if s.name.lower() not in existing_r_skills:
+                db.add(ResumeSkill(
+                    resume_id=resume.id,
+                    skill_name=s.name,
+                    proficiency_level=s.proficiency_estimate or "intermediate",
+                    evidence_snippet=s.evidence_summary or f"Verified from candidate profile ({s.verification_status or 'mentioned'})"
+                ))
+
+    # 5. Experience Section
+    if "experience" in sections_to_apply:
+        exp_sec = db.query(ParsedResumeSection).filter(
+            ParsedResumeSection.resume_id == resume.id,
+            ParsedResumeSection.section_type == "experience"
+        ).first()
+        if not exp_sec:
+            exp_sec = ParsedResumeSection(resume_id=resume.id, section_type="experience")
+            db.add(exp_sec)
+
+        profile_exps = db.query(ProfileExperience).filter(
+            ProfileExperience.user_id == user.id
+        ).order_by(ProfileExperience.start_year.desc()).all()
+
+        exp_structured = []
+        exp_lines = []
+        for p_exp in profile_exps:
+            period = f"{p_exp.start_year} - {'Present' if p_exp.is_current else (p_exp.end_year or 'Present')}"
+            exp_structured.append({
+                "job_title": p_exp.job_title,
+                "company": p_exp.company,
+                "period": period,
+                "description": p_exp.description or "",
+                "highlights": p_exp.highlights or []
+            })
+            exp_lines.append(f"{p_exp.job_title} | {p_exp.company} ({period})")
+            if p_exp.description:
+                exp_lines.append(p_exp.description)
+            for h in (p_exp.highlights or []):
+                exp_lines.append(f"• {h}")
+            exp_lines.append("")
+
+        exp_sec.structured_data = {"items": exp_structured}
+        exp_sec.raw_content = "\n".join(exp_lines) if exp_lines else ""
+        exp_sec.is_user_verified = True
+        summary_info["experiences_applied"] = len(profile_exps)
+
+        # Sync to resume_experiences table
+        existing_r_exps = {
+            ((re.job_title or "").lower(), (re.company or "").lower()): re
+            for re in db.query(ResumeExperience).filter(ResumeExperience.resume_id == resume.id).all()
+        }
+        for p_exp in profile_exps:
+            key = ((p_exp.job_title or "").lower(), (p_exp.company or "").lower())
+            if key not in existing_r_exps:
+                db.add(ResumeExperience(
+                    resume_id=resume.id,
+                    job_title=p_exp.job_title,
+                    company=p_exp.company,
+                    start_year=p_exp.start_year,
+                    end_year=p_exp.end_year,
+                    is_current=p_exp.is_current,
+                    responsibilities=p_exp.highlights or [],
+                    source_evidence=p_exp.description or f"Profile experience in {p_exp.industry}"
+                ))
+
+    # 6. Education Section
+    if "education" in sections_to_apply:
+        edu_sec = db.query(ParsedResumeSection).filter(
+            ParsedResumeSection.resume_id == resume.id,
+            ParsedResumeSection.section_type == "education"
+        ).first()
+        if not edu_sec:
+            edu_sec = ParsedResumeSection(resume_id=resume.id, section_type="education")
+            db.add(edu_sec)
+
+        edus = profile.education_history or []
+        edu_lines = []
+        for ed in edus:
+            if isinstance(ed, dict):
+                deg = ed.get("degree", "")
+                inst = ed.get("institution", "")
+                yr = f"{ed.get('startYear', '')} - {ed.get('endYear', '')}".strip(" -")
+                edu_lines.append(f"{deg} | {inst} ({yr})")
+                if ed.get("highlights"):
+                    edu_lines.append(f"• {ed.get('highlights')}")
+        edu_sec.structured_data = {"items": edus}
+        edu_sec.raw_content = "\n".join(edu_lines) if edu_lines else ""
+        edu_sec.is_user_verified = True
+        summary_info["education_applied"] = len(edus)
+
+    db.flush()
+
+    # Reconstruct raw_text
+    all_sections = db.query(ParsedResumeSection).filter(
+        ParsedResumeSection.resume_id == resume.id
+    ).all()
+    sec_map = {s.section_type: s.raw_content for s in all_sections if s.raw_content}
+
+    text_parts = [
+        sec_map.get("contact", f"{user.full_name}\nEmail: {user.email}"),
+        "",
+        "PROFESSIONAL SUMMARY",
+        sec_map.get("summary", profile.summary or "Professional with software engineering expertise."),
+        "",
+        "TECHNICAL SKILLS",
+        sec_map.get("skills", "Python, React, TypeScript, SQL"),
+        "",
+        "WORK EXPERIENCE",
+        sec_map.get("experience", "Software Engineer"),
+        "",
+        "EDUCATION",
+        sec_map.get("education", "B.S. in Computer Science")
+    ]
+    resume.raw_text = "\n".join([t for t in text_parts if t is not None])
+
+    # Rewrite text file if file_type is txt
+    if resume.file_path and os.path.exists(resume.file_path) and resume.file_type == "txt":
+        try:
+            with open(resume.file_path, "w", encoding="utf-8") as f:
+                f.write(resume.raw_text)
+            resume.file_size = len(resume.raw_text.encode("utf-8"))
+        except Exception as e:
+            logger.warning(f"Failed to rewrite resume text file {resume.id}: {e}")
+
+    # Version tracking
+    new_ver_num = len(resume.versions) + 1 if resume.versions else 1
+    db.add(ResumeVersion(
+        resume_id=resume.id,
+        version_number=new_ver_num,
+        label="Synced from Profile Details"
+    ))
+
+    db.commit()
+    db.refresh(resume)
+    return summary_info
+
+@router.post("/create-from-profile", response_model=ResumeOut)
+def create_resume_from_profile(
+    payload: Optional[CreateResumeFromProfileRequest] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generates a new resume document directly populated from the candidate's verified profile details.
+    """
+    profile = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
+    target_role = (payload.target_role if payload and payload.target_role else None) or (profile.target_title if profile and profile.target_title else "Software Professional")
+    title = (payload.title if payload and payload.title else None) or f"{current_user.full_name or 'Profile'} - {target_role} Resume"
+
+    file_id = uuid.uuid4().hex[:12]
+    filename = f"resume_profile_{file_id}.txt"
+    file_path = os.path.join(settings.RESOLVED_UPLOAD_DIR, filename)
+
+    initial_text = f"{current_user.full_name or 'Candidate'}\n{target_role}\nEmail: {current_user.email}\n"
+    os.makedirs(settings.RESOLVED_UPLOAD_DIR, exist_ok=True)
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(initial_text)
+
+    resume = Resume(
+        user_id=current_user.id,
+        title=title,
+        target_role=target_role,
+        file_name=filename,
+        file_path=file_path,
+        file_size=len(initial_text.encode("utf-8")),
+        file_type="txt",
+        raw_text=initial_text
+    )
+    db.add(resume)
+    db.commit()
+    db.refresh(resume)
+
+    apply_profile_to_resume(db, current_user, resume)
+
+    # Initial analysis
+    try:
+        parsed_representation = {
+            "contact": {
+                "name": current_user.full_name or "Candidate",
+                "email": current_user.email,
+                "phone": profile.phone if profile else ""
+            },
+            "summary": profile.summary if profile and profile.summary else (resume.target_role or ""),
+            "experience": [e.company for e in resume.experiences],
+            "education": profile.education_history if profile and profile.education_history else [],
+            "skills": [s.skill_name for s in resume.skills],
+            "projects": [],
+            "certifications": []
+        }
+        analysis_res = AnalysisService.analyze_resume(parsed_representation, resume.raw_text or "")
+        analysis_run = AnalysisRun(
+            resume_id=resume.id,
+            user_id=current_user.id,
+            structure_score=analysis_res["structure_score"],
+            readability_score=analysis_res["readability_score"],
+            impact_score=analysis_res["impact_score"],
+            skills_score=analysis_res["skills_score"],
+            overall_score=analysis_res["overall_score"],
+            findings=analysis_res.get("findings", []),
+            vague_phrases=analysis_res.get("vague_phrases", []),
+            strengths=analysis_res.get("strengths", []),
+            weaknesses=analysis_res.get("weaknesses", []),
+            recommendations=analysis_res.get("recommendations", []),
+            section_breakdown=analysis_res.get("section_breakdown", {})
+        )
+        db.add(analysis_run)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Error analyzing created resume: {e}")
+
+    db.refresh(resume)
+    record_user_activity(
+        db, current_user.id, "resume_uploaded",
+        f"Generated resume '{resume.title}' from verified profile details",
+        entity_type="resume", entity_id=resume.id
+    )
+    log_audit(db, current_user.id, "RESUME_CREATED_FROM_PROFILE", {"resume_id": resume.id})
 
     return resume
 
@@ -709,6 +1039,42 @@ async def sync_resume_to_profile(
         "status": "success",
         "message": f"Successfully imported CV '{resume.file_name}' into your profile!",
         "summary": summary_info
+    }
+
+@router.post("/{resume_id}/sync-from-profile")
+def sync_from_profile(
+    resume_id: str,
+    payload: Optional[SyncResumeFromProfileRequest] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Applies and synchronizes candidate's verified profile details (contact, summary, skills, experience, education)
+    directly into an existing resume document.
+    """
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    sections_to_apply = payload.sections if payload else None
+    summary_info = apply_profile_to_resume(db, current_user, resume, sections_to_apply)
+
+    record_user_activity(
+        db, current_user.id, "resume_updated",
+        f"Applied verified profile details to resume '{resume.title}'",
+        entity_type="resume", entity_id=resume.id,
+        metadata=summary_info
+    )
+    log_audit(db, current_user.id, "RESUME_SYNCED_FROM_PROFILE", {"resume_id": resume.id, "summary": summary_info})
+
+    return {
+        "status": "success",
+        "message": f"Successfully applied user profile details to '{resume.title}'!",
+        "summary": summary_info,
+        "resume": resume
     }
 
 # =========================================================================

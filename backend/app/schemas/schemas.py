@@ -750,4 +750,11 @@ class ResumeTailorResponse(BaseModel):
     tailored_match_score_delta: int
     factuality_guarantee: str
 
+class CreateResumeFromProfileRequest(BaseModel):
+    title: Optional[str] = None
+    target_role: Optional[str] = None
+
+class SyncResumeFromProfileRequest(BaseModel):
+    sections: Optional[List[str]] = None
+
 

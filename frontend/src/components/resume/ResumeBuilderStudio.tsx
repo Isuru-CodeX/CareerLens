@@ -9,11 +9,13 @@ import {
   ArrowDown,
   RefreshCw,
   Zap,
-  Palette
+  Palette,
+  UserCheck
 } from 'lucide-react';
 import { Resume, ResumeTailorResponse } from '../../types';
 import { api } from '../../services/api';
 import { useLoader } from '../../context/useLoader';
+import { useAuth } from '../../context/useAuth';
 
 interface ResumeBuilderStudioProps {
   initialResume?: Resume | null;
@@ -35,12 +37,18 @@ export const ResumeBuilderStudio: React.FC<ResumeBuilderStudioProps> = ({
   resumes = [],
   onTailoredSave
 }) => {
+  const { user } = useAuth();
   const { triggerTransition } = useLoader();
   const [selectedResumeId, setSelectedResumeId] = useState<string>(initialResume?.id || (resumes[0]?.id || ''));
   const [templateTheme, setTemplateTheme] = useState<TemplateTheme>('tech');
-  const [candidateName, setCandidateName] = useState<string>('Alex Morgan');
+  const [candidateName, setCandidateName] = useState<string>(user?.full_name || 'Alex Morgan');
   const [candidateTitle, setCandidateTitle] = useState<string>('Senior Full Stack Engineer');
-  const [candidateContact, setCandidateContact] = useState<string>('alex.morgan@example.com • (555) 234-5678 • San Francisco, CA • linkedin.com/in/alexmorgan • github.com/alexmorgan');
+  const [candidateContact, setCandidateContact] = useState<string>(
+    user?.email
+      ? `${user.email} • (555) 234-5678 • San Francisco, CA • linkedin.com/in/alexmorgan`
+      : 'alex.morgan@example.com • (555) 234-5678 • San Francisco, CA • linkedin.com/in/alexmorgan'
+  );
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   
   // Sections model for drag/move reordering
   const [sections, setSections] = useState<SectionItem[]>([
@@ -198,6 +206,126 @@ Requirements:
     }
   };
 
+  // Populate Builder Studio with Candidate's Verified Profile Details
+  const handleLoadFromProfile = async () => {
+    setIsLoadingProfile(true);
+    try {
+      const profile = await api.getProfile();
+      const skills = await api.getProfileSkills();
+      const experiences = await api.getProfileExperiences();
+
+      if (user?.full_name) {
+        setCandidateName(user.full_name);
+      }
+      if (profile.target_title) {
+        setCandidateTitle(profile.target_title);
+      }
+
+      // Contact line
+      const contactParts = [
+        user?.email,
+        profile.phone,
+        [profile.city, profile.region, profile.country].filter(Boolean).join(', '),
+        profile.linkedin_url ? `linkedin.com/${profile.linkedin_url.replace(/https?:\/\/(www\.)?linkedin\.com\//, '')}` : null,
+        profile.github_url ? `github.com/${profile.github_url.replace(/https?:\/\/(www\.)?github\.com\//, '')}` : null,
+        profile.portfolio_url
+      ].filter(Boolean);
+      if (contactParts.length > 0) {
+        setCandidateContact(contactParts.join(' • '));
+      }
+
+      const newSections: SectionItem[] = [];
+
+      // 1. Summary
+      if (profile.summary) {
+        newSections.push({
+          id: 'sec_sum',
+          type: 'summary',
+          title: 'Professional Summary',
+          content: [profile.summary]
+        });
+      }
+
+      // 2. Skills
+      if (skills && skills.length > 0) {
+        const skillNames = skills.map((s) => s.name);
+        newSections.push({
+          id: 'sec_skills',
+          type: 'skills',
+          title: 'Technical Competencies',
+          content: [
+            `Core Skills: ${skillNames.slice(0, 8).join(', ')}`,
+            skillNames.length > 8 ? `Additional Technologies: ${skillNames.slice(8).join(', ')}` : ''
+          ].filter(Boolean)
+        });
+      }
+
+      // 3. Experiences
+      if (experiences && experiences.length > 0) {
+        const expLines: string[] = [];
+        experiences.forEach((exp) => {
+          const startStr = exp.start_year ? `${exp.start_year}` : '';
+          const endStr = exp.is_current ? 'Present' : exp.end_year ? `${exp.end_year}` : '';
+          const dateRange = [startStr, endStr].filter(Boolean).join(' - ');
+          expLines.push(`${exp.job_title} | ${exp.company}${dateRange ? ` (${dateRange})` : ''}`);
+          if (exp.description) {
+            expLines.push(`• ${exp.description}`);
+          }
+          if (exp.highlights && exp.highlights.length > 0) {
+            exp.highlights.forEach((h: string) => expLines.push(`• ${h}`));
+          }
+        });
+        newSections.push({
+          id: 'sec_exp',
+          type: 'experience',
+          title: 'Work Experience',
+          content: expLines
+        });
+      }
+
+      // 4. Education
+      if (profile.education_history && profile.education_history.length > 0) {
+        const eduLines = profile.education_history.map((edu) => {
+          const yearPart = [edu.startYear, edu.endYear].filter(Boolean).join(' - ');
+          const title = [edu.degree, edu.fieldOfStudy].filter(Boolean).join(' in ') || 'Degree';
+          return `${title} | ${edu.institution}${yearPart ? ` (${yearPart})` : ''}`;
+        });
+        newSections.push({
+          id: 'sec_edu',
+          type: 'education',
+          title: 'Education & Credentials',
+          content: eduLines
+        });
+      }
+
+      // 5. Keep or add projects
+      const existingProj = sections.find((s) => s.type === 'projects');
+      if (existingProj) {
+        newSections.push(existingProj);
+      }
+
+      if (newSections.length > 0) {
+        setSections(newSections);
+      }
+
+      triggerTransition(
+        {
+          title: 'Profile Details Loaded!',
+          subtitle: `Loaded ${skills.length} verified skills, ${experiences.length} positions & education from your profile...`,
+          badge: 'Profile Sync Complete',
+          icon: 'sparkles',
+          accentColor: 'purple'
+        },
+        400
+      );
+    } catch (err: any) {
+      console.error('Failed to load profile details into studio:', err);
+      alert('Could not load profile details. Ensure you are signed in.');
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
   // Print / PDF Compilation Trigger
   const handleTriggerPrint = () => {
     window.print();
@@ -222,6 +350,27 @@ Requirements:
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Populate with Profile Details */}
+            <button
+              type="button"
+              onClick={handleLoadFromProfile}
+              disabled={isLoadingProfile}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white transition-all shadow-sm shadow-purple-500/20 cursor-pointer active:scale-95 disabled:opacity-50"
+              title="Populate builder with your verified candidate profile, skills, and work experiences"
+            >
+              {isLoadingProfile ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Loading Profile...</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-4 h-4 text-purple-200" />
+                  <span>Load Profile Details</span>
+                </>
+              )}
+            </button>
+
             {/* 1-Click Targeted Adaptation CTA */}
             <button
               type="button"

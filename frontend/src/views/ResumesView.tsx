@@ -17,6 +17,8 @@ import {
   Award,
   Eye,
   UserCheck,
+  UserPlus,
+  RefreshCw,
   Loader2,
   CheckCircle2
 } from 'lucide-react';
@@ -59,9 +61,21 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
   const [isSavingSection, setIsSavingSection] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Sync to Profile state
+  // Sync CV to Profile state (CV -> Profile)
   const [syncingResumeId, setSyncingResumeId] = useState<string | null>(null);
   const [syncFeedback, setSyncFeedback] = useState<{ resumeId: string; message: string; summary: any } | null>(null);
+
+  // Apply Profile details to Resume state (Profile -> Resume)
+  const [syncingFromProfileResumeId, setSyncingFromProfileResumeId] = useState<string | null>(null);
+  const [profileSyncFeedback, setProfileSyncFeedback] = useState<{ resumeId: string; message: string; summary: any } | null>(null);
+
+  // Create Resume from Profile state
+  const [createFromProfileModalOpen, setCreateFromProfileModalOpen] = useState(false);
+  const [createProfileTitle, setCreateProfileTitle] = useState('');
+  const [createProfileRole, setCreateProfileRole] = useState('');
+  const [isCreatingFromProfile, setIsCreatingFromProfile] = useState(false);
+  const [createFromProfileError, setCreateFromProfileError] = useState<string | null>(null);
+  const [isFillingFromProfile, setIsFillingFromProfile] = useState(false);
 
   const handleSyncToProfile = async (r: Resume) => {
     setSyncingResumeId(r.id);
@@ -73,6 +87,94 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
       alert(err.message || 'Failed to sync CV to profile.');
     } finally {
       setSyncingResumeId(null);
+    }
+  };
+
+  const handleApplyProfileToResume = async (r: Resume) => {
+    setSyncingFromProfileResumeId(r.id);
+    try {
+      const res = await api.syncProfileToResume(r.id);
+      setProfileSyncFeedback({
+        resumeId: r.id,
+        message: res.message,
+        summary: {
+          skills_count: res.summary.skills_applied,
+          experiences_count: res.summary.experiences_applied,
+          education_count: res.summary.education_applied,
+          target_role: res.resume.target_role
+        }
+      });
+      await fetchResumes();
+      setTimeout(() => setProfileSyncFeedback(null), 7000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to apply profile details to resume.');
+    } finally {
+      setSyncingFromProfileResumeId(null);
+    }
+  };
+
+  const handleCreateFromProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingFromProfile(true);
+    setCreateFromProfileError(null);
+    try {
+      if (!user && !api.getToken()) {
+        try {
+          await loginDemo();
+        } catch {
+          // ignore
+        }
+      }
+      const newResume = await api.createResumeFromProfile({
+        title: createProfileTitle.trim() || undefined,
+        target_role: createProfileRole.trim() || undefined
+      });
+      setCreateFromProfileModalOpen(false);
+      setCreateProfileTitle('');
+      setCreateProfileRole('');
+      await fetchResumes();
+      onNavigate('analysis', { resumeId: newResume.id });
+    } catch (err: any) {
+      setCreateFromProfileError(err.message || 'Failed to generate resume from profile.');
+    } finally {
+      setIsCreatingFromProfile(false);
+    }
+  };
+
+  const handleFillSectionFromProfile = async () => {
+    setIsFillingFromProfile(true);
+    try {
+      const profile = await api.getProfile();
+      if (editSectionType === 'summary') {
+        if (profile.summary) {
+          setEditedContent(profile.summary);
+        } else {
+          alert('No summary found in your profile. You can add one in Profile view.');
+        }
+      } else if (editSectionType === 'skills') {
+        const skills = await api.getProfileSkills();
+        if (skills && skills.length > 0) {
+          setEditedContent(skills.map((s) => s.name).join(', '));
+        } else {
+          alert('No skills found in your profile. You can add verified skills in Profile view.');
+        }
+      } else if (editSectionType === 'contact') {
+        const contactLines = [
+          user?.full_name || '',
+          user?.email || '',
+          profile.phone || '',
+          [profile.city, profile.region, profile.country].filter(Boolean).join(', '),
+          profile.linkedin_url || '',
+          profile.github_url || '',
+          profile.portfolio_url || ''
+        ].filter(Boolean).join(' • ');
+        setEditedContent(contactLines);
+      }
+    } catch (err: any) {
+      console.error('Failed to load profile for section:', err);
+      alert('Could not fetch profile details. Ensure you are signed in.');
+    } finally {
+      setIsFillingFromProfile(false);
     }
   };
 
@@ -224,10 +326,26 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
+            type="button"
+            onClick={() => {
+              setCreateProfileTitle(user?.full_name ? `${user.full_name} - Master Resume` : 'My Master Resume');
+              setCreateProfileRole('');
+              setCreateFromProfileError(null);
+              setCreateFromProfileModalOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold text-xs shadow-md shadow-purple-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            title="Generate a brand-new resume document directly from your verified profile summary, skills, and work history"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Create Resume from Profile</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setUploadModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Upload Resume</span>
@@ -403,13 +521,34 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                     <span>Edit Fields</span>
                   </button>
 
-                  {/* 1-Click Import CV Data to Profile Button */}
+                  {/* 1-Click Apply Profile Details to Resume (Profile -> Resume) */}
+                  <button
+                    type="button"
+                    onClick={() => handleApplyProfileToResume(r)}
+                    disabled={syncingFromProfileResumeId === r.id}
+                    className="col-span-2 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/50 dark:via-teal-950/40 dark:to-emerald-950/50 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/60 dark:hover:to-teal-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+                    title="Apply your verified candidate profile details (skills, experiences, education, contact) into this resume document"
+                  >
+                    {syncingFromProfileResumeId === r.id ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 dark:text-emerald-400" />
+                        <span>Applying Profile Details...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Apply Profile Details to Resume</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* 1-Click Import CV Data to Profile Button (CV -> Profile) */}
                   <button
                     type="button"
                     onClick={() => handleSyncToProfile(r)}
                     disabled={syncingResumeId === r.id}
                     className="col-span-2 py-2 px-3 rounded-xl bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-950/50 dark:via-indigo-950/40 dark:to-purple-950/50 hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/60 dark:hover:to-indigo-900/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
-                    title="Extract photo, education, experiences, skills & contact directly into your candidate profile"
+                    title="Extract photo, education, experiences, skills & contact directly from this CV into your candidate profile"
                   >
                     {syncingResumeId === r.id ? (
                       <>
@@ -419,17 +558,36 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                     ) : (
                       <>
                         <UserCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                        <span>Apply / Import CV into Profile</span>
+                        <span>Review &amp; Import CV to Profile</span>
                       </>
                     )}
                   </button>
                 </div>
 
-                {/* Live Sync Confirmation */}
-                {syncFeedback?.resumeId === r.id && (
+                {/* Live Sync Confirmation (Profile -> Resume) */}
+                {profileSyncFeedback?.resumeId === r.id && (
                   <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-200 flex items-center justify-between animate-in fade-in">
                     <div className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>
+                        Profile applied! Synced target role ({profileSyncFeedback.summary.target_role || 'General'}), {profileSyncFeedback.summary.skills_count} skills &amp; {profileSyncFeedback.summary.experiences_count} work roles.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProfileSyncFeedback(null)}
+                      className="text-emerald-600 dark:text-emerald-400 font-bold ml-1 cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                {/* Live Sync Confirmation (CV -> Profile) */}
+                {syncFeedback?.resumeId === r.id && (
+                  <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 text-[11px] text-purple-800 dark:text-purple-200 flex items-center justify-between animate-in fade-in">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                       <span>
                         Imported! Added {syncFeedback.summary.education_added} edu, {syncFeedback.summary.experiences_added} roles, {syncFeedback.summary.skills_added} skills
                         {syncFeedback.summary.photo_extracted ? ' & avatar' : ''}!
@@ -438,7 +596,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setSyncFeedback(null)}
-                      className="text-emerald-600 dark:text-emerald-400 font-bold ml-1 cursor-pointer"
+                      className="text-purple-600 dark:text-purple-400 font-bold ml-1 cursor-pointer"
                     >
                       ×
                     </button>
@@ -704,9 +862,25 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Edit Extracted {editSectionType.toUpperCase()}
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Edit Extracted {editSectionType.toUpperCase()}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleFillSectionFromProfile}
+                        disabled={isFillingFromProfile}
+                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
+                        title="Pull in verified data directly from your candidate profile"
+                      >
+                        {isFillingFromProfile ? (
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3 text-purple-500" />
+                        )}
+                        <span>Fill from Profile</span>
+                      </button>
+                    </div>
                     <textarea
                       rows={10}
                       value={editedContent}
@@ -744,6 +918,130 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
                   </div>
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Resume From Profile Modal */}
+      <AnimatePresence>
+        {createFromProfileModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isCreatingFromProfile && setCreateFromProfileModalOpen(false)}
+            />
+
+            <motion.div
+              className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-2xl z-10"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      Create Resume from Profile
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Generate an ATS-ready resume from your verified profile data
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !isCreatingFromProfile && setCreateFromProfileModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateFromProfileSubmit} className="mt-5 space-y-4">
+                {createFromProfileError && (
+                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs">
+                    {createFromProfileError}
+                  </div>
+                )}
+
+                <div className="p-3.5 rounded-2xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 text-xs space-y-2 text-purple-900 dark:text-purple-200">
+                  <p className="font-semibold text-purple-800 dark:text-purple-300">
+                    This automatically compiles a fresh resume with:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-[11px] text-purple-700 dark:text-purple-300">
+                    <li>Contact details (Email, Phone, Location, Portfolio links)</li>
+                    <li>Professional summary from verified profile</li>
+                    <li>Categorized technical skills &amp; competencies</li>
+                    <li>Chronological work experience with role accomplishments</li>
+                    <li>Education history and degree credentials</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Resume Document Title
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={createProfileTitle}
+                    onChange={(e) => setCreateProfileTitle(e.target.value)}
+                    placeholder="e.g. Full Stack Engineer - Master Resume"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Target Role (Optional Override)
+                  </label>
+                  <input
+                    type="text"
+                    value={createProfileRole}
+                    onChange={(e) => setCreateProfileRole(e.target.value)}
+                    placeholder="e.g. Senior Software Engineer"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    Leave blank to automatically use your profile's target role.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setCreateFromProfileModalOpen(false)}
+                    disabled={isCreatingFromProfile}
+                    className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingFromProfile}
+                    className="px-5 py-2.5 text-xs font-bold rounded-xl text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md shadow-purple-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isCreatingFromProfile ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating Resume...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Generate Resume</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

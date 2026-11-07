@@ -54,7 +54,7 @@ Whether you need to stress-test your resume against algorithmic hiring filters, 
 
 | | Feature | Details |
 |---|---|---|
-| 🔍 | **CV-to-Profile Review & Provenance Sync** | Side-by-side visual diffs, collision alerts, non-overwriting guarantee, and field-level metadata audit trail (`ProfileFieldSource`) |
+| 🔍 | **Bi-Directional Profile & Resume Sync** | 1-click **"Apply Profile Details to Resume"** (Profile ➔ Resume), **"Create Resume from Profile"** (instant ATS document compilation), and **"Review & Import CV to Profile"** (CV ➔ Profile) with collision alerts and provenance audit trail |
 | 🛡️ | **Unified Evidence-Aware Skill Profile** | Multi-source tracking (`UserSkillEvidence`), demonstrated vs. mentioned vs. unverified status, and automatic dispute recalculation |
 | 📊 | **Information Retrieval Match Benchmark** | Empirical evaluation achieving NDCG@3: 0.9856 and Recall@5: 1.0000 on ground-truth pairs (+2.1% relative lift over keyword search) |
 | 🎯 | **Multi-Role Career Path Matrix** | Interactive side-by-side comparison of 2–3 roles with transferrable skills, time-to-learn estimates, and active milestone checklists (`CareerGoal`) |
@@ -351,7 +351,7 @@ CareerLens/
 CareerLens AI enforces comprehensive test coverage across both API routes and client bundles:
 
 ```bash
-# 1️⃣ Run Backend Test Suite (46 Tests)
+# 1️⃣ Run Backend Test Suite (85 Tests)
 backend\venv\Scripts\pytest.exe backend\tests
 
 # 2️⃣ Run Frontend Linter (oxlint)

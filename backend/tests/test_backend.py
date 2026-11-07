@@ -391,6 +391,94 @@ def test_resume_upload_analysis_and_pdf():
     r_del = client.delete(f"/api/resumes/{resume_id}", headers=headers)
     assert r_del.status_code == 200
 
+def test_sync_profile_to_resume_and_create_from_profile():
+    # Register user
+    unique_email = f"profilesync_{uuid.uuid4().hex[:8]}@careerlens.ai"
+    reg = client.post("/api/auth/register", json={
+        "email": unique_email,
+        "password": "Password123!",
+        "full_name": "Jordan Vance"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Update Career Profile
+    profile_payload = {
+        "target_title": "Principal Cloud Architect",
+        "phone": "+1 (512) 555-0199",
+        "city": "Austin",
+        "region": "TX",
+        "country": "United States",
+        "linkedin_url": "https://linkedin.com/in/jordanvance",
+        "github_url": "https://github.com/jordanvance",
+        "summary": "Seasoned Cloud Architect with deep expertise in multi-region Kubernetes clusters and enterprise scalability.",
+        "education_history": [
+            {
+                "degree": "M.S. Computer Science",
+                "institution": "University of Texas at Austin",
+                "startYear": 2018,
+                "endYear": 2020
+            }
+        ]
+    }
+    r_prof = client.put("/api/users/profile", json=profile_payload, headers=headers)
+    assert r_prof.status_code == 200
+
+    # 2. Add Profile Skills
+    r_skills = client.post("/api/profile/skills", json={"names": ["Kubernetes", "Golang", "Terraform", "AWS"]}, headers=headers)
+    assert r_skills.status_code == 201
+
+    # 3. Add Profile Experience
+    exp_payload = {
+        "job_title": "Senior Infrastructure Architect",
+        "company": "ScaleCloud Inc",
+        "industry": "Cloud Computing",
+        "start_year": 2021,
+        "is_current": True,
+        "description": "Led cloud modernization across 14 distributed engineering teams.",
+        "highlights": ["Reduced cloud spend by $420k through spot instance fleet optimization."]
+    }
+    r_exp = client.post("/api/profile/experiences", json=exp_payload, headers=headers)
+    assert r_exp.status_code == 201
+
+    # 4. Test Create Resume From Profile
+    r_create = client.post("/api/resumes/create-from-profile", json={"title": "Jordan Master CV"}, headers=headers)
+    assert r_create.status_code == 200
+    created_resume = r_create.json()
+    assert created_resume["title"] == "Jordan Master CV"
+    assert created_resume["target_role"] == "Principal Cloud Architect"
+    assert "Kubernetes" in created_resume["raw_text"]
+    assert "ScaleCloud Inc" in created_resume["raw_text"]
+    assert "Austin" in created_resume["raw_text"]
+
+    # 5. Upload a basic existing resume and test Sync From Profile
+    basic_resume_bytes = b"Old Candidate\nold@example.com\nBasic Software Developer\nExperience: Junior Dev\n"
+    files = {"file": ("old_resume.txt", basic_resume_bytes, "text/plain")}
+    r_upload = client.post("/api/resumes/upload", files=files, data={"title": "Old Resume"}, headers=headers)
+    assert r_upload.status_code == 200
+    old_resume_id = r_upload.json()["id"]
+
+    # Apply profile details to this resume
+    r_sync = client.post(f"/api/resumes/{old_resume_id}/sync-from-profile", headers=headers)
+    assert r_sync.status_code == 200
+    sync_resp = r_sync.json()
+    assert sync_resp["status"] == "success"
+    assert sync_resp["summary"]["skills_applied"] >= 4
+    assert sync_resp["summary"]["experiences_applied"] >= 1
+    assert sync_resp["summary"]["target_role_updated"] is True
+
+    # Verify updated resume fields
+    r_get = client.get(f"/api/resumes/{old_resume_id}", headers=headers)
+    assert r_get.status_code == 200
+    updated_resume = r_get.json()
+    assert updated_resume["target_role"] == "Principal Cloud Architect"
+    assert "ScaleCloud Inc" in updated_resume["raw_text"]
+    assert "Jordan Vance" in updated_resume["raw_text"]
+
+    # Clean up
+    client.delete(f"/api/resumes/{created_resume['id']}", headers=headers)
+    client.delete(f"/api/resumes/{old_resume_id}", headers=headers)
+
 def test_job_url_extraction():
     unique_email = f"urlextract_{uuid.uuid4().hex[:8]}@careerlens.ai"
     reg = client.post("/api/auth/register", json={
