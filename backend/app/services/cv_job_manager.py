@@ -192,10 +192,12 @@ async def run_import_pipeline(
             "type": "done",
             "summary": {
                 "resumeId": resume.id,
+                "reviewRequired": True,
                 "fieldsFilled": 0,
                 "experiencesAdded": 0,
                 "skillsAdded": 0,
-                "educationAdded": 0,
+                "experiencesFound": len(cv_data.experience),
+                "skillsFound": len(cv_data.skills),
                 "photoAdded": False
             }
         })

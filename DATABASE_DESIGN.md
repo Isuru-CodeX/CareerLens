@@ -17,9 +17,16 @@ erDiagram
     USERS ||--o{ INTERVIEW_SESSIONS : completes
     USERS ||--o{ COVER_LETTER_RECORDS : drafts
     USERS ||--o{ PRESETS : configures
+    USERS ||--o{ PROFILE_FIELD_SOURCES : tracks_provenance
+    USERS ||--o{ USER_SKILL_EVIDENCES : verifies
+    USERS ||--o{ CAREER_GOALS : targets
+    USERS ||--o{ LEARNING_PLANS : studies
 
     CAREER_PROFILES ||--o{ PROFILE_EXPERIENCES : contains
     CAREER_PROFILES ||--o{ PROFILE_SKILLS : contains
+
+    PROFILE_SKILLS ||--o{ USER_SKILL_EVIDENCES : supported_by
+    LEARNING_PLANS ||--o{ LEARNING_TASKS : schedules
 
     RESUMES ||--o{ RESUME_VERSIONS : tracks
     RESUMES ||--o{ PARSED_RESUME_SECTIONS : contains
@@ -132,6 +139,68 @@ erDiagram
 | `notes` | TEXT | NULLABLE | Notes, recruiter contact details & clipper metadata |
 | `application_date`| TIMESTAMP | NULLABLE | Date submitted |
 | `created_at` | TIMESTAMP | DEFAULT UTC NOW | Creation timestamp |
+
+### 2.7 `profile_field_sources` (Field-Level Provenance)
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | VARCHAR(36) | PRIMARY KEY | Record UUID |
+| `user_id` | VARCHAR(36) | FK `users.id` ON DELETE CASCADE, INDEX | Candidate identity |
+| `field_name` | VARCHAR(100) | NOT NULL, INDEX | Attribute key (e.g. `target_title`, `phone`) |
+| `source_document_id` | VARCHAR(36) | NULLABLE | Foreign key to `resumes.id` |
+| `source_type` | VARCHAR(50) | DEFAULT 'cv' | `cv`, `manual`, `github`, `quiz` |
+| `confidence` | FLOAT | DEFAULT 1.0 | Extraction or inference confidence (0.0–1.0) |
+| `confirmed_by_user` | BOOLEAN | DEFAULT FALSE | User explicit acceptance flag |
+| `original_value` | TEXT | NULLABLE | Historical value before override |
+| `created_at` | TIMESTAMP | DEFAULT UTC NOW | Ingestion timestamp |
+
+### 2.8 `user_skill_evidences` (Multi-Source Verification Ledger)
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | VARCHAR(36) | PRIMARY KEY | Evidence UUID |
+| `user_id` | VARCHAR(36) | FK `users.id` ON DELETE CASCADE, INDEX | Candidate identity |
+| `skill_id` | VARCHAR(36) | FK `profile_skills.id` ON DELETE CASCADE, INDEX | Linked profile skill |
+| `source_type` | VARCHAR(50) | NOT NULL | `cv`, `github`, `quiz`, `project`, `manual` |
+| `source_reference` | VARCHAR(500) | NULLABLE | URL, commit SHA, or resume UUID |
+| `evidence_text` | TEXT | NULLABLE | Specific bullet point, excerpt, or proof |
+| `confidence` | FLOAT | DEFAULT 0.8 | Confidence score (0.0–1.0) |
+| `proficiency_estimate` | VARCHAR(50) | DEFAULT 'Intermediate' | `Beginner`, `Intermediate`, `Advanced`, `Expert` |
+| `verification_status` | VARCHAR(50) | DEFAULT 'mentioned' | `demonstrated`, `mentioned`, `unverified` |
+| `is_disputed` | BOOLEAN | DEFAULT FALSE | Disputed/flagged by user |
+| `created_at` | TIMESTAMP | DEFAULT UTC NOW | Creation timestamp |
+
+### 2.9 `career_goals` (Goal & Milestone Tracker)
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | VARCHAR(36) | PRIMARY KEY | Goal UUID |
+| `user_id` | VARCHAR(36) | FK `users.id` ON DELETE CASCADE, INDEX | Candidate identity |
+| `target_role_id` | VARCHAR(100) | NOT NULL | Canonical role ID in knowledge graph |
+| `target_title` | VARCHAR(255) | NOT NULL | Target job title |
+| `target_date` | VARCHAR(50) | NULLABLE | Target completion timeline |
+| `preferences` | JSON | DEFAULT '{}' | Salary target, location, work mode |
+| `milestones` | JSON | DEFAULT '[]' | Checklist of milestones with completion flags |
+| `is_active` | BOOLEAN | DEFAULT TRUE | Active goal indicator |
+| `created_at` | TIMESTAMP | DEFAULT UTC NOW | Goal creation timestamp |
+
+### 2.10 `learning_plans` & `learning_tasks` (Adaptive Curriculum)
+| Table | Column | Type | Description |
+|---|---|---|---|
+| `learning_plans` | `id` | VARCHAR(36) PK | Plan UUID |
+| `learning_plans` | `user_id` | VARCHAR(36) FK | Candidate identity |
+| `learning_plans` | `target_role` | VARCHAR(255) | Target role title |
+| `learning_plans` | `weekly_hours` | INTEGER DEFAULT 6 | Allocated study hours per week |
+| `learning_plans` | `preferred_days` | JSON | Selected study days (`['Monday', ...]`) |
+| `learning_plans` | `progress_percent`| FLOAT DEFAULT 0.0 | Curriculum completion percentage |
+| `learning_tasks` | `id` | VARCHAR(36) PK | Task UUID |
+| `learning_tasks` | `plan_id` | VARCHAR(36) FK | Parent `learning_plans.id` |
+| `learning_tasks` | `skill_name` | VARCHAR(100) | Targeted skill |
+| `learning_tasks` | `title` | VARCHAR(255) | Actionable task headline |
+| `learning_tasks` | `learning_objective`| TEXT | Specific learning goal |
+| `learning_tasks` | `estimated_effort_hours`| INTEGER | Required study hours |
+| `learning_tasks` | `resources` | JSON | Curated URLs & documentation links |
+| `learning_tasks` | `mini_project` | TEXT | Practical hands-on deliverable |
+| `learning_tasks` | `quiz_questions` | JSON | Assessment multiple-choice items |
+| `learning_tasks` | `status` | VARCHAR(50) | `planned`, `in_progress`, `completed`, `assessed` |
+| `learning_tasks` | `assessment_score`| FLOAT | Quiz percentage score |
 
 ---
 

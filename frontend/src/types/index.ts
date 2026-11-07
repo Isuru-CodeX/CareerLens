@@ -335,6 +335,7 @@ export interface DashboardData {
   }[];
   recent_activities?: UserActivity[];
   experience_summary?: ExperienceSummary | null;
+  career_readiness?: CareerReadinessScorecard;
 }
 
 // ==========================================
@@ -361,7 +362,12 @@ export interface ProfileExperience {
 export interface ProfileSkill {
   id: string;
   name: string;
-  source: 'cv' | 'manual';
+  source: 'cv' | 'manual' | string;
+  proficiency_estimate?: string;
+  confidence?: number;
+  verification_status?: 'demonstrated' | 'mentioned' | 'unverified';
+  evidence_count?: number;
+  user_confirmed?: boolean;
   created_at: string;
 }
 
@@ -1131,6 +1137,188 @@ export interface CohortTelemetryResponse {
   skill_deficit_alerts: SkillDeficitAlert[];
   top_recruiter_partners: string[];
   students: CohortStudent[];
+}
+
+// ---------------------------------------------------------------------------
+// Specification P0 & P1 Types: CV Review, Multi-Source Skills, Goals, Learning & Readiness
+// ---------------------------------------------------------------------------
+
+export interface UserSkillEvidence {
+  id: string;
+  skill_id?: string;
+  skill_name: string;
+  source_type: 'cv' | 'work_experience' | 'project' | 'github' | 'coding_assessment' | 'interview' | 'self_declaration' | string;
+  source_reference?: string;
+  evidence_text?: string;
+  confidence: number;
+  proficiency_estimate: 'Beginner' | 'Developing' | 'Intermediate' | 'Advanced' | 'Expert' | string;
+  verification_status: 'demonstrated' | 'mentioned' | 'unverified';
+  user_confirmed: boolean;
+  is_disputed: boolean;
+  dispute_reason?: string;
+  created_at: string;
+}
+
+export interface CvReviewField {
+  key: string;
+  label: string;
+  section: string;
+  current_value: any;
+  extracted_value: any;
+  confidence: number;
+  is_low_confidence: boolean;
+  is_diff: boolean;
+  has_manual_edit: boolean;
+  recommendation: 'accept' | 'review' | 'keep_current';
+}
+
+export interface CvReviewExperience {
+  temp_id: string;
+  job_title: string;
+  company: string;
+  industry: string;
+  start_year: number;
+  start_month?: number;
+  end_year?: number;
+  end_month?: number;
+  is_current: boolean;
+  description: string;
+  highlights: string[];
+  confidence: number;
+  is_low_confidence: boolean;
+  is_duplicate: boolean;
+  recommendation: 'accept' | 'skip';
+}
+
+export interface CvReviewSkill {
+  name: string;
+  normalized: string;
+  proficiency: string;
+  confidence: number;
+  is_duplicate: boolean;
+  recommendation: 'accept' | 'skip';
+}
+
+export interface CvReviewEducation {
+  temp_id: string;
+  institution: string;
+  degree: string;
+  field_of_study?: string;
+  start_year?: number;
+  end_year?: number;
+  confidence: number;
+  is_low_confidence: boolean;
+  recommendation: 'accept' | 'skip';
+}
+
+export interface CvReviewData {
+  resume_id: string;
+  resume_title: string;
+  file_name: string;
+  raw_text_snippet: string;
+  fields: CvReviewField[];
+  experiences: CvReviewExperience[];
+  skills: CvReviewSkill[];
+  education: CvReviewEducation[];
+}
+
+export interface CareerMilestone {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export interface CareerGoalData {
+  id: string;
+  target_role_id?: string;
+  target_title: string;
+  target_date?: string;
+  preferences: Record<string, any>;
+  milestones: CareerMilestone[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CareerComparisonItem {
+  role_id: string;
+  title: string;
+  domain: string;
+  seniority_tier: string;
+  match_percent: number;
+  required_skills: string[];
+  verified_skills: string[];
+  missing_skills: string[];
+  estimated_transition_months: number;
+  salary_bands: Record<string, number>;
+  currency: string;
+}
+
+export interface LearningTaskData {
+  id: string;
+  skill_name: string;
+  title: string;
+  learning_objective: string;
+  estimated_effort_hours: number;
+  prerequisites: string[];
+  resources: Array<{ title: string; url: string; type: string }>;
+  mini_project?: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'assessed';
+  assessment_score?: number;
+  has_quiz: boolean;
+  completed_at?: string;
+}
+
+export interface LearningPlanData {
+  has_plan: boolean;
+  plan: {
+    id: string;
+    target_role: string;
+    weekly_hours: number;
+    preferred_days: string[];
+    progress_percent: number;
+    created_at: string;
+  } | null;
+  tasks: LearningTaskData[];
+}
+
+export interface LearningQuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+}
+
+export interface LearningQuizResult {
+  passed: boolean;
+  score_percent: number;
+  correct_answers: number;
+  total_questions: number;
+  feedback: Array<{
+    question_id: string;
+    question: string;
+    is_correct: boolean;
+    correct_option?: string;
+  }>;
+  skill_verified: boolean;
+  message: string;
+}
+
+export interface ReadinessCategoryItem {
+  key: string;
+  name: string;
+  weight_percent: number;
+  score: number;
+  status: 'Strong' | 'Satisfactory' | 'Needs Work';
+  explanation: string;
+  actionable_next_step: string;
+}
+
+export interface CareerReadinessScorecard {
+  overall_score: number;
+  readiness_tier: 'Developing' | 'Competitive' | 'High Readiness' | 'Exceptional';
+  disclaimer: string;
+  calculation_method: string;
+  categories: ReadinessCategoryItem[];
 }
 
 

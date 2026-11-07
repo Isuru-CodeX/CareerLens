@@ -19,7 +19,7 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Tests-78%20Passed-10b981?style=flat-square&logo=pytest&logoColor=white" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-84%20Passed-10b981?style=flat-square&logo=pytest&logoColor=white" alt="Tests" />
   <img src="https://img.shields.io/github/last-commit/Isuru-CodeX/CareerLens?style=flat-square&logo=git&color=indigo" alt="Last Commit" />
   <img src="https://img.shields.io/github/repo-size/Isuru-CodeX/CareerLens?style=flat-square&color=purple" alt="Repo Size" />
   <img src="https://img.shields.io/badge/Privacy-GDPR%20Compliant-10b981?style=flat-square" alt="Privacy" />
@@ -54,6 +54,12 @@ Whether you need to stress-test your resume against algorithmic hiring filters, 
 
 | | Feature | Details |
 |---|---|---|
+| 🔍 | **CV-to-Profile Review & Provenance Sync** | Side-by-side visual diffs, collision alerts, non-overwriting guarantee, and field-level metadata audit trail (`ProfileFieldSource`) |
+| 🛡️ | **Unified Evidence-Aware Skill Profile** | Multi-source tracking (`UserSkillEvidence`), demonstrated vs. mentioned vs. unverified status, and automatic dispute recalculation |
+| 📊 | **Information Retrieval Match Benchmark** | Empirical evaluation achieving NDCG@3: 0.9856 and Recall@5: 1.0000 on ground-truth pairs (+2.1% relative lift over keyword search) |
+| 🎯 | **Multi-Role Career Path Matrix** | Interactive side-by-side comparison of 2–3 roles with transferrable skills, time-to-learn estimates, and active milestone checklists (`CareerGoal`) |
+| 📚 | **Adaptive Learning Plan & Skill Quizzes** | Dynamic curriculum generation with study cadence controls and automated quiz evaluation elevating skills to Demonstrated ($\ge 66\%$) |
+| 🎖️ | **6-Pillar Career Readiness Scorecard** | Diagnostic weighted scorecard replacing subjective readiness claims with transparent mathematical formulation across 6 verifiable dimensions |
 | ⚖️ | **Explainable AI & Bias Auditor** | SHAP token-level attribution heatmaps, DEI unconscious bias scanner, and blind recruitment masking |
 | 💻 | **Live Coding & Assessment Sandbox**| In-browser algorithmic assessment runner with automated Big-O time and space complexity reviews |
 | 🎓 | **University Placement Cell** | Multi-tenant SaaS portal with cohort readiness metrics, curriculum deficit alerts, and batch candidate exports |
@@ -392,6 +398,12 @@ npm run build --prefix frontend
 - [x] In-Browser Live Coding Sandbox with Algorithmic Big-O Complexity Review
 - [x] GitHub Claim-to-Code "Proof of Work" Verifier with SHA-256 Signed Badges
 - [x] University Placement Cell Multi-Tenant SaaS Portal with Cohort Readiness Telemetry
+- [x] CV-to-Profile Side-by-Side Review with Non-Overwriting Guarantee & Provenance (`ProfileFieldSource`)
+- [x] Evidence-Aware Multi-Source Skill Profile (`UserSkillEvidence`) with Dispute & Recalculation Lifecycle
+- [x] Information Retrieval Evaluation Benchmark (NDCG@3 0.9856, Recall@5 1.0000, +2.1% Lift)
+- [x] Multi-Role Career Path Matrix & Persistent Milestones (`CareerGoal`)
+- [x] Adaptive Learning Plan & Quiz Verification Elevating Skills to Demonstrated
+- [x] 6-Pillar Career Readiness Scorecard Diagnostic (Role Alignment, Evidence, Projects, CV, Interviews, Learning)
 - [ ] Celery + Redis distributed background worker queue for asynchronous batch processing
 
 ---

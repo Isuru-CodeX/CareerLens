@@ -126,6 +126,15 @@ export const ProfileView: React.FC = () => {
     };
   }, []);
 
+  const loadSkills = async () => {
+    try {
+      const sks = await api.getProfileSkills();
+      setProfileSkills(sks);
+    } catch (err) {
+      console.error('Failed to reload profile skills:', err);
+    }
+  };
+
   const handleSuggestIndustry = async () => {
     if (suggestingIndustry) return;
     setSuggestingIndustry(true);
@@ -761,6 +770,7 @@ export const ProfileView: React.FC = () => {
               skills={profileSkills}
               onAddSkills={handleAddSkills}
               onRemoveSkill={handleRemoveSkill}
+              onRefreshSkills={loadSkills}
             />
           </div>
 

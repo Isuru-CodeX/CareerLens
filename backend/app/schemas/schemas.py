@@ -478,6 +478,7 @@ class DashboardData(BaseModel):
     skill_recommendations: List[Dict[str, Any]] = []
     recent_activities: List[UserActivityOut] = []
     experience_summary: Optional[ExperienceSummaryOut] = None
+    career_readiness: Optional[Dict[str, Any]] = None
 
 # Data Export
 class DataExportOut(BaseModel):
@@ -541,9 +542,42 @@ class ProfileSkillOut(BaseModel):
     id: str
     name: str
     source: str = "manual"
+    proficiency_estimate: Optional[str] = "Intermediate"
+    confidence: Optional[float] = 0.70
+    verification_status: Optional[str] = "mentioned"
+    evidence_count: Optional[int] = 0
+    user_confirmed: Optional[bool] = False
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class UserSkillEvidenceOut(BaseModel):
+    id: str
+    skill_id: Optional[str] = None
+    skill_name: str
+    source_type: str
+    source_reference: Optional[str] = None
+    evidence_text: Optional[str] = None
+    confidence: float
+    proficiency_estimate: str
+    verification_status: str
+    user_confirmed: bool = False
+    is_disputed: bool = False
+    dispute_reason: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserSkillEvidenceCreate(BaseModel):
+    source_type: str = "project"  # "project", "self_declaration", "github", "coding_assessment"
+    source_reference: Optional[str] = None
+    evidence_text: str = Field(..., min_length=5)
+    proficiency_estimate: str = "Intermediate"  # Beginner, Developing, Intermediate, Advanced, Expert
+
+class SkillDisputeRequest(BaseModel):
+    action: str = "dispute"  # "dispute", "remove", "correct"
+    reason: Optional[str] = None
+    new_proficiency: Optional[str] = None
 
 class PresetCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)

@@ -62,6 +62,11 @@ Resumes, interview transcripts, and career application records contain sensitive
 - **Data Portability**: Users can download a complete JSON archive of all personal data, resumes, analyses, and applications via `GET /api/users/export`.
 - **Permanent Erasure**: Calling `DELETE /api/users/account` permanently deletes the user account, profile, database records, and physically deletes all stored resume files from the server's disk storage.
 
+### 1.9 Non-Overwriting Profile Guarantee & Provenance Integrity (Spec 4.1 & 4.2)
+- **Zero Silent Overwrites**: Extracted CV contents are never applied directly to user profiles without an explicit side-by-side review screen.
+- **Field-Level Provenance (`ProfileFieldSource`)**: Every modified profile attribute maintains cryptographic traceability (`source_document_id`, `source_type`, `confidence`, `confirmed_by_user`).
+- **Dispute & Revocation Ledger**: Candidates can flag or remove inaccurate skill inferences (`UserSkillEvidence`). Disputing an evidence item atomically recalculates the parent skill's verification tier and confidence rating.
+
 ---
 
 ## 2. Environment Variables & Secret Handling

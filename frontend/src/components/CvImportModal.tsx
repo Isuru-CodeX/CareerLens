@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, AlertCircle, Sparkles, X } from 'lucide-react';
+import { Check, AlertCircle, Sparkles, X, CheckCircle2 } from 'lucide-react';
 import { EmailMismatchDialog } from './EmailMismatchDialog';
+import { CvReviewModal } from './CvReviewModal';
 import { CvImportStepId, CvImportProgressEvent } from '../types';
 import { api } from '../services/api';
 
@@ -40,6 +41,7 @@ export const CvImportModal: React.FC<CvImportModalProps> = ({
     | { ok: false; code: string; message: string; extra?: { cvEmail: string; accountEmail: string } }
     | null
   >(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   const pollIntervalRef = useRef<number | null>(null);
   const closedRef = useRef(false);
@@ -132,6 +134,10 @@ export const CvImportModal: React.FC<CvImportModalProps> = ({
         onGoSignup={onGoSignup}
       />
     );
+  }
+
+  if (showReviewModal && result?.ok && result.summary.resumeId) {
+    return <CvReviewModal resumeId={result.summary.resumeId} onClose={onClose} />;
   }
 
   return (
@@ -244,13 +250,23 @@ export const CvImportModal: React.FC<CvImportModalProps> = ({
                 Added {result.summary.experiencesAdded} experience roles and {result.summary.skillsAdded} technical skills
                 {result.summary.photoAdded ? ' along with your profile photo' : ''}. All details have been seamlessly integrated.
               </p>
-              <button
-                type="button"
-                onClick={() => onClose(true)}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
-              >
-                Review My Profile
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(true)}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Review Extracted Fields</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onClose(true)}
+                  className="py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Go to Profile
+                </button>
+              </div>
             </motion.div>
           )}
 

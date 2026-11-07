@@ -44,6 +44,10 @@ class User(Base):
     presets = relationship("Preset", back_populates="user", cascade="all, delete-orphan", order_by="Preset.created_at")
     cover_letters = relationship("CoverLetter", back_populates="user", cascade="all, delete-orphan", order_by="desc(CoverLetter.created_at)")
     interview_sessions = relationship("InterviewSession", back_populates="user", cascade="all, delete-orphan", order_by="desc(InterviewSession.created_at)")
+    field_sources = relationship("ProfileFieldSource", back_populates="user", cascade="all, delete-orphan")
+    skill_evidences = relationship("UserSkillEvidence", back_populates="user", cascade="all, delete-orphan", order_by="desc(UserSkillEvidence.created_at)")
+    career_goals = relationship("CareerGoal", back_populates="user", cascade="all, delete-orphan", order_by="desc(CareerGoal.created_at)")
+    learning_plans = relationship("LearningPlan", back_populates="user", cascade="all, delete-orphan", order_by="desc(LearningPlan.created_at)")
 
 class CareerProfile(Base):
     __tablename__ = "career_profiles"
@@ -405,9 +409,108 @@ class ProfileSkill(Base):
     name = Column(String(100), nullable=False)
     name_normalized = Column(String(100), nullable=False, index=True)
     source = Column(String(20), default="manual")  # "cv" or "manual"
+    proficiency_estimate = Column(String(50), default="Intermediate")  # Beginner, Developing, Intermediate, Advanced, Expert
+    confidence = Column(Float, default=0.7)  # 0.0 - 1.0
+    verification_status = Column(String(50), default="mentioned")  # demonstrated, mentioned, unverified
+    evidence_summary = Column(Text, nullable=True)
+    last_updated = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+    user_confirmed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=get_utc_now)
 
     user = relationship("User", back_populates="profile_skills")
+    evidences = relationship("UserSkillEvidence", back_populates="skill", cascade="all, delete-orphan", order_by="desc(UserSkillEvidence.created_at)")
+
+class UserSkillEvidence(Base):
+    __tablename__ = "user_skill_evidences"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    skill_id = Column(String(36), ForeignKey("user_skills.id", ondelete="CASCADE"), index=True, nullable=True)
+    skill_name = Column(String(100), nullable=False)
+    skill_normalized = Column(String(100), nullable=False, index=True)
+    source_type = Column(String(50), nullable=False)  # "cv", "work_experience", "project", "github", "coding_assessment", "interview", "self_declaration"
+    source_reference = Column(String(255), nullable=True)
+    evidence_text = Column(Text, nullable=True)
+    confidence = Column(Float, default=0.8)
+    proficiency_estimate = Column(String(50), default="Intermediate")
+    verification_status = Column(String(50), default="mentioned")  # "demonstrated", "mentioned", "unverified"
+    user_confirmed = Column(Boolean, default=False)
+    is_disputed = Column(Boolean, default=False)
+    dispute_reason = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="skill_evidences")
+    skill = relationship("ProfileSkill", back_populates="evidences")
+
+class ProfileFieldSource(Base):
+    __tablename__ = "profile_field_sources"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    field_name = Column(String(100), nullable=False, index=True)
+    source_document_id = Column(String(36), ForeignKey("resumes.id", ondelete="SET NULL"), nullable=True)
+    source_type = Column(String(50), default="cv")  # "cv", "manual", "github", "interview"
+    confidence = Column(Float, default=0.85)
+    confirmed_by_user = Column(Boolean, default=False)
+    original_value = Column(Text, nullable=True)
+    extracted_at = Column(DateTime, default=get_utc_now)
+
+    user = relationship("User", back_populates="field_sources")
+
+class CareerGoal(Base):
+    __tablename__ = "career_goals"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    target_role_id = Column(String(100), nullable=True)
+    target_title = Column(String(255), nullable=False)
+    target_date = Column(DateTime, nullable=True)
+    preferences = Column(JSON, default=dict)
+    is_active = Column(Boolean, default=True)
+    milestones = Column(JSON, default=list)
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="career_goals")
+
+class LearningPlan(Base):
+    __tablename__ = "learning_plans"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    goal_id = Column(String(36), ForeignKey("career_goals.id", ondelete="SET NULL"), nullable=True)
+    target_role = Column(String(255), nullable=False)
+    weekly_hours = Column(Integer, default=5)
+    preferred_days = Column(JSON, default=list)
+    progress_percent = Column(Float, default=0.0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="learning_plans")
+    tasks = relationship("LearningTask", back_populates="plan", cascade="all, delete-orphan", order_by="LearningTask.created_at.asc()")
+
+class LearningTask(Base):
+    __tablename__ = "learning_tasks"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    plan_id = Column(String(36), ForeignKey("learning_plans.id", ondelete="CASCADE"), index=True, nullable=False)
+    skill_name = Column(String(100), nullable=False)
+    skill_normalized = Column(String(100), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    learning_objective = Column(Text, nullable=False)
+    estimated_effort_hours = Column(Float, default=2.0)
+    prerequisites = Column(JSON, default=list)
+    resources = Column(JSON, default=list)
+    mini_project = Column(Text, nullable=True)
+    status = Column(String(50), default="planned")  # "planned", "in_progress", "completed", "assessed"
+    assessment_quiz = Column(JSON, nullable=True)
+    assessment_score = Column(Float, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    plan = relationship("LearningPlan", back_populates="tasks")
 
 class SkillSource(Base):
     __tablename__ = "skill_sources"

@@ -9,10 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.models.models import User, ProfileExperience, ProfileSkill, SkillSource, CareerProfile
+from app.models.models import User, ProfileExperience, ProfileSkill, SkillSource, CareerProfile, UserSkillEvidence
 from app.schemas.schemas import (
     ProfileExperienceOut, ProfileExperienceCreate, ProfileExperienceUpdate,
-    ProfileSkillOut, ProfileSkillCreate
+    ProfileSkillOut, ProfileSkillCreate, UserSkillEvidenceOut, UserSkillEvidenceCreate, SkillDisputeRequest
 )
 from app.services.years_service import canonical_skill, years_count, total_years, INDUSTRIES
 from app.services.location_service import enrich_address_data, suggest_industry_domain
@@ -188,7 +188,180 @@ def list_profile_skills(
         ProfileSkill.user_id == current_user.id
     ).order_by(ProfileSkill.name).all()
 
-    return skills
+    evidence_counts = {}
+    ev_rows = db.query(UserSkillEvidence.skill_id).filter(
+        UserSkillEvidence.user_id == current_user.id,
+        UserSkillEvidence.is_disputed == False
+    ).all()
+    for row in ev_rows:
+        if row[0]:
+            evidence_counts[row[0]] = evidence_counts.get(row[0], 0) + 1
+
+    out = []
+    for s in skills:
+        item = ProfileSkillOut(
+            id=s.id,
+            name=s.name,
+            source=s.source or "manual",
+            proficiency_estimate=s.proficiency_estimate or "Intermediate",
+            confidence=s.confidence if s.confidence is not None else 0.70,
+            verification_status=s.verification_status or "mentioned",
+            evidence_count=evidence_counts.get(s.id, 0),
+            user_confirmed=bool(s.user_confirmed),
+            created_at=s.created_at
+        )
+        out.append(item)
+    return out
+
+@router.get("/skills/evidence-summary")
+def get_skills_evidence_summary(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    skills = db.query(ProfileSkill).filter(ProfileSkill.user_id == current_user.id).all()
+    evidences = db.query(UserSkillEvidence).filter(
+        UserSkillEvidence.user_id == current_user.id,
+        UserSkillEvidence.is_disputed == False
+    ).all()
+
+    by_status = {"demonstrated": 0, "mentioned": 0, "unverified": 0}
+    for s in skills:
+        st = s.verification_status or "mentioned"
+        by_status[st] = by_status.get(st, 0) + 1
+
+    by_source = {}
+    for e in evidences:
+        src = e.source_type or "other"
+        by_source[src] = by_source.get(src, 0) + 1
+
+    return {
+        "total_skills": len(skills),
+        "demonstrated_skills": by_status.get("demonstrated", 0),
+        "mentioned_skills": by_status.get("mentioned", 0),
+        "unverified_skills": by_status.get("unverified", 0),
+        "sources_breakdown": by_source,
+        "total_evidences": len(evidences)
+    }
+
+@router.get("/skills/{skill_id}/evidence", response_model=List[UserSkillEvidenceOut])
+def get_skill_evidence(
+    skill_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    skill = db.query(ProfileSkill).filter(
+        ProfileSkill.id == skill_id,
+        ProfileSkill.user_id == current_user.id
+    ).first()
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found.")
+
+    evidences = db.query(UserSkillEvidence).filter(
+        UserSkillEvidence.skill_id == skill_id,
+        UserSkillEvidence.user_id == current_user.id
+    ).order_by(UserSkillEvidence.created_at.desc()).all()
+
+    return evidences
+
+@router.post("/skills/{skill_id}/evidence", response_model=UserSkillEvidenceOut, status_code=status.HTTP_201_CREATED)
+def add_skill_evidence(
+    skill_id: str,
+    data: UserSkillEvidenceCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    skill = db.query(ProfileSkill).filter(
+        ProfileSkill.id == skill_id,
+        ProfileSkill.user_id == current_user.id
+    ).first()
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found.")
+
+    is_demonstrated = data.source_type in ("github", "coding_assessment", "project")
+    status_str = "demonstrated" if is_demonstrated else "mentioned"
+    conf = 0.90 if is_demonstrated else 0.75
+
+    evidence = UserSkillEvidence(
+        user_id=current_user.id,
+        skill_id=skill.id,
+        skill_name=skill.name,
+        skill_normalized=skill.name_normalized,
+        source_type=data.source_type,
+        source_reference=data.source_reference or "User-submitted project evidence",
+        evidence_text=data.evidence_text.strip(),
+        confidence=conf,
+        proficiency_estimate=data.proficiency_estimate,
+        verification_status=status_str,
+        user_confirmed=True
+    )
+    db.add(evidence)
+
+    # Recalculate parent skill
+    skill.proficiency_estimate = data.proficiency_estimate
+    if is_demonstrated or skill.verification_status != "demonstrated":
+        skill.verification_status = status_str
+    skill.confidence = max(skill.confidence or 0.7, conf)
+    skill.user_confirmed = True
+
+    db.commit()
+    db.refresh(evidence)
+
+    record_user_activity(
+        db, current_user.id, "skill_evidence_added",
+        f"Added {data.source_type} evidence for skill '{skill.name}'",
+        entity_type="skill", entity_id=skill.id
+    )
+
+    return evidence
+
+@router.post("/skills/evidence/{evidence_id}/dispute")
+def dispute_or_remove_evidence(
+    evidence_id: str,
+    data: SkillDisputeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    evidence = db.query(UserSkillEvidence).filter(
+        UserSkillEvidence.id == evidence_id,
+        UserSkillEvidence.user_id == current_user.id
+    ).first()
+    if not evidence:
+        raise HTTPException(status_code=404, detail="Evidence item not found.")
+
+    skill = db.query(ProfileSkill).filter(
+        ProfileSkill.id == evidence.skill_id,
+        ProfileSkill.user_id == current_user.id
+    ).first()
+
+    if data.action == "remove":
+        db.delete(evidence)
+    elif data.action == "dispute":
+        evidence.is_disputed = True
+        evidence.dispute_reason = data.reason or "Disputed by user"
+    elif data.action == "correct" and data.new_proficiency:
+        evidence.proficiency_estimate = data.new_proficiency
+        evidence.is_disputed = False
+
+    db.flush()
+
+    if skill:
+        active_evidences = db.query(UserSkillEvidence).filter(
+            UserSkillEvidence.skill_id == skill.id,
+            UserSkillEvidence.user_id == current_user.id,
+            UserSkillEvidence.is_disputed == False
+        ).all()
+
+        if not active_evidences:
+            skill.verification_status = "unverified"
+            skill.confidence = 0.40
+        else:
+            has_dem = any(e.verification_status == "demonstrated" for e in active_evidences)
+            skill.verification_status = "demonstrated" if has_dem else "mentioned"
+            skill.confidence = round(sum(e.confidence for e in active_evidences) / len(active_evidences), 2)
+            skill.proficiency_estimate = active_evidences[0].proficiency_estimate
+
+    db.commit()
+    return {"status": "success", "message": f"Evidence {data.action} processed successfully."}
 
 @router.post("/skills", response_model=List[ProfileSkillOut], status_code=status.HTTP_201_CREATED)
 def add_profile_skills(
@@ -197,6 +370,7 @@ def add_profile_skills(
     db: Session = Depends(get_db)
 ):
     out = []
+    seen_keys = set()
     for raw in data.names:
         # Split commas if user typed multiple in one string
         for sub in raw.split(","):
@@ -204,6 +378,9 @@ def add_profile_skills(
             if not canon:
                 continue
             key = canon.lower()
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
             existing = db.query(ProfileSkill).filter(
                 ProfileSkill.user_id == current_user.id,
                 ProfileSkill.name_normalized == key

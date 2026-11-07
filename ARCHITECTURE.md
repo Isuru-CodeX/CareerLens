@@ -113,6 +113,24 @@ flowchart TD
 - Generates a SHA-256 verifiable credential badge:
   $$\text{BadgeHash} = \text{SHA256}(\text{candidate\_id} + \text{username} + \text{verified\_skills} + \text{salt})$$
 
+### 2.8 Evidence-Aware Skill Profile & Field-Level Provenance (Spec 4.1 & 4.2)
+- **Non-Destructive Side-by-Side Review**: Candidate CV imports undergo an explicit diff review comparing extracted metadata against existing profile fields. Extracted values are never silently overwritten.
+- **Field-Level Audit Trail (`ProfileFieldSource`)**: Records field name, source document UUID, extraction confidence, user acceptance status, and previous values.
+- **Hierarchical Verification Lifecycle (`UserSkillEvidence`)**:
+  - `mentioned`: Inferred from CV keywords, capped at $75\%$ confidence.
+  - `demonstrated`: Backed by high-integrity proof (production GitHub repository, verified quiz $\ge 66\%$, or validated project milestone), granting $\ge 85\%$ confidence.
+  - Candidate disputes immediately recalculate parent skill confidence and verification tiers.
+
+### 2.9 Adaptive Learning Plan & Quiz Verification Engine (Spec 4.5)
+- Automated curriculum generation tailored to candidate skill gaps and weekly study cadence.
+- Structured with study goals, milestone tasks, curated documentation links, and mini-project deliverables.
+- Interactive multi-choice quiz assessment engine: scoring $\ge 66\%$ elevates the targeted skill to **Demonstrated** in the unified skill inventory.
+
+### 2.10 6-Pillar Evidence-Weighted Career Readiness (Spec 5.3 & 5.4)
+- Replaces superficial readiness claims with a transparent mathematical formulation:
+  $$\text{ReadinessScore} = 0.25 \cdot \text{Alignment} + 0.20 \cdot \text{Evidence} + 0.15 \cdot \text{Projects} + 0.15 \cdot \text{CV} + 0.15 \cdot \text{Interviews} + 0.10 \cdot \text{Learning}$$
+- Maps into explicit tiers: `Developing` ($<50$), `Competitive` ($50–69$), `High Readiness` ($70–84$), `Exceptional` ($\ge 85$). Every pillar links directly to actionable remediation.
+
 ---
 
 ## 3. End-to-End Component Sequence Flows
@@ -166,4 +184,30 @@ sequenceDiagram
     API->>Sim: Compute STAR Rubric & Linguistic WPM/Fillers
     Sim->>Sim: Generate Tri-Perspective Exemplar Model Answers
     API-->>SPA: Returns Turn Score, Exemplars & Coach Feedback
+```
+
+### 3.3 CV Review, Provenance & Skill Evidence Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Candidate
+    participant SPA as React Client
+    participant API as FastAPI Backend
+    participant DB as Database (Models)
+    participant Evidence as Evidence Tracker
+
+    Candidate->>SPA: Uploads Resume
+    SPA->>API: POST /api/resumes/upload
+    API-->>SPA: Resume Parsed (Review Required)
+    Candidate->>SPA: Opens "Review & Sync to Profile"
+    SPA->>API: GET /api/cv/review/{resume_id}
+    API->>DB: Fetch Current Profile vs Extracted Data
+    API-->>SPA: Side-by-Side Diff, Confidence & Collision Badges
+    Candidate->>SPA: Selects Accepted Fields & Edits Proficiency
+    SPA->>API: POST /api/cv/confirm-import/{resume_id}
+    API->>DB: Write ProfileFieldSource (Provenance Log)
+    API->>Evidence: Create UserSkillEvidence Records
+    API->>DB: Update Profile & Refresh Unified Skills
+    API-->>SPA: Confirmed Import Summary
 ```

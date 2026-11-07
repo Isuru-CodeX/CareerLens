@@ -15,7 +15,7 @@ from app.services.navigator_service import NavigatorService
 from app.api import (
     auth, users, resumes, jobs, ai, applications,
     dashboard, experiences, activity, cv, profile, presets, cover_letters, text, interviews, career_navigator, navigator,
-    xai, github_verifier, coding, placement
+    xai, github_verifier, coding, placement, learning
 )
 
 logger = logging.getLogger(__name__)
@@ -211,6 +211,7 @@ app.include_router(xai.router, prefix=settings.API_V1_STR)
 app.include_router(github_verifier.router, prefix=settings.API_V1_STR)
 app.include_router(coding.router, prefix=settings.API_V1_STR)
 app.include_router(placement.router, prefix=settings.API_V1_STR)
+app.include_router(learning.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

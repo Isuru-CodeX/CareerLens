@@ -66,6 +66,22 @@ def init_db():
                         conn.execute(text(f"ALTER TABLE resumes ADD COLUMN {col_name} {col_type}"))
                 conn.commit()
 
+            # user_skills
+            res_us = conn.execute(text("PRAGMA table_info(user_skills)"))
+            existing_us_cols = [row[1] for row in res_us.fetchall()]
+            if existing_us_cols:
+                for col_name, col_type in [
+                    ("proficiency_estimate", "VARCHAR(50) DEFAULT 'Intermediate'"),
+                    ("confidence", "FLOAT DEFAULT 0.7"),
+                    ("verification_status", "VARCHAR(50) DEFAULT 'mentioned'"),
+                    ("evidence_summary", "TEXT"),
+                    ("last_updated", "DATETIME"),
+                    ("user_confirmed", "BOOLEAN DEFAULT 0")
+                ]:
+                    if col_name not in existing_us_cols:
+                        conn.execute(text(f"ALTER TABLE user_skills ADD COLUMN {col_name} {col_type}"))
+                conn.commit()
+
             # job_matches
             res_jm = conn.execute(text("PRAGMA table_info(job_matches)"))
             existing_jm_cols = [row[1] for row in res_jm.fetchall()]

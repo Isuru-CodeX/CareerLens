@@ -56,6 +56,22 @@ When printing or exporting a resume preview to paper or PDF, `@media print` rule
 - Curriculum Deficit Alert cards with gap percentages, severity tags, and actionable recommendations.
 - Filterable candidate roster table with responsive wrapping and status pills.
 
+### 3.5 CV-to-Profile Side-by-Side Review Screen (Spec 4.1)
+- Side-by-side diff comparison cards displaying extracted metadata alongside current profile fields.
+- Color-coded confidence pills (🟢 High $\ge 80\%$, 🟡 Medium $50–79\%$, 🔴 Low $<50\%$).
+- Individual field toggles: Accept, Keep Current, Edit, or Merge.
+- Sticky action bar with confirmed count, collision badges, and explicit "Apply Confirmed Import" trigger.
+
+### 3.6 Multi-Source Skill Evidence & Dispute Modal (Spec 4.2)
+- Visual chip indicators: `Demonstrated` (emerald badge $\ge 85\%$ confidence) vs. `Mentioned` (indigo badge $\le 75\%$).
+- Evidence inspection modal listing source types (GitHub, production project, quiz assessment, resume bullet).
+- Interactive dispute button allowing candidates to flag inaccurate claims, automatically recalculating skill proficiency.
+
+### 3.7 Career Readiness 6-Pillar Scorecard (Spec 5.3 & 5.4)
+- 6-Pillar diagnostic grid: Role Alignment (25%), Evidence Depth (20%), Project Proof (15%), CV Quality (15%), Mock Interviews (15%), Learning Progress (10%).
+- Status indicators: `Strong` (emerald), `Satisfactory` (blue), `Needs Work` (amber).
+- Every category box includes a transparent explanation and an actionable next-step button linking directly to the relevant workspace.
+
 ---
 
 ## 4. Responsive Breakpoints

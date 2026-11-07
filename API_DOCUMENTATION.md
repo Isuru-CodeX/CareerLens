@@ -300,3 +300,84 @@ Aggregates cohort-level readiness analytics, average ATS readiness scores, inter
 
 ### `GET /api/placement/export-csv`
 Generates a downloadable CSV roster of pre-vetted candidates with readiness scores and verified skills for campus corporate recruiters.
+
+---
+
+## 17. CV-to-Profile Side-by-Side Review & Provenance Import (Spec 4.1)
+
+### `GET /api/cv/review/{resume_id}`
+Generates a field-by-field diff between extracted CV contents and the user's current career profile. Includes confidence scores (0.0–1.0), low-confidence flags, collision alerts, and recommended merge actions (`accept`, `keep_current`, `merge`, `skip`). Never overwrites data without candidate confirmation.
+
+### `POST /api/cv/confirm-import/{resume_id}`
+Applies user-confirmed decisions from the side-by-side review screen. Only accepted/edited fields update the profile. Writes provenance metadata to `ProfileFieldSource` (`source_document_id`, `source_type='cv'`, `confidence`, `confirmed_by_user=True`) and initializes candidate skill records.
+
+---
+
+## 18. Evidence-Aware Skill Profile & Multi-Source Verification (Spec 4.2)
+
+### `GET /api/profile/skills`
+Returns user's verified and mentioned skill inventory, enriched with verification statuses (`demonstrated` | `mentioned` | `unverified`), confidence ratings (0–100%), and evidence counts.
+
+### `GET /api/profile/skills/evidence-summary`
+Returns an aggregate diagnostic summary of the candidate's skills portfolio, breakdown of demonstrated vs. mentioned skills, and top verification gaps.
+
+### `GET /api/profile/skills/{skill_id}/evidence`
+Retrieves all historical evidence records (`UserSkillEvidence`) backing a specific skill, including source references, verification status, and confidence levels.
+
+### `POST /api/profile/skills/{skill_id}/evidence`
+Adds candidate-supplied evidence (project link, publication, GitHub artifact, or certification) to elevate a skill from `mentioned` to `demonstrated`.
+
+### `POST /api/profile/skills/evidence/{evidence_id}/dispute`
+Flags or removes an incorrect skill inference. Automatically triggers atomic recalculation of the parent skill's confidence and verification tier.
+
+---
+
+## 19. Career Goals, Milestones & Multi-Path Matrix (Spec 4.4)
+
+### `GET /api/career/goals`
+Retrieves the user's active career goal, timeline targets, and milestone progress checklists.
+
+### `POST /api/career/goals`
+Persists a new active career target role with structured milestone tasks (verified skill assessments, production projects, mock interviews, and application tracking).
+
+### `PATCH /api/career/goals/{goal_id}/milestones/{milestone_id}`
+Toggles milestone completion status between pending and complete, with audit log tracking.
+
+### `POST /api/career/compare`
+Compares 2 or 3 target roles side-by-side: computes verified skill alignment percentage, missing prerequisites, transition duration (months), and calibrated salary percentiles (25th, median, 75th).
+
+---
+
+## 20. Adaptive Learning & Verification Curriculum (Spec 4.5)
+
+### `POST /api/learning/generate`
+Generates a personalized study plan targeting missing skill gaps for candidate's dream role, structured by weekly study availability and preferred study days.
+
+### `GET /api/learning/plan`
+Retrieves current learning curriculum, scheduled weekly tasks, objective descriptions, curated resources, and mini-project milestones.
+
+### `GET /api/learning/tasks/{task_id}/quiz`
+Retrieves randomized verification assessment questions for a learning milestone task.
+
+### `POST /api/learning/tasks/{task_id}/quiz`
+Evaluates quiz submission. Achieving $\ge 66\%$ score automatically elevates the associated skill in the user's profile to **Demonstrated** with $\ge 85\%$ confidence and updates the learning task to completed.
+
+### `PATCH /api/learning/tasks/{task_id}/status`
+Updates task progress (`planned`, `in_progress`, `completed`).
+
+### `PATCH /api/learning/schedule`
+Updates candidate study availability (weekly hours and preferred study days).
+
+---
+
+## 21. Career Readiness Scorecard Diagnostic (Spec 5.3 & 5.4)
+
+### `GET /api/dashboard`
+Returns the evidence-based 6-pillar Career Readiness Scorecard:
+- **Target Role Alignment (25%)**
+- **Evidence Depth (20%)**
+- **Project Proof (15%)**
+- **CV Quality (15%)**
+- **Mock Interviews (15%)**
+- **Learning Progress (10%)**
+Includes readiness tier (`Developing`, `Competitive`, `High Readiness`, `Exceptional`), category explanations, and actionable next steps.

@@ -50,7 +50,13 @@ import {
   GithubAuditResponse,
   CodingChallengeItem,
   CodingEvaluationResponse,
-  CohortTelemetryResponse
+  CohortTelemetryResponse,
+  UserSkillEvidence,
+  CvReviewData,
+  CareerGoalData,
+  CareerComparisonItem,
+  LearningPlanData,
+  LearningQuizResult
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -1159,7 +1165,200 @@ class ApiService {
 
   getPlacementExportUrl(batch?: string): string {
     const query = batch ? `?batch=${encodeURIComponent(batch)}` : '';
-    return `${API_BASE_URL}/placement/export-csv${query}`;
+    return `${API_BASE_URL}/placement/export${query}`;
+  }
+
+  // ==========================================
+  // SECTION 4.1: CV REVIEW & CONFIRM IMPORT
+  // ==========================================
+
+  async getCvReview(resumeId: string): Promise<CvReviewData> {
+    return this.request<CvReviewData>(`/cv/review/${resumeId}`);
+  }
+
+  async confirmCvImport(
+    resumeId: string,
+    decisions: {
+      fields: Record<string, { action: string; value?: any }>;
+      experiences: Array<{
+        action: string;
+        job_title: string;
+        company: string;
+        industry?: string;
+        start_year: number;
+        start_month?: number;
+        end_year?: number;
+        end_month?: number;
+        is_current?: boolean;
+        description?: string;
+        highlights?: string[];
+      }>;
+      skills: Array<{
+        action: string;
+        name: string;
+        proficiency?: string;
+      }>;
+      education: Array<{
+        action: string;
+        institution: string;
+        degree: string;
+        field_of_study?: string;
+        start_year?: number;
+        end_year?: number;
+      }>;
+    }
+  ): Promise<{ status: string; message: string; summary: any }> {
+    return this.request(`/cv/confirm-import/${resumeId}`, {
+      method: 'POST',
+      body: JSON.stringify(decisions)
+    });
+  }
+
+  // ==========================================
+  // SECTION 4.2: MULTI-SOURCE SKILL EVIDENCE
+  // ==========================================
+
+  async getSkillEvidence(skillId: string): Promise<UserSkillEvidence[]> {
+    return this.request<UserSkillEvidence[]>(`/profile/skills/${skillId}/evidence`);
+  }
+
+  async addSkillEvidence(
+    skillId: string,
+    data: {
+      source_type: string;
+      source_reference?: string;
+      evidence_text: string;
+      proficiency_estimate: string;
+    }
+  ): Promise<UserSkillEvidence> {
+    return this.request<UserSkillEvidence>(`/profile/skills/${skillId}/evidence`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async disputeSkillEvidence(
+    evidenceId: string,
+    data: {
+      action: 'dispute' | 'remove' | 'correct';
+      reason?: string;
+      new_proficiency?: string;
+    }
+  ): Promise<{ status: string; message: string }> {
+    return this.request(`/profile/skills/evidence/${evidenceId}/dispute`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getSkillEvidenceSummary(): Promise<{
+    total_skills: number;
+    demonstrated_skills: number;
+    mentioned_skills: number;
+    unverified_skills: number;
+    sources_breakdown: Record<string, number>;
+    total_evidences: number;
+  }> {
+    return this.request('/profile/skills/evidence-summary');
+  }
+
+  // ==========================================
+  // SECTION 4.4: CAREER GOALS & PATH COMPARISON
+  // ==========================================
+
+  async getCareerGoals(): Promise<{ active_goal: CareerGoalData | null; has_goal: boolean }> {
+    return this.request('/career/goals');
+  }
+
+  async saveCareerGoal(data: {
+    target_role_id: string;
+    target_title: string;
+    target_date?: string;
+    preferences?: Record<string, any>;
+    milestones?: Array<{ id: string; title: string; completed: boolean }>;
+  }): Promise<{ status: string; goal: CareerGoalData }> {
+    return this.request('/career/goals', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async toggleGoalMilestone(
+    goalId: string,
+    milestoneId: string
+  ): Promise<{ status: string; milestones: Array<{ id: string; title: string; completed: boolean }> }> {
+    return this.request(`/career/goals/${goalId}/milestones/${milestoneId}`, {
+      method: 'PATCH'
+    });
+  }
+
+  async compareCareerPaths(
+    targetRoleIds: string[],
+    country: string = 'us'
+  ): Promise<{ comparisons: CareerComparisonItem[] }> {
+    return this.request('/career/compare', {
+      method: 'POST',
+      body: JSON.stringify({ target_role_ids: targetRoleIds, country })
+    });
+  }
+
+  // ==========================================
+  // SECTION 4.5: ADAPTIVE LEARNING PLAN
+  // ==========================================
+
+  async getLearningPlan(): Promise<LearningPlanData> {
+    return this.request<LearningPlanData>('/learning/plan');
+  }
+
+  async generateLearningPlan(data: {
+    target_role: string;
+    target_role_id?: string;
+    weekly_hours?: number;
+    preferred_days?: string[];
+  }): Promise<LearningPlanData> {
+    return this.request<LearningPlanData>('/learning/generate', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateLearningTaskStatus(
+    taskId: string,
+    status: 'planned' | 'in_progress' | 'completed' | 'assessed'
+  ): Promise<{ status: string; task_id: string; new_status: string }> {
+    return this.request(`/learning/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+  }
+
+  async getTaskQuiz(taskId: string): Promise<{
+    task_id: string;
+    skill_name: string;
+    title: string;
+    questions: Array<{ id: string; question: string; options: string[] }>;
+  }> {
+    return this.request(`/learning/tasks/${taskId}/quiz`);
+  }
+
+  async submitTaskQuiz(
+    taskId: string,
+    answers: Record<string, number>
+  ): Promise<LearningQuizResult> {
+    return this.request<LearningQuizResult>(`/learning/tasks/${taskId}/quiz`, {
+      method: 'POST',
+      body: JSON.stringify({ answers })
+    });
+  }
+
+  async updateLearningSchedule(data: {
+    weekly_hours: number;
+    preferred_days: string[];
+  }): Promise<{ status: string; weekly_hours: number; preferred_days: string[] }> {
+    return this.request('/learning/schedule', {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
   }
 }
 

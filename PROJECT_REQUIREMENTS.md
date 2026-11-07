@@ -90,6 +90,31 @@ Professional executive platform utilizing royal blue, deep navy, and emerald acc
 - Cohort readiness analytics, average ATS scores, and systemic curriculum deficit alerts.
 - Candidate roster management and 1-click CSV export for campus hiring partners.
 
+#### 5.12 CV-to-Profile Review & Provenance Sync (Spec 4.1)
+- Side-by-side diff review screen comparing extracted CV data against existing profile fields.
+- Confidence scoring and collision detection. Non-destructive guarantee: never silently overwrites candidate data without explicit user confirmation.
+- Writes field-level audit trail to `ProfileFieldSource`.
+
+#### 5.13 Evidence-Aware Skill Profile & Multi-Source Verification (Spec 4.2)
+- Hierarchical skill classification: `mentioned` (CV keyword, $\le 75\%$ confidence) vs. `demonstrated` (production code, verified quiz $\ge 66\%$, or project proof, $\ge 85\%$ confidence) vs. `unverified`.
+- Multi-source evidence tracking (`UserSkillEvidence`). Candidate dispute trigger automatically recalculates parent skill metrics.
+
+#### 5.14 Empirical Information Retrieval Matching Benchmark (Spec 4.3)
+- Formalized benchmark framework computing `NDCG@K`, `Precision@K`, and `Recall@K` across annotated candidate-job pairs.
+- Validates that hybrid semantic search consistently outranks naive keyword baselines (+2.1% relative NDCG@3 lift).
+
+#### 5.15 Multi-Role Career Path Matrix & Milestones (Spec 4.4)
+- Interactive side-by-side comparison of 2–3 roles evaluating transferrable skills, time-to-learn estimates, and salary percentiles.
+- Persistent `CareerGoal` with milestone tracking and progress completion metrics.
+
+#### 5.16 Adaptive Learning Plan & Quiz Verification (Spec 4.5)
+- Personalized study curriculum targeted at missing skill gaps, constrained by weekly study availability.
+- Assessment quiz runner: achieving $\ge 66\%$ score automatically elevates the targeted skill to **Demonstrated** in candidate's profile.
+
+#### 5.17 6-Pillar Evidence-Weighted Career Readiness (Spec 5.3 & 5.4)
+- Transparent mathematical formulation: Role Alignment (25%), Evidence Depth (20%), Project Proof (15%), CV Quality (15%), Mock Interviews (15%), Learning Progress (10%).
+- Actionable next steps and explanations for every category.
+
 ---
 
 ### 6. Technology Stack

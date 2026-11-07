@@ -10,9 +10,11 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.models.models import User, Resume
+from app.models.models import User, Resume, CareerGoal, ProfileSkill, UserSkillEvidence
+from app.services.activity_service import record_user_activity
 from app.services.career_graph_service import CareerGraphService, INDUSTRIES
 from app.services.salary_service import SalaryService
 from app.services.salary_predictor_service import (
@@ -248,4 +250,222 @@ def generate_negotiation_scripts(
         target_salary=req.target_salary,
         highlight_skill=req.highlight_skill
     )
+
+
+# -------------------------------------------------------------------------
+# Section 4.4: Career Goal Persistence, Path Comparison & Milestone Tracking
+# -------------------------------------------------------------------------
+
+class SaveCareerGoalRequest(BaseModel):
+    target_role_id: str
+    target_title: str
+    target_date: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    milestones: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+
+
+class ComparePathsRequest(BaseModel):
+    target_role_ids: List[str] = Field(..., min_length=2, max_length=5)
+    current_role_id: Optional[str] = None
+    country: Optional[str] = "us"
+
+
+@router.get("/goals")
+def get_user_career_goals(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieves the user's active career goal and milestone progression.
+    """
+    goal = db.query(CareerGoal).filter(
+        CareerGoal.user_id == current_user.id,
+        CareerGoal.is_active == True
+    ).order_by(CareerGoal.created_at.desc()).first()
+
+    goal_dict = None
+    if goal:
+        goal_dict = {
+            "id": goal.id,
+            "target_role_id": goal.target_role_id,
+            "target_title": goal.target_title,
+            "target_date": goal.target_date,
+            "preferences": goal.preferences or {},
+            "milestones": goal.milestones or [],
+            "is_active": goal.is_active,
+            "created_at": goal.created_at,
+            "updated_at": goal.updated_at
+        }
+
+    return {
+        "active_goal": goal_dict,
+        "has_goal": goal is not None
+    }
+
+
+@router.post("/goals")
+def save_or_update_career_goal(
+    req: SaveCareerGoalRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Saves or updates the user's active career goal with milestone milestones.
+    """
+    # Deactivate existing goals
+    db.query(CareerGoal).filter(
+        CareerGoal.user_id == current_user.id,
+        CareerGoal.is_active == True
+    ).update({"is_active": False})
+
+    milestones = req.milestones
+    if not milestones:
+        milestones = [
+            {"id": "m1", "title": f"Complete verified skill assessments for {req.target_title}", "completed": False},
+            {"id": "m2", "title": "Build a hands-on production portfolio project demonstrating core stack", "completed": False},
+            {"id": "m3", "title": "Pass mock technical and architecture interview simulation", "completed": False},
+            {"id": "m4", "title": "Apply to 5 high-alignment target roles and track on Kanban", "completed": False}
+        ]
+
+    goal = CareerGoal(
+        user_id=current_user.id,
+        target_role_id=req.target_role_id,
+        target_title=req.target_title,
+        preferences=req.preferences or {},
+        milestones=milestones,
+        is_active=True
+    )
+    db.add(goal)
+    db.commit()
+    db.refresh(goal)
+
+    record_user_activity(
+        db, current_user.id, "career_goal_updated",
+        f"Set target career goal to '{req.target_title}'",
+        entity_type="career_goal", entity_id=goal.id
+    )
+
+    goal_dict = {
+        "id": goal.id,
+        "target_role_id": goal.target_role_id,
+        "target_title": goal.target_title,
+        "target_date": goal.target_date,
+        "preferences": goal.preferences or {},
+        "milestones": goal.milestones or [],
+        "is_active": goal.is_active,
+        "created_at": goal.created_at,
+        "updated_at": goal.updated_at
+    }
+
+    return {"status": "success", "goal": goal_dict}
+
+
+@router.patch("/goals/{goal_id}/milestones/{milestone_id}")
+def toggle_goal_milestone(
+    goal_id: str,
+    milestone_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Toggles a milestone state between completed and pending.
+    """
+    goal = db.query(CareerGoal).filter(
+        CareerGoal.id == goal_id,
+        CareerGoal.user_id == current_user.id
+    ).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Career goal not found.")
+
+    milestones = list(goal.milestones or [])
+    found = False
+    for m in milestones:
+        if m.get("id") == milestone_id:
+            m["completed"] = not m.get("completed", False)
+            found = True
+            break
+
+    if not found:
+        raise HTTPException(status_code=404, detail="Milestone not found in career goal.")
+
+    goal.milestones = [dict(item) for item in milestones]
+    flag_modified(goal, "milestones")
+    db.commit()
+    db.refresh(goal)
+
+    return {"status": "success", "milestones": goal.milestones}
+
+
+@router.post("/compare")
+def compare_career_paths(
+    req: ComparePathsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Compares 2 or more target career paths side-by-side:
+    required skills, verified skills from profile, skill gaps, estimated effort,
+    and calibrated market salary percentiles.
+    """
+    # Load user's profile skills
+    user_skills = [
+        s.name for s in db.query(ProfileSkill).filter(ProfileSkill.user_id == current_user.id).all()
+    ]
+
+    comparisons = []
+    graph = CareerGraphService.get_full_graph()
+    nodes = {n["id"]: n for n in graph.get("nodes", [])}
+    nodes_by_title = {n["title"].lower(): n for n in graph.get("nodes", [])}
+
+    for role_id in req.target_role_ids:
+        node = nodes.get(role_id)
+        if not node:
+            normalized_key = role_id.lower().replace("_", " ")
+            node = nodes_by_title.get(normalized_key) or nodes_by_title.get(role_id.lower())
+        if not node:
+            # Fuzzy token overlap match
+            import re
+            role_tokens = set(re.findall(r"[a-zA-Z0-9]+", role_id.lower()))
+            best_node = None
+            best_overlap = 0
+            for n in graph.get("nodes", []):
+                n_tokens = set(re.findall(r"[a-zA-Z0-9]+", (n["id"] + " " + n["title"]).lower()))
+                overlap = len(role_tokens & n_tokens)
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_node = n
+            if best_overlap >= 1:
+                node = best_node
+
+        if not node:
+            continue
+
+        req_skills = node.get("required_skills", [])
+        verified = [s for s in req_skills if any(s.lower() == u.lower() for u in user_skills)]
+        missing = [s for s in req_skills if s not in verified]
+        match_pct = round((len(verified) / max(len(req_skills), 1)) * 100)
+
+        # Get salary benchmark
+        salary_info = SalaryPredictorService.predict_compensation(
+            role_title=node["title"],
+            experience_years=node.get("experience_years_min", 3.0),
+            skills=req_skills,
+            country=req.country or "us"
+        )
+
+        comparisons.append({
+            "role_id": role_id,
+            "title": node["title"],
+            "domain": node.get("domain", "Engineering"),
+            "seniority_tier": node.get("seniority_tier", "L2"),
+            "match_percent": match_pct,
+            "required_skills": req_skills,
+            "verified_skills": verified,
+            "missing_skills": missing,
+            "estimated_transition_months": max(3, len(missing) * 2),
+            "salary_bands": salary_info.get("percentiles", {}),
+            "currency": salary_info.get("currency", "USD")
+        })
+
+    return {"comparisons": comparisons}
 

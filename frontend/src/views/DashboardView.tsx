@@ -14,10 +14,11 @@ import {
   Plus,
   Award,
   History,
+  ShieldCheck,
   User as UserIcon
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
-import { DashboardData, UserActivity } from '../types';
+import { DashboardData, UserActivity, ReadinessCategoryItem } from '../types';
 import { api } from '../services/api';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
@@ -316,6 +317,133 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </motion.div>
       </div>
+
+      {/* Evidence-Based Career Readiness Index Section */}
+      {data.career_readiness && (
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Evidence-Weighted Career Diagnostic</span>
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                Career Readiness Index
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl">
+                {data.career_readiness.calculation_method}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="text-right">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Readiness Tier
+                </span>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-black inline-block ${
+                    data.career_readiness.readiness_tier === 'Exceptional'
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                      : data.career_readiness.readiness_tier === 'High Readiness'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                      : data.career_readiness.readiness_tier === 'Competitive'
+                      ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  }`}
+                >
+                  {data.career_readiness.readiness_tier}
+                </span>
+              </div>
+              <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 text-center min-w-[70px]">
+                <span className="text-2xl font-black">{data.career_readiness.overall_score}</span>
+                <span className="text-[10px] font-semibold text-slate-400 block">/ 100</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 6-Pillar Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data.career_readiness.categories.map((cat: ReadinessCategoryItem) => {
+              const statusBadgeColor =
+                cat.status === 'Strong'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  : cat.status === 'Satisfactory'
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                  : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+
+              return (
+                <div
+                  key={cat.key}
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                          {cat.name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          Weight: {cat.weight_percent}%
+                        </span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadgeColor}`}>
+                        {cat.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-500 dark:text-slate-400">Score</span>
+                        <span className="font-extrabold text-slate-900 dark:text-white">{cat.score}/100</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            cat.score >= 70
+                              ? 'bg-emerald-500'
+                              : cat.score >= 50
+                              ? 'bg-blue-500'
+                              : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${cat.score}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {cat.explanation}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+                      {cat.actionable_next_step}
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (cat.key === 'role_alignment') onNavigate('matches');
+                        else if (cat.key === 'evidence_depth' || cat.key === 'project_proof') onNavigate('profile');
+                        else if (cat.key === 'cv_quality') onNavigate('resumes');
+                        else if (cat.key === 'mock_interviews') onNavigate('ai', { tab: 'interview' });
+                        else if (cat.key === 'learning_progress') onNavigate('career');
+                        else onNavigate('matches');
+                      }}
+                      className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline shrink-0 flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <span>Action</span>
+                      <ArrowUpRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-2 text-[11px] text-slate-400 italic">
+            {data.career_readiness.disclaimer}
+          </div>
+        </div>
+      )}
 
       {/* Main Grid: Pipeline Chart + Score Spotlight */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
