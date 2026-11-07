@@ -152,3 +152,32 @@ GDPR compliance endpoint returning a complete JSON archive of all personal data,
 ### `DELETE /api/users/account`
 Permanently deletes user account, profile, all uploaded resume files, and activity logs.
 
+---
+
+## 7. Career Navigator & Live Market Job Feeds
+
+### `GET /api/navigator/industries`
+Returns all supported career industries with canonical role counts and live job opening tallies.
+
+### `GET /api/navigator/roles`
+Retrieves roles with live vacancy counts, work-mode breakdowns (`remote`, `hybrid`, `onsite`), and latest normalized salary snapshots.
+- `?industry_id=1`: Filter by industry ID
+- `?work_mode=remote`: Filter by work mode (`remote`, `hybrid`, `onsite`, `all`)
+- `?q=data`: Keyword search on role title
+- `?country=us`: Country code (`us`, `gb`, `ca`, `de`)
+
+### `GET /api/navigator/roles/{role_id}/salary`
+Returns latest salary quartile snapshot (`p25`, `median`, `p75`, `sample_size`, `estimated_share`), 30-day historical trend for chart visualization, and `is_stale` flag (>12h).
+- `?country=us`: Country filter
+- `?work_mode=remote`: Work mode filter
+- `?days=30`: Historical window in days
+
+### `GET /api/navigator/roles/{role_id}/jobs`
+Returns real live job postings for the role with direct source attribution links (Remotive, Arbeitnow, Adzuna).
+- `?work_mode=remote`: Work mode filter
+- `?limit=25`: Maximum postings to return
+
+### `POST /api/navigator/refresh`
+Triggers an immediate background crawl of stalest roles across live job boards. Protected by authentication and a 10-minute cooldown window. Returns `202 Accepted`.
+
+

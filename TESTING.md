@@ -55,4 +55,9 @@ npm run build
 | **GDPR Data Export** | Click "Export Personal Data" in Profile | Machine-readable JSON downloaded with profile and application history | Complete JSON downloaded | **Verified** |
 | **Account Deletion** | Click "Delete Account" with confirmation | Account removed, resumes deleted from filesystem storage, logged out | User & files purged | **Verified** |
 | **Mobile Responsiveness**| Inspect at 320px, 375px, 768px, 1280px | Slide-over drawer toggles; cards stack; no horizontal overflow | Fully responsive | **Verified** |
+| **Live Job Feeds (Remotive/Arbeitnow/Adzuna)** | Query `/api/navigator/roles/{id}/jobs` | Fetches live postings with direct attribution links and work-mode badges | External jobs returned | **Verified** |
+| **Work Mode Classification** | `detect_work_mode()` on varying texts | Categorizes `hybrid`, `remote`, `onsite`, `unknown` with regex heuristics | 100% test pass rate | **Verified** |
+| **Salary IQR Outlier Trimming** | `summarize()` with outlier fences | Normalizes annual midpoint, trims extremes, outputs P25, Median, P75 | Valid quartiles output | **Verified** |
+| **Scheduled Background Refresh** | APScheduler startup + 6h cycle | Runs `refresh_if_stale()` on startup; refreshes stalest roles every 6h | Runs within FastAPI | **Verified** |
+
 

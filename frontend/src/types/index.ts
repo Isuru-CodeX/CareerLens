@@ -758,6 +758,75 @@ export interface CounterOfferScript {
   script: string;
 }
 
+export interface SalarySnapshotItem {
+  id: number;
+  role_id?: number;
+  country: string;
+  work_mode?: string | null;
+  currency: string;
+  p25: number;
+  median: number;
+  p75: number;
+  sample_size: number;
+  estimated_share: number;
+  source: string;
+  fetched_at: string;
+  date?: string;
+}
+
+export interface JobRoleItem {
+  id: number;
+  title: string;
+  industry_id: number;
+  industry_name: string;
+  search_terms: string[];
+  last_refreshed: string | null;
+  openings_count: number;
+  work_mode_counts: {
+    remote: number;
+    hybrid: number;
+    onsite: number;
+    unknown: number;
+  };
+  latest_salary: SalarySnapshotItem | null;
+  is_stale: boolean;
+}
+
+export interface JobPostingItem {
+  id: number;
+  source: string;
+  external_id: string;
+  title: string;
+  company: string;
+  location: string;
+  work_mode: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  currency: string;
+  salary_is_estimated: boolean;
+  url: string;
+  posted_at: string | null;
+  last_seen: string | null;
+}
+
+export interface RoleSalaryResponse {
+  role_id: number;
+  role_title: string;
+  latest: SalarySnapshotItem | null;
+  trend: SalarySnapshotItem[];
+  is_stale: boolean;
+  sample_size: number;
+  disclaimer: string;
+}
+
+export interface NavigatorIndustryItem {
+  id: number;
+  name: string;
+  role_count: number;
+  openings_count: number;
+}
+
+
 
 
 

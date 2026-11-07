@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, JSON
+    Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -481,6 +481,77 @@ class InterviewSession(Base):
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
 
     user = relationship("User", back_populates="interview_sessions")
+
+
+# ---------------------------------------------------------------------------
+# Career Navigator & Live Job Market Models
+# ---------------------------------------------------------------------------
+
+class Industry(Base):
+    __tablename__ = "industries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, index=True, nullable=False)
+
+    roles = relationship("JobRole", back_populates="industry", cascade="all, delete-orphan")
+
+
+class JobRole(Base):
+    __tablename__ = "job_roles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    industry_id = Column(Integer, ForeignKey("industries.id", ondelete="CASCADE"), index=True, nullable=False)
+    title = Column(String(255), index=True, nullable=False)
+    search_terms = Column(JSON, default=list)  # e.g. ["data engineer", "etl developer"]
+    last_refreshed = Column(DateTime, nullable=True)
+
+    industry = relationship("Industry", back_populates="roles")
+    postings = relationship("JobPosting", back_populates="role", cascade="all, delete-orphan")
+    snapshots = relationship("SalarySnapshot", back_populates="role", cascade="all, delete-orphan")
+
+
+class JobPosting(Base):
+    __tablename__ = "job_postings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    source = Column(String(50), nullable=False)  # "remotive", "arbeitnow", "adzuna"
+    external_id = Column(String(255), nullable=False)
+    role_id = Column(Integer, ForeignKey("job_roles.id", ondelete="CASCADE"), index=True, nullable=False)
+    title = Column(String(255), nullable=False)
+    company = Column(String(255), nullable=True)
+    location = Column(String(255), nullable=True)
+    work_mode = Column(String(50), index=True, default="unknown")  # remote | hybrid | onsite | unknown
+    salary_min = Column(Float, nullable=True)
+    salary_max = Column(Float, nullable=True)
+    currency = Column(String(10), default="USD")
+    salary_is_estimated = Column(Boolean, default=False)
+    url = Column(String(1000), nullable=True)
+    posted_at = Column(DateTime, nullable=True)
+    last_seen = Column(DateTime, default=get_utc_now)
+
+    __table_args__ = (UniqueConstraint("source", "external_id", name="uq_job_postings_source_external_id"),)
+
+    role = relationship("JobRole", back_populates="postings")
+
+
+class SalarySnapshot(Base):
+    __tablename__ = "salary_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    role_id = Column(Integer, ForeignKey("job_roles.id", ondelete="CASCADE"), index=True, nullable=False)
+    country = Column(String(10), default="us")
+    work_mode = Column(String(50), nullable=True)  # None = all modes, or remote | hybrid | onsite
+    currency = Column(String(10), default="USD")
+    p25 = Column(Float, nullable=False)
+    median = Column(Float, nullable=False)
+    p75 = Column(Float, nullable=False)
+    sample_size = Column(Integer, default=0)
+    estimated_share = Column(Float, default=0.0)  # 0..1 share of estimated salaries
+    source = Column(String(50), default="aggregator")
+    fetched_at = Column(DateTime, default=get_utc_now, index=True)
+
+    role = relationship("JobRole", back_populates="snapshots")
+
 
 
 

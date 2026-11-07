@@ -35,7 +35,11 @@ import {
   SalaryMetadataResponse,
   SalaryPredictionResponse,
   NegotiationTurnResponse,
-  CounterOfferScript
+  CounterOfferScript,
+  JobRoleItem,
+  JobPostingItem,
+  RoleSalaryResponse,
+  NavigatorIndustryItem
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -918,6 +922,57 @@ class ApiService {
     return this.request<CounterOfferScript[]>('/career/negotiate/scripts', {
       method: 'POST',
       body: JSON.stringify(data)
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Career Navigator Live Market & Auto-Refreshing Salaries
+  // -------------------------------------------------------------------------
+  async getNavigatorIndustries(): Promise<NavigatorIndustryItem[]> {
+    return this.request<NavigatorIndustryItem[]>('/navigator/industries');
+  }
+
+  async getNavigatorRoles(params?: {
+    industry_id?: number;
+    work_mode?: string;
+    q?: string;
+    country?: string;
+  }): Promise<JobRoleItem[]> {
+    const qp = new URLSearchParams();
+    if (params?.industry_id) qp.set('industry_id', String(params.industry_id));
+    if (params?.work_mode && params.work_mode !== 'all') qp.set('work_mode', params.work_mode);
+    if (params?.q) qp.set('q', params.q);
+    if (params?.country) qp.set('country', params.country);
+    const qs = qp.toString();
+    return this.request<JobRoleItem[]>(`/navigator/roles${qs ? `?${qs}` : ''}`);
+  }
+
+  async getNavigatorRoleSalary(
+    roleId: number,
+    params?: { country?: string; work_mode?: string; days?: number }
+  ): Promise<RoleSalaryResponse> {
+    const qp = new URLSearchParams();
+    if (params?.country) qp.set('country', params.country);
+    if (params?.work_mode && params.work_mode !== 'all') qp.set('work_mode', params.work_mode);
+    if (params?.days) qp.set('days', String(params.days));
+    const qs = qp.toString();
+    return this.request<RoleSalaryResponse>(`/navigator/roles/${roleId}/salary${qs ? `?${qs}` : ''}`);
+  }
+
+  async getNavigatorRoleJobs(
+    roleId: number,
+    params?: { work_mode?: string; limit?: number }
+  ): Promise<{ role_id: number; role_title: string; total_returned: number; postings: JobPostingItem[] }> {
+    const qp = new URLSearchParams();
+    if (params?.work_mode && params.work_mode !== 'all') qp.set('work_mode', params.work_mode);
+    if (params?.limit) qp.set('limit', String(params.limit));
+    const qs = qp.toString();
+    return this.request(`/navigator/roles/${roleId}/jobs${qs ? `?${qs}` : ''}`);
+  }
+
+  async triggerNavigatorRefresh(): Promise<{ status: string; message: string; retry_after_seconds?: number }> {
+    return this.request('/navigator/refresh', {
+      method: 'POST'
     });
   }
 }

@@ -1,3 +1,7 @@
+import asyncio
+import os
+import logging
+from datetime import datetime, timezone, timedelta
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,11 +9,54 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, engine, SessionLocal
+from app.models.models import SalarySnapshot
+from app.services.navigator_service import NavigatorService
 from app.api import (
     auth, users, resumes, jobs, ai, applications,
-    dashboard, experiences, activity, cv, profile, presets, cover_letters, text, interviews, career_navigator
+    dashboard, experiences, activity, cv, profile, presets, cover_letters, text, interviews, career_navigator, navigator
 )
+
+logger = logging.getLogger(__name__)
+
+
+async def run_salary_refresh_job(max_roles: int = 15):
+    """Periodic background task executing live job market crawls every 6 hours."""
+    db = SessionLocal()
+    try:
+        logger.info("Executing scheduled live job market & salary refresh...")
+        await NavigatorService.refresh_all(db, max_roles=max_roles)
+        logger.info("Scheduled salary refresh finished successfully.")
+    except Exception as e:
+        logger.warning("Scheduled salary refresh encountered an error: %s", e)
+    finally:
+        db.close()
+
+
+async def refresh_if_stale():
+    """Startup trigger: refreshes stalest roles if the latest snapshot is older than 6 hours."""
+    db = SessionLocal()
+    try:
+        latest = db.query(SalarySnapshot).order_by(SalarySnapshot.fetched_at.desc()).first()
+        now = datetime.now(timezone.utc)
+        should_refresh = False
+        if latest is None:
+            should_refresh = True
+        else:
+            fetched = latest.fetched_at
+            if fetched.tzinfo is None:
+                fetched = fetched.replace(tzinfo=timezone.utc)
+            if (now - fetched) > timedelta(hours=6):
+                should_refresh = True
+
+        if should_refresh:
+            logger.info("Live market data is stale (>6 hrs) or empty. Triggering startup refresh...")
+            await NavigatorService.refresh_all(db, max_roles=10)
+    except Exception as e:
+        logger.warning("Startup refresh_if_stale error: %s", e)
+    finally:
+        db.close()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -74,7 +121,41 @@ async def lifespan(app: FastAPI):
                 conn.commit()
         except Exception:
             pass
+
+    # Seed Navigator Taxonomy and Baseline Data
+    db_init = SessionLocal()
+    try:
+        NavigatorService.ensure_seed_data(db_init)
+    except Exception as e:
+        logger.warning("Error seeding Navigator taxonomy: %s", e)
+    finally:
+        db_init.close()
+
+    # Start APScheduler for automatic salary refresh every 6 hours
+    scheduler = None
+    if os.getenv("DISABLE_SCHEDULER", "0") != "1" and os.getenv("TESTING", "0") != "1":
+        try:
+            from apscheduler.schedulers.asyncio import AsyncIOScheduler
+            scheduler = AsyncIOScheduler()
+            scheduler.add_job(
+                run_salary_refresh_job,
+                "interval",
+                hours=6,
+                id="salary_refresh",
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=3600
+            )
+            scheduler.start()
+            asyncio.create_task(refresh_if_stale())
+            logger.info("APScheduler initialized for Career Navigator live data refresh.")
+        except Exception as e:
+            logger.warning("Could not start APScheduler: %s", e)
+
     yield
+
+    if scheduler and scheduler.running:
+        scheduler.shutdown(wait=False)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -124,6 +205,7 @@ app.include_router(cover_letters.router, prefix=settings.API_V1_STR)
 app.include_router(text.router, prefix=settings.API_V1_STR)
 app.include_router(interviews.router, prefix=settings.API_V1_STR)
 app.include_router(career_navigator.router, prefix=settings.API_V1_STR)
+app.include_router(navigator.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

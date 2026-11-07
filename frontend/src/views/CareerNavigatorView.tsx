@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Compass,
   DollarSign,
-  MessageSquare
+  MessageSquare,
+  Globe
 } from 'lucide-react';
 import { CareerKnowledgeGraph } from '../components/career/CareerKnowledgeGraph';
 import { SalaryPredictorStudio } from '../components/career/SalaryPredictorStudio';
 import { NegotiationCoachStudio } from '../components/career/NegotiationCoachStudio';
+import { LiveMarketJobsStudio } from '../components/career/LiveMarketJobsStudio';
 import { Resume, CareerProfile } from '../types';
 import { api } from '../services/api';
 
@@ -17,7 +19,7 @@ interface CareerNavigatorViewProps {
 export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   resumes = []
 }) => {
-  const [activeTab, setActiveTab] = useState<'graph' | 'salary' | 'coach'>('graph');
+  const [activeTab, setActiveTab] = useState<'market' | 'graph' | 'salary' | 'coach'>('market');
   const [_userProfile, setUserProfile] = useState<CareerProfile | null>(null);
   const [activeIndustry, setActiveIndustry] = useState<string>('all');
   const [focusedRole, setFocusedRole] = useState<string>('Senior Full Stack Engineer');
@@ -55,10 +57,15 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
     return () => { active = false; };
   }, []);
 
-  // Transition from Graph -> Salary Predictor
+  // Transition from Graph / Market -> Salary Predictor
   const handleNavigateToSalary = (roleTitle: string) => {
     setFocusedRole(roleTitle);
     setActiveTab('salary');
+  };
+
+  const handleNavigateToGraph = (roleTitle: string) => {
+    setFocusedRole(roleTitle);
+    setActiveTab('graph');
   };
 
   // Transition from Salary Predictor -> Negotiation Coach
@@ -82,12 +89,25 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
             Career Navigator & Salary Negotiation Coach
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-2xl leading-relaxed">
-            Explore directed role transitions with Dijkstra shortest-path pathfinding, calibrate ML salary percentiles, and simulate high-leverage compensation negotiations.
+            Explore live job openings with auto-refreshing market salaries, directed Dijkstra career bridging, ML compensation predictions, and HR counter-offer simulations.
           </p>
         </div>
 
         {/* Tab Pill Switcher */}
         <div className="flex flex-wrap sm:flex-nowrap items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1 self-start lg:self-center">
+          <button
+            type="button"
+            onClick={() => setActiveTab('market')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'market'
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            <span>Live Market & Rates</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab('graph')}
@@ -130,6 +150,15 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
       </div>
 
       {/* Active Tab View Rendering */}
+      {activeTab === 'market' && (
+        <LiveMarketJobsStudio
+          initialRoleTitle={focusedRole}
+          onNavigateToSalary={handleNavigateToSalary}
+          onNavigateToNegotiator={handleLaunchNegotiation}
+          onNavigateToGraph={handleNavigateToGraph}
+        />
+      )}
+
       {activeTab === 'graph' && (
         <CareerKnowledgeGraph
           initialIndustry={activeIndustry}

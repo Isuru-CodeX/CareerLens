@@ -87,7 +87,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
   // Pathfinding Bridge State
   const [currentRoleId, setCurrentRoleId] = useState<string>('');
   const [targetRoleId, setTargetRoleId] = useState<string>('');
-  const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+  const [selectedResumeId, setSelectedResumeId] = useState<string>(() => resumes?.[0]?.id || '');
   const [bridgeResult, setBridgeResult] = useState<CareerBridgeResponse | null>(null);
   const [computingBridge, setComputingBridge] = useState<boolean>(false);
 
@@ -99,7 +99,6 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
   // Load Graph Data for Active Industry
   useEffect(() => {
     let active = true;
-    setLoading(true);
     api.getCareerKnowledgeGraph(selectedIndustry)
       .then((data) => {
         if (!active) return;
@@ -118,13 +117,6 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
       });
     return () => { active = false; };
   }, [selectedIndustry]);
-
-  // Set default resume if available
-  useEffect(() => {
-    if (resumes && resumes.length > 0 && !selectedResumeId) {
-      setSelectedResumeId(resumes[0].id);
-    }
-  }, [resumes, selectedResumeId]);
 
   // Handle Dijkstra Bridge calculation
   const handleComputeBridge = async () => {
