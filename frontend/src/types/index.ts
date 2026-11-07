@@ -89,6 +89,7 @@ export interface Resume {
   updated_at: string;
   sections?: ParsedSection[];
   versions?: ResumeVersion[];
+  skills?: any[];
 }
 
 export interface VaguePhraseItem {
@@ -504,6 +505,189 @@ export interface InterviewSessionSummary {
   created_at?: string;
   recommendation?: string;
 }
+
+// -------------------------------------------------------------------------
+// Pillar 3: Career Path Knowledge Graph Types
+// -------------------------------------------------------------------------
+export interface CareerNode {
+  id: string;
+  title: string;
+  label: string;
+  type: string;
+  category: string;
+  level: number;
+  level_label: string;
+  salary_median: number;
+  salary_range: {
+    min: number;
+    median: number;
+    max: number;
+  };
+  description: string;
+  core_skills: string[];
+  advanced_skills: string[];
+  certifications: string[];
+}
+
+export interface CareerEdge {
+  id: string;
+  source: string;
+  target: string;
+  type: string;
+  difficulty: number;
+  time_months: number;
+  label: string;
+}
+
+export interface CareerKnowledgeGraphData {
+  nodes: CareerNode[];
+  edges: CareerEdge[];
+  categories: string[];
+}
+
+export interface CareerSkillItem {
+  name: string;
+  category: string;
+  status: 'verified' | 'transferrable' | 'missing';
+  importance: 'core' | 'advanced';
+  transferrable_reason?: string;
+  prerequisites?: string[];
+}
+
+export interface CareerLearningPhase {
+  phase: string;
+  duration_weeks: string;
+  focus: string;
+  skills: string[];
+  recommended_project: string;
+}
+
+export interface CareerBridgeResponse {
+  path_found: boolean;
+  path: string[];
+  path_role_ids: string[];
+  current_role: CareerNode;
+  target_role: CareerNode;
+  milestones: CareerNode[];
+  total_estimated_months: number;
+  total_transition_months: number;
+  feasibility_score: number;
+  verified_skills: CareerSkillItem[];
+  transferrable_skills: CareerSkillItem[];
+  missing_skills: CareerSkillItem[];
+  skill_gap_analysis: {
+    verified_skills: string[];
+    transferrable_skills: string[];
+    missing_skills: string[];
+  };
+  recommended_certifications: string[];
+  learning_roadmap: CareerLearningPhase[];
+  salary_delta: number;
+}
+
+// -------------------------------------------------------------------------
+// Pillar 5: Market Salary Predictor & Offer Negotiation Coach Types
+// -------------------------------------------------------------------------
+export interface SalaryPercentiles {
+  p25: number;
+  p50: number;
+  p75: number;
+  p90: number;
+}
+
+export interface SkillRoiBooster {
+  skill: string;
+  category: string;
+  bonus_pct: number;
+  estimated_annual_lift: number;
+}
+
+export interface CompensationBreakdown {
+  base_salary: number;
+  annual_bonus: number;
+  bonus_percentage: number;
+  annual_equity: number;
+  total_target_compensation: number;
+}
+
+export interface SalaryPredictionResponse {
+  role_title: string;
+  role_category: string;
+  experience_years: number;
+  location_tier: string;
+  company_tier: string;
+  currency: string;
+  symbol: string;
+  percentiles: SalaryPercentiles;
+  compensation_breakdown: CompensationBreakdown;
+  skill_roi_boosters: SkillRoiBooster[];
+  total_skill_premium_pct: number;
+  market_sentiment: string;
+  market_tag: string;
+  suggested_negotiation_anchor: number;
+}
+
+export interface SalaryMetadataResponse {
+  location_tiers: Array<{
+    id: string;
+    label: string;
+    multiplier: number;
+    currency: string;
+    symbol: string;
+    description: string;
+  }>;
+  company_tiers: Array<{
+    id: string;
+    label: string;
+    base_mult: number;
+    bonus_pct: number;
+    equity_mult: number;
+    description: string;
+  }>;
+  high_roi_skills: Array<{
+    key: string;
+    name: string;
+    bonus_pct: number;
+    category: string;
+  }>;
+}
+
+export interface NegotiationTurnResponse {
+  turn_no: number;
+  candidate_pitch: string;
+  metrics: {
+    leverage_score: number;
+    acceptance_probability: number;
+    firmness_index: number;
+    politeness_index: number;
+    tactical_balance: string;
+  };
+  signals_detected: {
+    competing_offer: boolean;
+    market_data_anchor: boolean;
+    value_framing: boolean;
+    total_comp_flexibility: boolean;
+  };
+  financial_outcome: {
+    initial_offer: number;
+    new_offer: number;
+    concession_amount: number;
+    gap_remaining: number;
+  };
+  recruiter_reply: string;
+  coach_critique: string;
+  suggested_next_move: string;
+}
+
+export interface CounterOfferScript {
+  id: string;
+  title: string;
+  tag: string;
+  badge: string;
+  description: string;
+  script: string;
+}
+
 
 
 

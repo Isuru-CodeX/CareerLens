@@ -12,6 +12,7 @@ import { AIAssistantView } from './views/AIAssistantView';
 import { ApplicationsView } from './views/ApplicationsView';
 import { ProfileView } from './views/ProfileView';
 import { UserActivityView } from './views/UserActivityView';
+import { CareerNavigatorView } from './views/CareerNavigatorView';
 
 const MainLayout: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('dashboard');
@@ -101,6 +102,10 @@ const MainLayout: React.FC = () => {
               initialResumeId={viewParams.resumeId}
               onNavigate={handleNavigate}
             />
+          )}
+
+          {currentView === 'career' && (
+            <CareerNavigatorView />
           )}
 
           {currentView === 'ai' && (

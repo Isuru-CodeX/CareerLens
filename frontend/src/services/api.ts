@@ -27,7 +27,13 @@ import {
   InterviewScorecard,
   InterviewSessionSummary,
   InterviewTurnRecord,
-  SuitableAnswer
+  SuitableAnswer,
+  CareerKnowledgeGraphData,
+  CareerBridgeResponse,
+  SalaryMetadataResponse,
+  SalaryPredictionResponse,
+  NegotiationTurnResponse,
+  CounterOfferScript
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -803,6 +809,69 @@ class ApiService {
     questions: InterviewQuestionItem[];
   }> {
     return this.request(`/interviews/session/${sessionId}`);
+  }
+
+  // -------------------------------------------------------------------------
+  // Pillar 3 & 5: Career Path Knowledge Graph & Salary Negotiation Coach
+  // -------------------------------------------------------------------------
+  async getCareerKnowledgeGraph(): Promise<CareerKnowledgeGraphData> {
+    return this.request<CareerKnowledgeGraphData>('/career/graph');
+  }
+
+  async computeCareerBridge(data: {
+    current_role_id: string;
+    target_role_id: string;
+    candidate_skills?: string[];
+    resume_id?: string;
+  }): Promise<CareerBridgeResponse> {
+    return this.request<CareerBridgeResponse>('/career/bridge', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getSalaryMetadata(): Promise<SalaryMetadataResponse> {
+    return this.request<SalaryMetadataResponse>('/career/salary/metadata');
+  }
+
+  async predictSalary(data: {
+    role_title: string;
+    experience_years: number;
+    skills?: string[];
+    location_tier?: string;
+    company_tier?: string;
+  }): Promise<SalaryPredictionResponse> {
+    return this.request<SalaryPredictionResponse>('/career/salary/predict', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async evaluateNegotiationTurn(data: {
+    role_title: string;
+    current_offer: number;
+    target_salary: number;
+    candidate_pitch: string;
+    turn_no: number;
+    history?: any[];
+  }): Promise<NegotiationTurnResponse> {
+    return this.request<NegotiationTurnResponse>('/career/negotiate/turn', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getNegotiationScripts(data: {
+    role_title: string;
+    company?: string;
+    current_offer: number;
+    target_salary: number;
+    highlight_skill?: string;
+  }): Promise<CounterOfferScript[]> {
+    return this.request<CounterOfferScript[]>('/career/negotiate/scripts', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   }
 }
 

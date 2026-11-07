@@ -10,7 +10,8 @@ import {
   Activity,
   X,
   ShieldCheck,
-  UploadCloud
+  UploadCloud,
+  Compass
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -50,6 +51,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Job Matcher',
       icon: Target,
       badge: 'AI'
+    },
+    {
+      id: 'career',
+      label: 'Career Navigator',
+      icon: Compass,
+      badge: 'Graph'
     },
     {
       id: 'ai',
