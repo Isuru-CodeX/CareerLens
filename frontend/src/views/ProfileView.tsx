@@ -28,6 +28,7 @@ import { LinksEditor } from '../components/LinksEditor';
 import { EducationEditor } from '../components/EducationEditor';
 import { ExperienceEditor } from '../components/ExperienceEditor';
 import { SkillsEditor } from '../components/SkillsEditor';
+import { GithubProofOfWorkModal } from '../components/verification/GithubProofOfWorkModal';
 import { ProfileExperience, ProfileSkill, EducationItem } from '../types';
 
 // Custom clean icons for professional profiles
@@ -65,6 +66,7 @@ export const ProfileView: React.FC = () => {
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [otherLinks, setOtherLinks] = useState<{ label: string; url: string }[]>([]);
   const [address, setAddress] = useState<AddressData>({});
+  const [showGithubProofModal, setShowGithubProofModal] = useState(false);
 
   // Career profile fields
   const [targetTitle, setTargetTitle] = useState('');
@@ -518,9 +520,19 @@ export const ProfileView: React.FC = () => {
 
           {/* GitHub Profile */}
           <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              GitHub Profile URL
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block font-semibold text-slate-700 dark:text-slate-300">
+                GitHub Profile URL
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowGithubProofModal(true)}
+                className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Proof of Work Audit (Module 10)
+              </button>
+            </div>
             <div className="relative">
               <div className="absolute left-3 top-2.5">
                 <GithubIcon />
@@ -892,6 +904,13 @@ export const ProfileView: React.FC = () => {
           onClose={handleCloseCropModal}
         />
       )}
+
+      {/* GitHub Proof of Work Modal (Module 10) */}
+      <GithubProofOfWorkModal
+        isOpen={showGithubProofModal}
+        onClose={() => setShowGithubProofModal(false)}
+        defaultUsername={githubUrl.split('/').filter(Boolean).pop() || 'alexrivera'}
+      />
     </div>
   );
 };

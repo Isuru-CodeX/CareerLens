@@ -27,9 +27,12 @@ import { useLoader } from '../context/useLoader';
 import { PresetSelect } from '../components/PresetSelect';
 import { StyleToggle } from '../components/StyleToggle';
 import { VoiceInterviewStudio } from '../components/interview/VoiceInterviewStudio';
+import { LiveCodingSandbox } from '../components/coding/LiveCodingSandbox';
+import { XaiBiasAuditorStudio } from '../components/xai/XaiBiasAuditorStudio';
+import { Code2, Scale } from 'lucide-react';
 
 interface AIAssistantViewProps {
-  initialTab?: 'rewrite' | 'coverletter' | 'interview';
+  initialTab?: 'rewrite' | 'coverletter' | 'interview' | 'coding' | 'xai';
   jobDescription?: string;
   targetRole?: string;
 }
@@ -40,9 +43,9 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   targetRole = ''
 }) => {
   const { triggerTransition } = useLoader();
-  const [activeTab, setActiveTab] = useState<'rewrite' | 'coverletter' | 'interview'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'rewrite' | 'coverletter' | 'interview' | 'coding' | 'xai'>(initialTab);
 
-  const handleTabSelect = (tab: 'rewrite' | 'coverletter' | 'interview') => {
+  const handleTabSelect = (tab: 'rewrite' | 'coverletter' | 'interview' | 'coding' | 'xai') => {
     if (tab === activeTab) return;
     const tabConfigs = {
       rewrite: {
@@ -65,6 +68,20 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
         badge: 'Multimodal Voice AI',
         icon: 'mic' as const,
         accentColor: 'purple'
+      },
+      coding: {
+        title: 'Spinning Up Live Coding Sandbox...',
+        subtitle: 'Loading dynamic algorithmic challenges & Big-O analyzer...',
+        badge: 'Assessment Sandbox',
+        icon: 'sparkles' as const,
+        accentColor: 'purple'
+      },
+      xai: {
+        title: 'Calibrating Explainable AI & Bias Auditor...',
+        subtitle: 'Evaluating SHAP attributions, DEI bias patterns & blind masking...',
+        badge: 'Explainable AI (XAI)',
+        icon: 'sparkles' as const,
+        accentColor: 'indigo'
       }
     };
     triggerTransition(tabConfigs[tab], 400);
@@ -495,10 +512,10 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/60 max-w-xl">
+      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/60 max-w-4xl">
         <button
           onClick={() => handleTabSelect('rewrite')}
-          className={`flex-1 min-w-[140px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[130px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'rewrite'
               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -510,7 +527,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
 
         <button
           onClick={() => handleTabSelect('coverletter')}
-          className={`flex-1 min-w-[140px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[130px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'coverletter'
               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -522,14 +539,38 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
 
         <button
           onClick={() => handleTabSelect('interview')}
-          className={`flex-1 min-w-[140px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[130px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'interview'
               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Interview Q&A Practice</span>
+          <span>Voice Mock Interview</span>
+        </button>
+
+        <button
+          onClick={() => handleTabSelect('coding')}
+          className={`flex-1 min-w-[130px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'coding'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Code2 className="w-3.5 h-3.5 text-purple-600" />
+          <span>Live Coding Sandbox</span>
+        </button>
+
+        <button
+          onClick={() => handleTabSelect('xai')}
+          className={`flex-1 min-w-[130px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'xai'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Scale className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Explainable AI & Bias</span>
         </button>
       </div>
 
@@ -1511,6 +1552,24 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tab 4: In-Browser Live Coding Sandbox (Module 11) */}
+      {activeTab === 'coding' && (
+        <div className="space-y-6">
+          <LiveCodingSandbox />
+        </div>
+      )}
+
+      {/* Tab 5: Explainable AI & Bias Auditor (Module 7) */}
+      {activeTab === 'xai' && (
+        <div className="space-y-6">
+          <XaiBiasAuditorStudio
+            resumes={resumes}
+            initialResumeId={selectedResumeId !== 'all' ? selectedResumeId : (resumes[0]?.id || '')}
+            defaultJobText={jobDescription || coverJD}
+          />
         </div>
       )}
     </div>

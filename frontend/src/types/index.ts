@@ -975,6 +975,164 @@ export interface ResumeTailorResponse {
   factuality_guarantee: string;
 }
 
+// ==========================================
+// MODULES 7, 10, 11, 12: XAI, GITHUB, CODING & PLACEMENT TYPES
+// ==========================================
+
+export interface ShapAttributionItem {
+  text: string;
+  shap_delta: number;
+  category: 'positive' | 'negative' | 'neutral';
+  matched_terms: string[];
+  has_quantifiable_metric: boolean;
+  has_passive_phrasing: boolean;
+  attribution_explanation: string;
+}
+
+export interface ShapAttributionResponse {
+  baseline_score: number;
+  calibrated_score: number;
+  total_segments_analyzed: number;
+  positive_impact_count: number;
+  negative_impact_count: number;
+  neutral_count: number;
+  attributions: ShapAttributionItem[];
+  summary: string;
+}
+
+export interface BiasFinding {
+  category: string;
+  type: string;
+  term: string;
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  message: string;
+  recommended_fix: string;
+}
+
+export interface BiasAuditResponse {
+  fairness_score: number;
+  bias_risk_level: 'LOW' | 'MODERATE' | 'HIGH';
+  total_findings: number;
+  findings: BiasFinding[];
+  gender_balance: {
+    masculine_terms: number;
+    feminine_terms: number;
+    ratio: string;
+  };
+  summary: string;
+}
+
+export interface BlindProfileResponse {
+  masked_text: string;
+  candidate_alias: string;
+  redactions_count: number;
+  audit_log: string[];
+  compliance_status: string;
+}
+
+export interface VerifiedSkillItem {
+  skill: string;
+  status: string;
+  evidence_level: string;
+  supporting_repos: string[];
+  confidence: number;
+}
+
+export interface GithubAuditResponse {
+  success: boolean;
+  github_username: string;
+  profile_url: string;
+  repositories_analyzed: number;
+  total_commits: number;
+  total_stars: number;
+  integrity_score: number;
+  verification_rating: string;
+  verified_skills: VerifiedSkillItem[];
+  unverified_skills: string[];
+  sample_repositories: Array<{
+    name: string;
+    language: string;
+    stars: number;
+    detected_tech: string[];
+    has_tests: boolean;
+    lines_of_code: number;
+  }>;
+  proof_of_work_badge: {
+    badge_id: string;
+    cryptographic_hash: string;
+    verified_at: string;
+    issuer: string;
+    verification_status: string;
+  };
+}
+
+export interface CodingChallengeItem {
+  id: string;
+  title: string;
+  category: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  target_role: string;
+  time_limit_minutes: number;
+  description: string;
+  starter_code: string;
+  optimal_big_o: string;
+  test_cases: Array<{
+    input: any;
+    expected: any;
+  }>;
+}
+
+export interface CodingEvaluationResponse {
+  success: boolean;
+  challenge_id: string;
+  title: string;
+  tests_total: number;
+  tests_passed: number;
+  execution_time_ms: number;
+  memory_usage_mb: number;
+  estimated_complexity: string;
+  target_complexity: string;
+  code_quality_score: number;
+  review_feedback: string[];
+  ai_critique: string;
+}
+
+export interface CohortStudent {
+  id: string;
+  name: string;
+  email: string;
+  degree: string;
+  batch: string;
+  target_role: string;
+  readiness_score: number;
+  interview_score: number;
+  verified_skills: string[];
+  status: string;
+  offers: number;
+}
+
+export interface SkillDeficitAlert {
+  skill: string;
+  demand_percentage: number;
+  cohort_proficiency: number;
+  deficit_gap: number;
+  severity: 'CRITICAL' | 'HIGH' | 'MODERATE';
+  recommendation: string;
+}
+
+export interface CohortTelemetryResponse {
+  batch_name: string;
+  total_students: number;
+  average_ats_readiness: number;
+  average_interview_score: number;
+  placed_students_count: number;
+  placement_rate_percentage: number;
+  active_interviews_ongoing: number;
+  skill_deficit_alerts: SkillDeficitAlert[];
+  top_recruiter_partners: string[];
+  students: CohortStudent[];
+}
+
 
 
 

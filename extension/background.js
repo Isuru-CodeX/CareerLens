@@ -46,3 +46,4 @@ async function handleClipJob(jobData) {
     return { success: false, error: error.message };
   }
 }
+

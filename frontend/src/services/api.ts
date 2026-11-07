@@ -43,7 +43,14 @@ import {
   VectorRagMatchResponse,
   AtsStressTestResponse,
   ExtensionJobClipResponse,
-  ResumeTailorResponse
+  ResumeTailorResponse,
+  ShapAttributionResponse,
+  BiasAuditResponse,
+  BlindProfileResponse,
+  GithubAuditResponse,
+  CodingChallengeItem,
+  CodingEvaluationResponse,
+  CohortTelemetryResponse
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -1066,6 +1073,93 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(data)
     });
+  }
+
+  // ==========================================
+  // MODULE 7: EXPLAINABLE AI & BIAS AUDITOR
+  // ==========================================
+
+  async getXaiAttributions(data: {
+    resume_text?: string;
+    resume_id?: string;
+    job_text?: string;
+    baseline_score?: number;
+  }): Promise<ShapAttributionResponse> {
+    return this.request<ShapAttributionResponse>('/xai/attributions', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async runBiasAudit(data: { text: string }): Promise<BiasAuditResponse> {
+    return this.request<BiasAuditResponse>('/xai/bias-audit', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async generateBlindProfile(data: {
+    resume_text?: string;
+    resume_id?: string;
+    candidate_name?: string;
+    email?: string;
+    phone?: string;
+  }): Promise<BlindProfileResponse> {
+    return this.request<BlindProfileResponse>('/xai/blind-profile', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // ==========================================
+  // MODULE 10: GITHUB PROOF OF WORK VERIFIER
+  // ==========================================
+
+  async auditGithubProofOfWork(data: {
+    username: string;
+    claimed_skills?: string[];
+  }): Promise<GithubAuditResponse> {
+    return this.request<GithubAuditResponse>('/verification/github-audit', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // ==========================================
+  // MODULE 11: IN-BROWSER LIVE CODING SANDBOX
+  // ==========================================
+
+  async getCodingChallenges(): Promise<CodingChallengeItem[]> {
+    return this.request<CodingChallengeItem[]>('/coding/challenges');
+  }
+
+  async getCodingChallengeDetail(challengeId: string): Promise<CodingChallengeItem> {
+    return this.request<CodingChallengeItem>(`/coding/challenges/${challengeId}`);
+  }
+
+  async evaluateCodeSubmission(data: {
+    challenge_id: string;
+    code: string;
+    language?: string;
+  }): Promise<CodingEvaluationResponse> {
+    return this.request<CodingEvaluationResponse>('/coding/evaluate', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // ==========================================
+  // MODULE 12: UNIVERSITY PLACEMENT CELL PORTAL
+  // ==========================================
+
+  async getPlacementTelemetry(batch?: string): Promise<CohortTelemetryResponse> {
+    const query = batch ? `?batch=${encodeURIComponent(batch)}` : '';
+    return this.request<CohortTelemetryResponse>(`/placement/telemetry${query}`);
+  }
+
+  getPlacementExportUrl(batch?: string): string {
+    const query = batch ? `?batch=${encodeURIComponent(batch)}` : '';
+    return `${API_BASE_URL}/placement/export-csv${query}`;
   }
 }
 

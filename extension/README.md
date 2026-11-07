@@ -16,3 +16,4 @@ Automated job clipping and in-page vector alignment scoring for **LinkedIn**, **
 5. Select this folder: `CareerLens/extension`.
 6. Pin the CareerLens AI extension to your browser toolbar.
 7. Open any job posting on LinkedIn or Indeed — the floating badge appears automatically with 1-click clipping!
+

@@ -19,7 +19,7 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Tests-46%20Passed-10b981?style=flat-square&logo=pytest&logoColor=white" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-78%20Passed-10b981?style=flat-square&logo=pytest&logoColor=white" alt="Tests" />
   <img src="https://img.shields.io/github/last-commit/Isuru-CodeX/CareerLens?style=flat-square&logo=git&color=indigo" alt="Last Commit" />
   <img src="https://img.shields.io/github/repo-size/Isuru-CodeX/CareerLens?style=flat-square&color=purple" alt="Repo Size" />
   <img src="https://img.shields.io/badge/Privacy-GDPR%20Compliant-10b981?style=flat-square" alt="Privacy" />
@@ -54,7 +54,12 @@ Whether you need to stress-test your resume against algorithmic hiring filters, 
 
 | | Feature | Details |
 |---|---|---|
-| 🗺️ | **Career Knowledge Graph** | Directed Knowledge Graph modeling 18 technical roles, Dijkstra shortest-path career bridges, and prerequisite trees |
+| ⚖️ | **Explainable AI & Bias Auditor** | SHAP token-level attribution heatmaps, DEI unconscious bias scanner, and blind recruitment masking |
+| 💻 | **Live Coding & Assessment Sandbox**| In-browser algorithmic assessment runner with automated Big-O time and space complexity reviews |
+| 🎓 | **University Placement Cell** | Multi-tenant SaaS portal with cohort readiness metrics, curriculum deficit alerts, and batch candidate exports |
+| 🛡️ | **GitHub "Proof of Work" Verifier** | Claim-to-code cross-verification matching resume skills against GitHub repos with cryptographic SHA-256 badges |
+| 🎥 | **CV Non-Verbal Coach** | Real-time webcam eye contact tracking, head pose posture estimation, and fidget cadence feedback |
+| 🗺️ | **Career Knowledge Graph** | Directed Knowledge Graph modeling 46 technical roles, Dijkstra shortest-path career bridges, and prerequisite trees |
 | 💰 | **ML Salary Predictor** | Supervised compensation regression estimating 25th, 50th, 75th, and 90th percentile bands with location cost tiers |
 | 🤝 | **Negotiation Coach & Simulator** | Interactive game-theory recruiter negotiation simulator measuring leverage, firmness vs. politeness, and concession gains |
 | 📜 | **Battle-Tested Counter-Offers** | 5 1-click structured negotiation templates (*Market Anchor, Competing Offer, Total Comp Bridge, 6-Month Review, Phone Script*) |
@@ -376,9 +381,18 @@ npm run build --prefix frontend
 - [x] Multi-Approach Exemplar Model Answers (*Executive*, *Technical*, *Agile*)
 - [x] Native `MediaRecorder` + Bundled FFmpeg Server-Side Transcription Fallback
 - [x] Drag-and-drop Kanban Application Pipeline Tracker
-- [ ] Career Path Knowledge Graph Visualizer (D3.js / React Flow skill trees)
-- [ ] CareerLens Chrome Extension for 1-click job clipping from LinkedIn & Indeed
-- [ ] Multi-lingual Voice Interview support (Spanish, French, German)
+- [x] Hybrid Semantic Search & Vector RAG Engine (256-D Cosine Similarity)
+- [x] 4-Tier Enterprise ATS Stress-Test Engine (Workday, Greenhouse, Taleo, Lever)
+- [x] Manifest V3 Browser Extension with 1-Click LinkedIn/Indeed Job Clipper
+- [x] Market Salary Predictor & Interactive Offer Negotiation Coach
+- [x] Directed Career Path Knowledge Graph with Dijkstra Shortest-Path Bridges
+- [x] Explainable AI (XAI) with SHAP Token Attribution Heatmaps & Blind Recruitment Redaction
+- [x] DEI Unconscious Bias & Inclusion Scanner with Automated Remediation Hints
+- [x] Computer Vision (CV) Real-Time Webcam Eye-Contact & Posture Stability Coach
+- [x] In-Browser Live Coding Sandbox with Algorithmic Big-O Complexity Review
+- [x] GitHub Claim-to-Code "Proof of Work" Verifier with SHA-256 Signed Badges
+- [x] University Placement Cell Multi-Tenant SaaS Portal with Cohort Readiness Telemetry
+- [ ] Celery + Redis distributed background worker queue for asynchronous batch processing
 
 ---
 

@@ -14,7 +14,8 @@ from app.models.models import SalarySnapshot
 from app.services.navigator_service import NavigatorService
 from app.api import (
     auth, users, resumes, jobs, ai, applications,
-    dashboard, experiences, activity, cv, profile, presets, cover_letters, text, interviews, career_navigator, navigator
+    dashboard, experiences, activity, cv, profile, presets, cover_letters, text, interviews, career_navigator, navigator,
+    xai, github_verifier, coding, placement
 )
 
 logger = logging.getLogger(__name__)
@@ -206,6 +207,10 @@ app.include_router(text.router, prefix=settings.API_V1_STR)
 app.include_router(interviews.router, prefix=settings.API_V1_STR)
 app.include_router(career_navigator.router, prefix=settings.API_V1_STR)
 app.include_router(navigator.router, prefix=settings.API_V1_STR)
+app.include_router(xai.router, prefix=settings.API_V1_STR)
+app.include_router(github_verifier.router, prefix=settings.API_V1_STR)
+app.include_router(coding.router, prefix=settings.API_V1_STR)
+app.include_router(placement.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

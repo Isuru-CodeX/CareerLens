@@ -16,6 +16,7 @@ import { ApplicationsView } from './views/ApplicationsView';
 import { ProfileView } from './views/ProfileView';
 import { UserActivityView } from './views/UserActivityView';
 import { CareerNavigatorView } from './views/CareerNavigatorView';
+import { PlacementPortalView } from './views/PlacementPortalView';
 
 const VIEW_LOADER_CONFIG: Record<string, LoaderConfig> = {
   dashboard: {
@@ -79,6 +80,13 @@ const VIEW_LOADER_CONFIG: Record<string, LoaderConfig> = {
     subtitle: 'Querying audit history, log events and telemetry...',
     badge: 'Security & Audit',
     icon: 'shield',
+    accentColor: 'indigo'
+  },
+  placement: {
+    title: 'Loading University Placement Portal...',
+    subtitle: 'Aggregating cohort readiness analytics, skill deficits & batch roster...',
+    badge: 'Enterprise Placement Cell',
+    icon: 'chart',
     accentColor: 'indigo'
   }
 };
@@ -206,6 +214,10 @@ const MainLayout: React.FC = () => {
 
           {currentView === 'activity' && (
             <UserActivityView onNavigate={handleNavigate} />
+          )}
+
+          {currentView === 'placement' && (
+            <PlacementPortalView />
           )}
         </main>
       </div>
