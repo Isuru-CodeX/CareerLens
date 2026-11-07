@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   DollarSign,
   TrendingUp,
@@ -30,72 +30,114 @@ interface SalaryPredictorStudioProps {
   onLaunchNegotiation?: (role: string, offer: number, target: number) => void;
 }
 
+interface CountryMeta {
+  code: string;
+  name: string;
+  currency: string;
+  symbol: string;
+  flag: string;
+}
+
+const DEFAULT_COUNTRIES: CountryMeta[] = [
+  { code: 'us', name: 'United States', flag: '🇺🇸', currency: 'USD', symbol: '$' },
+  { code: 'gb', name: 'United Kingdom', flag: '🇬🇧', currency: 'GBP', symbol: '£' },
+  { code: 'de', name: 'Germany', flag: '🇩🇪', currency: 'EUR', symbol: '€' },
+  { code: 'ca', name: 'Canada', flag: '🇨🇦', currency: 'CAD', symbol: 'C$' },
+  { code: 'au', name: 'Australia', flag: '🇦🇺', currency: 'AUD', symbol: 'A$' },
+  { code: 'nl', name: 'Netherlands', flag: '🇳🇱', currency: 'EUR', symbol: '€' },
+  { code: 'ch', name: 'Switzerland', flag: '🇨🇭', currency: 'CHF', symbol: 'CHF' },
+  { code: 'fr', name: 'France', flag: '🇫🇷', currency: 'EUR', symbol: '€' },
+  { code: 'ie', name: 'Ireland', flag: '🇮🇪', currency: 'EUR', symbol: '€' },
+  { code: 'sg', name: 'Singapore', flag: '🇸🇬', currency: 'SGD', symbol: 'S$' },
+  { code: 'jp', name: 'Japan', flag: '🇯🇵', currency: 'JPY', symbol: '¥' },
+  { code: 'in', name: 'India', flag: '🇮🇳', currency: 'INR', symbol: '₹' },
+  { code: 'lk', name: 'Sri Lanka', flag: '🇱🇰', currency: 'LKR', symbol: 'Rs. ' },
+  { code: 'ae', name: 'United Arab Emirates', flag: '🇦🇪', currency: 'AED', symbol: 'AED' },
+  { code: 'es', name: 'Spain', flag: '🇪🇸', currency: 'EUR', symbol: '€' },
+  { code: 'se', name: 'Sweden', flag: '🇸🇪', currency: 'SEK', symbol: 'kr' },
+  { code: 'br', name: 'Brazil', flag: '🇧🇷', currency: 'BRL', symbol: 'R$' },
+  { code: 'pl', name: 'Poland', flag: '🇵🇱', currency: 'PLN', symbol: 'zł' },
+  { code: 'nz', name: 'New Zealand', flag: 'NZ', currency: 'NZD', symbol: 'NZ$' },
+];
+
 const INDUSTRY_OPTIONS = [
-  { id: 'tech', label: 'Technology & Software Engineering' },
-  { id: 'healthcare', label: 'Healthcare & Clinical Medicine' },
-  { id: 'finance', label: 'Finance, Banking & Accounting' },
-  { id: 'education', label: 'Education & Academic Instruction' },
-  { id: 'legal', label: 'Legal & Corporate Compliance' },
-  { id: 'marketing', label: 'Marketing, Growth & Design' },
+  { id: 'tech', label: 'Technology & Software' },
+  { id: 'data', label: 'Data Science & Analytics' },
+  { id: 'product', label: 'Product & Design' },
+  { id: 'finance', label: 'Finance, Banking & FinTech' },
+  { id: 'healthcare', label: 'Healthcare & Life Sciences' },
+  { id: 'marketing', label: 'Marketing & Growth' },
+  { id: 'operations', label: 'Operations & Management' },
+  { id: 'engineering', label: 'Engineering & Hardware' },
+  { id: 'legal', label: 'Legal & Compliance' }
 ];
 
 const INDUSTRY_ROLES_MAP: Record<string, string[]> = {
   tech: [
+    'Software Engineer',
     'Senior Full Stack Engineer',
     'Frontend Software Engineer',
-    'Backend Distributed Systems Engineer',
-    'DevOps & Cloud Architect',
-    'Machine Learning & AI Engineer',
-    'Data Platform Engineer',
-    'Cybersecurity Engineer',
-    'Engineering Manager'
+    'Backend Systems Engineer',
+    'DevOps & Platform Engineer',
+    'Cloud Solutions Architect',
+    'Machine Learning Engineer',
+    'Data Engineer',
+    'Cybersecurity Architect',
+    'Mobile Application Developer',
+    'QA & Automation Engineer',
+    'Systems & Embedded Engineer'
   ],
-  healthcare: [
-    'Staff Registered Nurse (RN)',
-    'Clinical Nurse Specialist (CNS)',
-    'Nurse Practitioner (NP)',
-    'Certified Nursing Assistant (CNA)',
-    'Medical Laboratory Scientist',
-    'Hospital Clinical Administrator'
+  data: [
+    'Data Scientist',
+    'Business Intelligence Analyst',
+    'Data Analyst',
+    'AI / Deep Learning Researcher',
+    'Quantitative Analyst / Modeler',
+    'Big Data Architect'
+  ],
+  product: [
+    'Product Manager',
+    'Technical Product Manager',
+    'UI/UX Designer',
+    'Design Systems Lead',
+    'User Experience Researcher'
   ],
   finance: [
-    'Senior Financial Analyst',
-    'Junior Financial Analyst',
-    'Investment Portfolio Analyst',
-    'Financial Risk Manager',
-    'Corporate Controller / Accounting Manager',
-    'Chief Financial Officer (CFO)'
+    'Financial Analyst',
+    'Investment Banking Associate',
+    'Risk Management Specialist',
+    'Senior Corporate Accountant',
+    'Quantitative Trader'
   ],
-  education: [
-    'Secondary Education Teacher',
-    'Primary Education Teacher',
-    'Instructional Systems Designer',
-    'Curriculum & Learning Specialist',
-    'Academic Dean / Department Chair'
-  ],
-  legal: [
-    'Corporate Paralegal Specialist',
-    'Legal Assistant / Paralegal',
-    'Senior Litigation Associate',
-    'Corporate Compliance Officer',
-    'General Counsel / Legal Director'
+  healthcare: [
+    'Clinical Data Manager',
+    'Health Informatics Specialist',
+    'Bioinformatics Scientist',
+    'Pharmacist'
   ],
   marketing: [
-    'Senior Growth & Performance Marketer',
-    'Digital Marketing Specialist',
+    'Digital Marketing Director',
     'Product Marketing Manager',
-    'Brand & Communications Lead',
-    'Chief Marketing Officer (CMO)'
+    'Growth & Performance Marketer',
+    'Content & Brand Strategist'
+  ],
+  operations: [
+    'Operations Manager',
+    'Technical Recruiter',
+    'People Operations / HRBP',
+    'Agile Coach / Scrum Master'
+  ],
+  engineering: [
+    'Electrical / Hardware Engineer',
+    'Robotics Systems Engineer',
+    'Mechanical Design Engineer'
+  ],
+  legal: [
+    'Privacy & Data Governance Counsel',
+    'Corporate Compliance Specialist',
+    'Legal Operations Analyst'
   ]
 };
-
-const CURRENCIES = [
-  { code: 'USD', symbol: '$', label: 'USD ($)' },
-  { code: 'EUR', symbol: '€', label: 'EUR (€)' },
-  { code: 'GBP', symbol: '£', label: 'GBP (£)' },
-  { code: 'CAD', symbol: 'CA$', label: 'CAD (CA$)' },
-  { code: 'AUD', symbol: 'A$', label: 'AUD (A$)' }
-];
 
 export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
   initialIndustry = 'tech',
@@ -106,15 +148,16 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
   const { triggerTransition } = useLoader();
   const [selectedIndustry, setSelectedIndustry] = useState<string>(initialIndustry || 'tech');
   const [roleTitle, setRoleTitle] = useState<string>(initialRole || 'Senior Full Stack Engineer');
+  const [selectedCountry, setSelectedCountry] = useState<string>('us');
   const [currency, setCurrency] = useState<string>('USD');
   const [experienceYears, setExperienceYears] = useState<number>(4.5);
   const [locationTier, setLocationTier] = useState<string>('us_tier1');
   const [companyTier, setCompanyTier] = useState<string>('growth_scaleup');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([
-    'Kubernetes',
-    'Distributed Systems',
-    'TypeScript',
-    'PostgreSQL'
+    'Distributed Event-Driven Architecture',
+    'System Architecture & High Concurrency',
+    'PostgreSQL & Vector Embeddings',
+    'Enterprise Security & Auth'
   ]);
 
   const [metadata, setMetadata] = useState<SalaryMetadataResponse | null>(null);
@@ -150,30 +193,57 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
     setRoleTitle(availableRoles[0]);
   };
 
-  // Format currency helper
-  const currencySymbol = CURRENCIES.find((c) => c.code === currency)?.symbol || '$';
-  const formatMoney = (val: number) => `${currencySymbol}${Math.round(val).toLocaleString()}`;
+  // Active Country Meta & Currency Formatter
+  const currentCountry = useMemo(() => {
+    return DEFAULT_COUNTRIES.find(c => c.code === selectedCountry) || DEFAULT_COUNTRIES[0];
+  }, [selectedCountry]);
 
-  // Load Metadata
+  const activeCurrencySymbol = prediction?.symbol || currentCountry.symbol || '$';
+  const formatMoney = (val?: number | null) => {
+    if (val === undefined || val === null || isNaN(val)) return 'N/A';
+    return `${activeCurrencySymbol}${Math.round(val).toLocaleString()}`;
+  };
+
+  const handleCountryChange = (cCode: string) => {
+    if (cCode === selectedCountry) return;
+    setSelectedCountry(cCode);
+    const cMeta = DEFAULT_COUNTRIES.find(c => c.code === cCode);
+    if (cMeta) {
+      setCurrency(cMeta.currency);
+      triggerTransition({
+        title: `Calibrating ${cMeta.name} Compensation...`,
+        subtitle: `Calibrating purchasing power, tax bands & ${cMeta.currency} currency indices for ${cMeta.name}...`,
+        badge: 'Local ML Predictor',
+        icon: 'globe',
+        accentColor: 'emerald'
+      }, 450);
+    }
+  };
+
+  // Load role-specific and domain-tailored Metadata & High-ROI Skills
   useEffect(() => {
     let active = true;
-    api.getSalaryMetadata()
+    api.getSalaryMetadata(roleTitle.trim(), selectedIndustry)
       .then((data) => {
-        if (active) setMetadata(data);
+        if (!active) return;
+        setMetadata(data);
+        if (data.high_roi_skills && data.high_roi_skills.length > 0) {
+          const topSkills = data.high_roi_skills.slice(0, 4).map(s => s.name);
+          setSelectedSkills(topSkills);
+        }
       })
       .catch((err) => console.error('Failed to load salary metadata:', err));
     return () => { active = false; };
-  }, []);
+  }, [roleTitle, selectedIndustry]);
 
   // Fetch Verified Government & Industry Official Benchmark
   const fetchVerifiedBenchmark = async () => {
     setVerifyingBenchmark(true);
     try {
-      const countryCode = locationTier.includes('uk') ? 'UK' : 'US';
       const data = await api.getVerifiedSalaryBenchmark({
         industry_id: selectedIndustry,
         role_title: roleTitle.trim(),
-        country: countryCode,
+        country: selectedCountry.toUpperCase(),
         currency
       });
       setVerifiedBenchmark(data);
@@ -201,7 +271,8 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
         experience_years: experienceYears,
         skills: selectedSkills,
         location_tier: locationTier,
-        company_tier: companyTier
+        company_tier: companyTier,
+        country: selectedCountry
       });
       setPrediction(data);
     } catch (err: any) {
@@ -216,7 +287,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
     runPrediction();
     fetchVerifiedBenchmark();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roleTitle, selectedIndustry, currency, experienceYears, locationTier, companyTier, selectedSkills]);
+  }, [roleTitle, selectedIndustry, selectedCountry, currency, experienceYears, locationTier, companyTier, selectedSkills]);
 
   // Toggle skill selection
   const toggleSkill = (skillName: string) => {
@@ -310,16 +381,16 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <Globe2 className="w-3.5 h-3.5 text-indigo-600" />
-                  Benchmark Currency
+                  Country Market
                 </label>
                 <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  value={selectedCountry}
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                 >
-                  {CURRENCIES.map((c) => (
+                  {DEFAULT_COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>
-                      {c.label}
+                      {c.flag} {c.name} ({c.currency} {c.symbol})
                     </option>
                   ))}
                 </select>
@@ -508,7 +579,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                   <div className="text-left sm:text-right">
                     <p className="text-[10px] uppercase font-bold text-indigo-300">Target Total Comp (TC)</p>
                     <p className="text-2xl sm:text-3xl font-black text-emerald-400">
-                      ${(prediction.compensation_breakdown.total_target_compensation).toLocaleString()}
+                      {formatMoney(prediction.compensation_breakdown.total_target_compensation)}
                     </p>
                   </div>
                 </div>
@@ -518,7 +589,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                   <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
                     <p className="text-[10px] uppercase font-bold text-slate-300">Base Salary (Median)</p>
                     <p className="text-lg font-black text-white">
-                      ${(prediction.compensation_breakdown.base_salary).toLocaleString()}
+                      {formatMoney(prediction.compensation_breakdown.base_salary)}
                     </p>
                     <p className="text-[10px] text-slate-400 font-medium">Guaranteed annual cash</p>
                   </div>
@@ -526,7 +597,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                   <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
                     <p className="text-[10px] uppercase font-bold text-slate-300">Annual Bonus</p>
                     <p className="text-lg font-black text-amber-300">
-                      ${(prediction.compensation_breakdown.annual_bonus).toLocaleString()}
+                      {formatMoney(prediction.compensation_breakdown.annual_bonus)}
                     </p>
                     <p className="text-[10px] text-slate-400 font-medium">
                       {prediction.compensation_breakdown.bonus_percentage}% performance target
@@ -536,7 +607,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                   <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
                     <p className="text-[10px] uppercase font-bold text-slate-300">Equity Grant / RSUs</p>
                     <p className="text-lg font-black text-purple-300">
-                      ${(prediction.compensation_breakdown.annual_equity).toLocaleString()}
+                      {formatMoney(prediction.compensation_breakdown.annual_equity)}
                     </p>
                     <p className="text-[10px] text-slate-400 font-medium">Est. annual vesting value</p>
                   </div>
@@ -770,7 +841,7 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
                         </div>
                         <div className="text-right">
                           <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                            +${(booster.estimated_annual_lift).toLocaleString()}
+                            +{formatMoney(booster.estimated_annual_lift)}
                           </p>
                           <p className="text-[10px] font-bold text-slate-500">+{booster.bonus_pct}% boost</p>
                         </div>

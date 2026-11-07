@@ -551,7 +551,14 @@ export interface CareerNode {
     min: number;
     median: number;
     max: number;
+    currency?: string;
+    currency_symbol?: string;
+    monthly_median?: number;
+    monthly_p25?: number;
+    monthly_p75?: number;
   };
+  currency?: string;
+  currency_symbol?: string;
   description: string;
   core_skills: string[];
   advanced_skills: string[];
@@ -581,6 +588,9 @@ export interface CareerKnowledgeGraphData {
   categories: string[];
   industries?: CareerIndustry[];
   active_industry?: string;
+  country?: string;
+  currency?: string;
+  currency_symbol?: string;
 }
 
 export interface CareerSkillItem {
@@ -621,6 +631,8 @@ export interface CareerBridgeResponse {
   };
   recommended_certifications: string[];
   learning_roadmap: CareerLearningPhase[];
+  currency?: string;
+  currency_symbol?: string;
   salary_delta: number;
 }
 
@@ -667,6 +679,13 @@ export interface SalaryPredictionResponse {
 }
 
 export interface SalaryMetadataResponse {
+  countries?: Array<{
+    code: string;
+    name: string;
+    currency: string;
+    symbol: string;
+    flag: string;
+  }>;
   location_tiers: Array<{
     id: string;
     label: string;

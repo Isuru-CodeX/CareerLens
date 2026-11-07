@@ -830,9 +830,12 @@ class ApiService {
     return this.request<CareerIndustry[]>('/career/industries');
   }
 
-  async getCareerKnowledgeGraph(industryId?: string): Promise<CareerKnowledgeGraphData> {
-    const q = industryId && industryId !== 'all' ? `?industry_id=${encodeURIComponent(industryId)}` : '';
-    return this.request<CareerKnowledgeGraphData>(`/career/graph${q}`);
+  async getCareerKnowledgeGraph(industryId?: string, country?: string): Promise<CareerKnowledgeGraphData> {
+    const params = new URLSearchParams();
+    if (industryId && industryId !== 'all') params.set('industry_id', industryId);
+    if (country) params.set('country', country);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return this.request<CareerKnowledgeGraphData>(`/career/graph${qs}`);
   }
 
   async computeCareerBridge(data: {
@@ -840,6 +843,7 @@ class ApiService {
     target_role_id: string;
     candidate_skills?: string[];
     resume_id?: string;
+    country?: string;
   }): Promise<CareerBridgeResponse> {
     return this.request<CareerBridgeResponse>('/career/bridge', {
       method: 'POST',
@@ -847,8 +851,12 @@ class ApiService {
     });
   }
 
-  async getSalaryMetadata(): Promise<SalaryMetadataResponse> {
-    return this.request<SalaryMetadataResponse>('/career/salary/metadata');
+  async getSalaryMetadata(roleTitle?: string, industryId?: string): Promise<SalaryMetadataResponse> {
+    const params = new URLSearchParams();
+    if (roleTitle) params.set('role_title', roleTitle);
+    if (industryId && industryId !== 'all') params.set('industry_id', industryId);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return this.request<SalaryMetadataResponse>(`/career/salary/metadata${qs}`);
   }
 
   async getVerifiedSalaryBenchmark(
@@ -896,6 +904,7 @@ class ApiService {
     skills?: string[];
     location_tier?: string;
     company_tier?: string;
+    country?: string;
   }): Promise<SalaryPredictionResponse> {
     return this.request<SalaryPredictionResponse>('/career/salary/predict', {
       method: 'POST',

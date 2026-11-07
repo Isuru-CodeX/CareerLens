@@ -211,3 +211,47 @@ def test_career_navigator_api_endpoints():
     }, headers=headers)
     assert r_scripts.status_code == 200
     assert len(r_scripts.json()) == 5
+
+
+def test_career_parity_and_domain_skills():
+    """Verifies that knowledge graph and salary predictor support countries & domain-specific skills."""
+    # 1. Career Graph localized to Sri Lanka (LKR)
+    lk_graph = CareerGraphService.get_graph_data(country="lk")
+    assert lk_graph["country"] == "lk"
+    assert lk_graph["currency"] == "LKR"
+    assert lk_graph["currency_symbol"] == "Rs. "
+    # Ensure node salary values are in rupees
+    frontend_node = next(n for n in lk_graph["nodes"] if n["id"] == "junior_frontend")
+    assert frontend_node["currency"] == "LKR"
+    assert frontend_node["salary_median"] > 500000  # realistic annual rupees (e.g. 1.25M)
+
+    # 2. Dijkstra Bridge localized to Sri Lanka
+    bridge = CareerGraphService.find_career_bridge(
+        current_role_id="junior_frontend",
+        target_role_id="senior_fullstack",
+        country="lk"
+    )
+    assert bridge["currency"] == "LKR"
+    assert bridge["currency_symbol"] == "Rs. "
+
+    # 3. Domain skills: Healthcare role must receive clinical skills, not cloud tech
+    health_meta = SalaryPredictorService.get_salary_metadata(role_title="Clinical Data Manager")
+    health_skill_names = [s["name"] for s in health_meta["high_roi_skills"]]
+    assert any("CDISC" in s or "EDC" in s or "GCP" in s for s in health_skill_names)
+    assert not any("Kubernetes" in s or "Rust" in s for s in health_skill_names)
+
+    # 4. Domain skills: Finance role must receive finance/accounting skills
+    fin_meta = SalaryPredictorService.get_salary_metadata(role_title="Senior Corporate Accountant")
+    fin_skill_names = [s["name"] for s in fin_meta["high_roi_skills"]]
+    assert any("GAAP" in s or "SOX" in s or "Ledger" in s for s in fin_skill_names)
+    assert not any("Kubernetes" in s for s in fin_skill_names)
+
+    # 5. Salary prediction in Sri Lanka
+    lk_pred = SalaryPredictorService.predict_compensation(
+        role_title="Software Engineer",
+        experience_years=3.0,
+        country="lk"
+    )
+    assert lk_pred["currency"] == "LKR"
+    assert lk_pred["symbol"] == "Rs. "
+    assert lk_pred["percentiles"]["p50"] > 1000000

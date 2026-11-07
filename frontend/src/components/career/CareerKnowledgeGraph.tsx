@@ -14,7 +14,8 @@ import {
   RefreshCw,
   Zap,
   Target,
-  Briefcase
+  Briefcase,
+  Globe
 } from 'lucide-react';
 import {
   CareerNode,
@@ -31,6 +32,36 @@ interface CareerKnowledgeGraphProps {
   onNavigateToSalary?: (roleTitle: string) => void;
   initialRole?: string;
 }
+
+interface CountryMeta {
+  code: string;
+  name: string;
+  currency: string;
+  symbol: string;
+  flag: string;
+}
+
+const DEFAULT_COUNTRIES: CountryMeta[] = [
+  { code: 'us', name: 'United States', flag: '🇺🇸', currency: 'USD', symbol: '$' },
+  { code: 'gb', name: 'United Kingdom', flag: '🇬🇧', currency: 'GBP', symbol: '£' },
+  { code: 'de', name: 'Germany', flag: '🇩🇪', currency: 'EUR', symbol: '€' },
+  { code: 'ca', name: 'Canada', flag: '🇨🇦', currency: 'CAD', symbol: 'C$' },
+  { code: 'au', name: 'Australia', flag: '🇦🇺', currency: 'AUD', symbol: 'A$' },
+  { code: 'nl', name: 'Netherlands', flag: '🇳🇱', currency: 'EUR', symbol: '€' },
+  { code: 'ch', name: 'Switzerland', flag: '🇨🇭', currency: 'CHF', symbol: 'CHF' },
+  { code: 'fr', name: 'France', flag: '🇫🇷', currency: 'EUR', symbol: '€' },
+  { code: 'ie', name: 'Ireland', flag: '🇮🇪', currency: 'EUR', symbol: '€' },
+  { code: 'sg', name: 'Singapore', flag: '🇸🇬', currency: 'SGD', symbol: 'S$' },
+  { code: 'jp', name: 'Japan', flag: '🇯🇵', currency: 'JPY', symbol: '¥' },
+  { code: 'in', name: 'India', flag: '🇮🇳', currency: 'INR', symbol: '₹' },
+  { code: 'lk', name: 'Sri Lanka', flag: '🇱🇰', currency: 'LKR', symbol: 'Rs. ' },
+  { code: 'ae', name: 'United Arab Emirates', flag: '🇦🇪', currency: 'AED', symbol: 'AED' },
+  { code: 'es', name: 'Spain', flag: '🇪🇸', currency: 'EUR', symbol: '€' },
+  { code: 'se', name: 'Sweden', flag: '🇸🇪', currency: 'SEK', symbol: 'kr' },
+  { code: 'br', name: 'Brazil', flag: '🇧🇷', currency: 'BRL', symbol: 'R$' },
+  { code: 'pl', name: 'Poland', flag: '🇵🇱', currency: 'PLN', symbol: 'zł' },
+  { code: 'nz', name: 'New Zealand', flag: '🇳🇿', currency: 'NZD', symbol: 'NZ$' },
+];
 
 const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; fill: string; dot: string }> = {
   // Technology & Software
@@ -100,6 +131,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedNode, setSelectedNode] = useState<CareerNode | null>(null);
   const [selectedIndustry, setSelectedIndustry] = useState<string>(initialIndustry);
+  const [selectedCountry, setSelectedCountry] = useState<string>('us');
 
   // Pathfinding Bridge State
   const [currentRoleId, setCurrentRoleId] = useState<string>('');
@@ -113,10 +145,25 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
 
-  // Load Graph Data for Active Industry
+  // Country Change with futuristic transition loader
+  const handleCountryChange = (newCountryCode: string) => {
+    if (newCountryCode === selectedCountry) return;
+    const targetCountry = DEFAULT_COUNTRIES.find(c => c.code === newCountryCode);
+    const countryName = targetCountry ? targetCountry.name : newCountryCode.toUpperCase();
+    triggerTransition({
+      title: `Calibrating ${countryName} Career Graph...`,
+      subtitle: `Harmonizing local purchasing power, salary percentiles & market levels for ${countryName}...`,
+      badge: 'Local Career Calibration',
+      icon: 'globe',
+      accentColor: 'emerald'
+    }, 450);
+    setSelectedCountry(newCountryCode);
+  };
+
+  // Load Graph Data for Active Industry & Country
   useEffect(() => {
     let active = true;
-    api.getCareerKnowledgeGraph(selectedIndustry)
+    api.getCareerKnowledgeGraph(selectedIndustry, selectedCountry)
       .then((data) => {
         if (!active) return;
         setGraphData(data);
@@ -143,7 +190,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [selectedIndustry, initialRole]);
+  }, [selectedIndustry, selectedCountry, initialRole]);
 
   // When initialRole changes, dynamically select and focus it
   useEffect(() => {
@@ -184,7 +231,8 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         current_role_id: currentRoleId,
         target_role_id: targetRoleId,
         candidate_skills: skills,
-        resume_id: selectedResumeId || undefined
+        resume_id: selectedResumeId || undefined,
+        country: selectedCountry
       });
       setBridgeResult(res);
     } catch (err: any) {
@@ -192,6 +240,27 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
     } finally {
       setComputingBridge(false);
     }
+  };
+
+  // Active Country Meta & Currency Formatter
+  const currentCountry = useMemo(() => {
+    return DEFAULT_COUNTRIES.find(c => c.code === selectedCountry) || DEFAULT_COUNTRIES[0];
+  }, [selectedCountry]);
+
+  const activeCurrencySymbol = graphData?.currency_symbol || currentCountry.symbol || '$';
+
+  const formatSalary = (amount?: number | null, compact: boolean = false): string => {
+    if (amount === undefined || amount === null || isNaN(amount)) return 'N/A';
+    const sym = activeCurrencySymbol;
+    const finalVal = Math.round(amount);
+
+    if (compact) {
+      if (finalVal >= 1000000) {
+        return `${sym}${(finalVal / 1000000).toFixed(1)}M`;
+      }
+      return `${sym}${Math.round(finalVal / 1000)}k`;
+    }
+    return `${sym}${finalVal.toLocaleString()}`;
   };
 
   // Filter nodes by query, category, and level
@@ -268,7 +337,26 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* Industry Selector Dropdown (Task 5) */}
+            {/* Country Selector Dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Country:</span>
+              </span>
+              <select
+                value={selectedCountry}
+                onChange={(e) => handleCountryChange(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              >
+                {DEFAULT_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.name} ({c.currency} {c.symbol})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Industry Selector Dropdown (9 Canonical Modern Industries) */}
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
@@ -281,11 +369,14 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
               >
                 <option value="all">🌐 All Professions</option>
                 <option value="tech">💻 Technology & Software</option>
-                <option value="healthcare">🩺 Healthcare & Medicine</option>
+                <option value="data">📊 Data Science & Analytics</option>
+                <option value="product">🎨 Product & Design</option>
                 <option value="finance">🏛️ Finance & Banking</option>
-                <option value="education">🎓 Education & Academia</option>
+                <option value="healthcare">🩺 Healthcare & Life Sciences</option>
+                <option value="marketing">📣 Marketing & Growth</option>
+                <option value="operations">⚡ Operations & Management</option>
+                <option value="engineering">⚙️ Engineering & Hardware</option>
                 <option value="legal">⚖️ Legal & Compliance</option>
-                <option value="marketing">📣 Marketing & Creative</option>
               </select>
             </div>
 
@@ -325,7 +416,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
               >
                 {(graphData?.nodes || []).map((n) => (
                   <option key={`curr_${n.id}`} value={n.id}>
-                    {n.title} • {n.level_label} (${(n.salary_median / 1000).toFixed(0)}k)
+                    {n.title} • {n.level_label} ({formatSalary(n.salary_median, true)})
                   </option>
                 ))}
               </select>
@@ -353,7 +444,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
               >
                 {(graphData?.nodes || []).map((n) => (
                   <option key={`tgt_${n.id}`} value={n.id}>
-                    {n.title} • {n.level_label} (${(n.salary_median / 1000).toFixed(0)}k)
+                    {n.title} • {n.level_label} ({formatSalary(n.salary_median, true)})
                   </option>
                 ))}
               </select>
@@ -505,7 +596,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
 
                           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px]">
                             <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate">
-                              ${(node.salary_median / 1000).toFixed(0)}k/yr
+                              {formatSalary(node.salary_median, true)}/yr
                             </span>
                             <span className="text-[10px] font-semibold text-slate-400 shrink-0">
                               {node.core_skills.length} skills
@@ -546,7 +637,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                   <div className="text-right">
                     <p className="text-[10px] uppercase font-bold text-slate-400">Salary Uplift</p>
                     <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                      {bridgeResult.salary_delta >= 0 ? '+' : ''}${(bridgeResult.salary_delta / 1000).toFixed(0)}k / yr
+                      {bridgeResult.salary_delta >= 0 ? '+' : ''}{formatSalary(bridgeResult.salary_delta, true)} / yr
                     </p>
                   </div>
 
@@ -734,7 +825,7 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-slate-500">Industry Compensation Range</span>
                       <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                        ${(medianSalary / 1000).toFixed(0)}k Median
+                        {formatSalary(medianSalary, true)} Median
                       </span>
                     </div>
 
@@ -747,16 +838,16 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                       <div
                         className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-emerald-500 bg-white dark:bg-slate-900 shadow-md transition-all duration-300"
                         style={{ left: `${posPercent}%` }}
-                        title={`Median: $${(medianSalary / 1000).toFixed(0)}k (${posPercent.toFixed(0)}% position)`}
+                        title={`Median: ${formatSalary(medianSalary)} (${posPercent.toFixed(0)}% position)`}
                       />
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
-                      <span>Base ${(minSalary / 1000).toFixed(0)}k</span>
+                      <span>Base {formatSalary(minSalary, true)}</span>
                       <span className="text-slate-700 dark:text-slate-300 font-bold">
-                        Median ${(medianSalary / 1000).toFixed(0)}k
+                        Median {formatSalary(medianSalary, true)}
                       </span>
-                      <span>Top Band ${(maxSalary / 1000).toFixed(0)}k</span>
+                      <span>Top Band {formatSalary(maxSalary, true)}</span>
                     </div>
                   </div>
                 );

@@ -6,7 +6,7 @@ skill ROI multipliers, interactive game-theory negotiation simulator, and battle
 import re
 import math
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Set
 from app.services.llm_client import LLMClient
 from app.services.career_graph_service import CareerGraphService, CAREER_ROLES
 
@@ -135,72 +135,198 @@ class SalaryPredictorService:
         return CAREER_ROLES["fullstack_dev"]
 
     @classmethod
+    def get_role_high_roi_skills(
+        cls,
+        role_title: Optional[str] = None,
+        industry_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Dynamically extracts domain-specific, role-appropriate high-ROI skills.
+        Guarantees that healthcare, finance, legal, marketing, and operations roles
+        display actual discipline competencies instead of generic cloud/tech tools.
+        """
+        from app.services.navigator_service import ROLE_SKILL_PREMIUMS, INDUSTRY_SKILL_PREMIUMS
+        skills_out: List[Dict[str, Any]] = []
+        seen: Set[str] = set()
+
+        # 1. Match from ROLE_SKILL_PREMIUMS
+        if role_title:
+            matched_premiums = ROLE_SKILL_PREMIUMS.get(role_title)
+            if not matched_premiums:
+                rt_lower = role_title.lower().strip()
+                for k, v in ROLE_SKILL_PREMIUMS.items():
+                    k_lower = k.lower().strip()
+                    if k_lower in rt_lower or rt_lower in k_lower:
+                        matched_premiums = v
+                        break
+
+            if matched_premiums:
+                for item in matched_premiums:
+                    s_name = item["skill"]
+                    if s_name not in seen:
+                        seen.add(s_name)
+                        boost_str = item.get("boost", "+12%")
+                        try:
+                            pct = float(boost_str.replace("+", "").replace("%", "").strip())
+                        except ValueError:
+                            pct = 12.0
+                        skills_out.append({
+                            "key": s_name.lower().strip(),
+                            "name": s_name,
+                            "bonus_pct": pct,
+                            "category": "Domain Specialization"
+                        })
+
+        # 2. Industry-level boosters
+        ind_name_map = {
+            "tech": "Technology & Software",
+            "data": "Data Science & Analytics",
+            "product": "Product & Design",
+            "finance": "Finance, Banking & FinTech",
+            "healthcare": "Healthcare & Life Sciences",
+            "marketing": "Marketing & Growth",
+            "operations": "Operations & Management",
+            "engineering": "Engineering & Hardware",
+            "legal": "Legal & Compliance"
+        }
+        ind_key = ind_name_map.get(industry_id, "")
+        if not ind_key and role_title:
+            role = cls._find_matching_role(role_title)
+            ind_key = role.get("industry_name", "")
+
+        if ind_key and ind_key in INDUSTRY_SKILL_PREMIUMS:
+            for item in INDUSTRY_SKILL_PREMIUMS[ind_key]:
+                s_name = item["skill"]
+                if s_name not in seen:
+                    seen.add(s_name)
+                    boost_str = item.get("boost", "+14%")
+                    try:
+                        pct = float(boost_str.replace("+", "").replace("%", "").strip())
+                    except ValueError:
+                        pct = 14.0
+                    skills_out.append({
+                        "key": s_name.lower().strip(),
+                        "name": s_name,
+                        "bonus_pct": pct,
+                        "category": "Industry Standard"
+                    })
+
+        # 3. Fallback to SKILL_ROI_REGISTRY if still empty
+        if not skills_out:
+            for k, v in SKILL_ROI_REGISTRY.items():
+                skills_out.append({
+                    "key": k,
+                    "name": v["name"],
+                    "bonus_pct": round(v["bonus_pct"] * 100, 1),
+                    "category": v["category"]
+                })
+
+        return skills_out
+
+    @classmethod
+    def get_salary_metadata(
+        cls,
+        role_title: Optional[str] = None,
+        industry_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Returns supported location tiers, company stages, and role-tailored high-ROI skills.
+        """
+        from app.services.navigator_service import GLOBAL_COUNTRIES
+        return {
+            "countries": [{"code": k, **v} for k, v in GLOBAL_COUNTRIES.items()],
+            "location_tiers": list(LOCATION_TIERS.values()),
+            "company_tiers": list(COMPANY_TIERS.values()),
+            "high_roi_skills": cls.get_role_high_roi_skills(role_title, industry_id)
+        }
+
+    @classmethod
     def predict_compensation(
         cls,
         role_title: str,
         experience_years: float = 3.0,
         skills: Optional[List[str]] = None,
         location_tier: str = "us_tier1",
-        company_tier: str = "growth_scaleup"
+        company_tier: str = "growth_scaleup",
+        country: str = "us"
     ) -> Dict[str, Any]:
         """
         Computes calibrated 25th, 50th, 75th, and 90th percentile compensation packages.
-        Incorporates experience tenure curves, location multipliers, company sizing, and skill ROI premiums.
+        Incorporates experience tenure curves, country purchasing power, company sizing, and skill ROI premiums.
         """
         role = cls._find_matching_role(role_title)
-        loc = LOCATION_TIERS.get(location_tier, LOCATION_TIERS["us_tier1"])
         comp = COMPANY_TIERS.get(company_tier, COMPANY_TIERS["growth_scaleup"])
 
-        base_min = role["salary_range"]["min"]
-        base_median = role["salary_range"]["median"]
-        base_max = role["salary_range"]["max"]
+        # Determine seniority tier from experience years
+        if experience_years < 2.0:
+            exp_tier_key = "junior"
+        elif experience_years < 5.0:
+            exp_tier_key = "mid"
+        elif experience_years < 8.0:
+            exp_tier_key = "senior"
+        elif experience_years < 12.0:
+            exp_tier_key = "lead"
+        else:
+            exp_tier_key = "director"
 
-        # Experience tenure curve: Non-linear logarithmic scaling
-        # Level 1 expects ~1yr, Level 2 ~3.5yr, Level 3 ~6.5yr, Level 4 ~9yr
-        expected_level_exp = {1: 1.0, 2: 3.5, 3: 6.5, 4: 9.0}.get(role.get("level", 2), 3.5)
+        from app.services.navigator_service import NavigatorService, GLOBAL_COUNTRIES
+        c_code = (country or "us").lower().strip()
+        c_meta = GLOBAL_COUNTRIES.get(c_code, GLOBAL_COUNTRIES["us"])
+
+        # Calculate base local calibrated role compensation
+        base_comp = NavigatorService.calculate_role_compensation(
+            role_title=role["title"],
+            country_code=c_code,
+            experience_level=exp_tier_key
+        )
+
+        # Experience tenure curve: subtle fine-tuning within the tier
+        expected_level_exp = {1: 1.0, 2: 3.5, 3: 6.5, 4: 9.0, 5: 12.0}.get(role.get("level", 2), 3.5)
         exp_diff = experience_years - expected_level_exp
-        exp_mult = 1.0 + (math.atan(exp_diff / 4.0) * 0.18)
+        exp_mult = 1.0 + (math.atan(exp_diff / 4.0) * 0.12)
 
-        # Skill ROI multipliers
+        # Skill ROI multipliers: role and domain-specific
         candidate_skills = [s.lower().strip() for s in (skills or [])]
         matched_roi_skills: List[Dict[str, Any]] = []
         total_skill_bonus = 0.0
 
-        for skill_key, skill_info in SKILL_ROI_REGISTRY.items():
-            if any(skill_key in cs or cs in skill_key for cs in candidate_skills):
-                bonus = skill_info["bonus_pct"]
+        available_roi_skills = cls.get_role_high_roi_skills(role_title=role["title"], industry_id=role.get("industry_id"))
+        for s_info in available_roi_skills:
+            s_name = s_info["name"]
+            s_key = s_info["key"].lower()
+            bonus_pct = s_info["bonus_pct"]
+            bonus = bonus_pct / 100.0
+
+            # Match skill against candidate skills (exact or token match)
+            if any(s_key in cs or cs in s_key or any(token in cs for token in s_key.split() if len(token) > 3) for cs in candidate_skills):
                 matched_roi_skills.append({
-                    "skill": skill_info["name"],
-                    "category": skill_info["category"],
-                    "bonus_pct": round(bonus * 100, 1),
-                    "estimated_annual_lift": round(base_median * bonus)
+                    "skill": s_name,
+                    "category": s_info.get("category", "Domain Specialization"),
+                    "bonus_pct": bonus_pct,
+                    "estimated_annual_lift": round(base_comp["median"] * bonus)
                 })
                 total_skill_bonus += bonus
 
-        # Cap skill premium at +32% to prevent unrealistic runaway inflation
+        # Cap skill premium at +32% to prevent runaway inflation
         total_skill_bonus = min(0.32, total_skill_bonus)
         skill_mult = 1.0 + total_skill_bonus
 
-        # Final Base Salary Percentiles (calibrated to location and company tier)
-        overall_mult = loc["multiplier"] * comp["base_mult"] * exp_mult * skill_mult
+        # Company sizing multiplier
+        overall_mult = comp["base_mult"] * exp_mult * skill_mult
 
-        p25 = round(base_min * overall_mult / 1000) * 1000
-        p50 = round(base_median * overall_mult / 1000) * 1000
-        p75 = round(((base_median + base_max) / 2) * overall_mult / 1000) * 1000
-        p90 = round(base_max * overall_mult * 1.08 / 1000) * 1000
+        # Clean rounding factor
+        round_factor = 1000 if base_comp["median"] > 50000 else 100
+        p25 = round((base_comp["p25"] * overall_mult) / round_factor) * round_factor
+        p50 = round((base_comp["median"] * overall_mult) / round_factor) * round_factor
+        p75 = round((base_comp["p75"] * overall_mult) / round_factor) * round_factor
+        p90 = round((base_comp["p90"] * overall_mult) / round_factor) * round_factor
 
-        # Annual bonus & Equity grants
+        # Annual bonus & Equity grants in local currency
         bonus_pct = comp["bonus_pct"]
         est_annual_bonus = round(p50 * bonus_pct)
 
-        # Equity calculation (estimated annual vesting value)
-        base_equity_grant = {
-            1: 8000,
-            2: 22000,
-            3: 45000,
-            4: 85000
-        }.get(role.get("level", 2), 22000)
-        est_annual_equity = round(base_equity_grant * comp["equity_mult"] * loc["multiplier"] / 1000) * 1000
+        base_equity_ratio = {1: 0.05, 2: 0.10, 3: 0.16, 4: 0.25, 5: 0.35}.get(role.get("level", 2), 0.10)
+        est_annual_equity = round((p50 * base_equity_ratio * comp["equity_mult"]) / round_factor) * round_factor
 
         total_target_comp = p50 + est_annual_bonus + est_annual_equity
 
@@ -219,10 +345,11 @@ class SalaryPredictorService:
             "role_title": role["title"],
             "role_category": role["category"],
             "experience_years": experience_years,
-            "location_tier": loc["label"],
+            "location_tier": f"{c_meta['name']} ({c_meta['currency']})",
             "company_tier": comp["label"],
-            "currency": loc["currency"],
-            "symbol": loc["symbol"],
+            "country": c_code,
+            "currency": c_meta["currency"],
+            "symbol": c_meta["symbol"],
             "percentiles": {
                 "p25": p25,
                 "p50": p50,  # Median benchmark
@@ -240,7 +367,7 @@ class SalaryPredictorService:
             "total_skill_premium_pct": round(total_skill_bonus * 100, 1),
             "market_sentiment": leverage_sentiment,
             "market_tag": market_tag,
-            "suggested_negotiation_anchor": round(p75 * 1.05 / 1000) * 1000
+            "suggested_negotiation_anchor": round(p75 * 1.05 / round_factor) * round_factor
         }
 
     @classmethod

@@ -31,6 +31,7 @@ class CareerBridgeRequest(BaseModel):
     target_role_id: str
     candidate_skills: Optional[List[str]] = Field(default_factory=list)
     resume_id: Optional[str] = None
+    country: Optional[str] = "us"
 
 
 class SalaryPredictionRequest(BaseModel):
@@ -39,6 +40,7 @@ class SalaryPredictionRequest(BaseModel):
     skills: Optional[List[str]] = Field(default_factory=list)
     location_tier: Optional[str] = "us_tier1"
     company_tier: Optional[str] = "growth_scaleup"
+    country: Optional[str] = "us"
 
 
 class NegotiationTurnRequest(BaseModel):
@@ -84,13 +86,14 @@ def get_career_industries(
 @router.get("/graph")
 def get_career_knowledge_graph(
     industry_id: Optional[str] = Query(None, description="Industry domain filter (e.g. 'tech', 'healthcare', 'finance')"),
+    country: Optional[str] = Query("us", description="ISO country code (e.g. 'us', 'lk', 'in', 'jp', 'gb')"),
     current_user: User = Depends(get_current_user)
 ):
     """
     Returns the complete Directed Career Knowledge Graph including roles, competencies,
-    progression edges, and level hierarchies, optionally filtered by industry.
+    progression edges, and level hierarchies, optionally filtered by industry and calibrated to country.
     """
-    return CareerGraphService.get_graph_data(industry_id=industry_id)
+    return CareerGraphService.get_graph_data(industry_id=industry_id, country=country or "us")
 
 
 @router.post("/bridge")
@@ -121,7 +124,8 @@ def compute_career_bridge(
     result = CareerGraphService.find_career_bridge(
         current_role_id=req.current_role_id,
         target_role_id=req.target_role_id,
-        candidate_skills=candidate_skills
+        candidate_skills=candidate_skills,
+        country=req.country or "us"
     )
 
     if not result.get("path"):
@@ -139,19 +143,14 @@ def compute_career_bridge(
 
 @router.get("/salary/metadata")
 def get_salary_predictor_metadata(
+    role_title: Optional[str] = Query(None, description="Target role title to retrieve domain-appropriate skills"),
+    industry_id: Optional[str] = Query(None, description="Industry domain identifier to filter skills"),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Returns supported location tiers, company stages, and high-ROI technical skill multipliers.
+    Returns supported location tiers, company stages, and role-tailored high-ROI domain skills.
     """
-    return {
-        "location_tiers": list(LOCATION_TIERS.values()),
-        "company_tiers": list(COMPANY_TIERS.values()),
-        "high_roi_skills": [
-            {"key": k, "name": v["name"], "bonus_pct": round(v["bonus_pct"] * 100, 1), "category": v["category"]}
-            for k, v in SKILL_ROI_REGISTRY.items()
-        ]
-    }
+    return SalaryPredictorService.get_salary_metadata(role_title=role_title, industry_id=industry_id)
 
 
 @router.post("/salary/predict")
@@ -161,14 +160,15 @@ def predict_salary_compensation(
 ):
     """
     Predicts calibrated compensation bands (25th, 50th, 75th, 90th percentiles),
-    annual bonuses, equity value, and top skill ROI boosters.
+    annual bonuses, equity value, and top skill ROI boosters for specified country.
     """
     return SalaryPredictorService.predict_compensation(
         role_title=req.role_title,
         experience_years=req.experience_years,
         skills=req.skills,
         location_tier=req.location_tier or "us_tier1",
-        company_tier=req.company_tier or "growth_scaleup"
+        company_tier=req.company_tier or "growth_scaleup",
+        country=req.country or "us"
     )
 
 

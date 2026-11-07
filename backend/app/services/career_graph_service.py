@@ -1001,42 +1001,55 @@ CAREER_ROLES: Dict[str, Dict[str, Any]] = {
 # -----------------------------------------------------------------------------
 # 3. Dynamic Salary Calibration Helper
 # -----------------------------------------------------------------------------
-def get_synced_salary_range(role_title: str, level: int) -> Dict[str, float]:
+def get_synced_salary_range(role_title: str, level: int, country: str = "us") -> Dict[str, Any]:
     """
-    Dynamically synchronizes role compensation against REALISTIC_BENCHMARKS
-    and EXPERIENCE_TIERS from navigator_service so that the Career Graph
-    always mirrors live market rates and country/tier calibrations.
+    Dynamically synchronizes role compensation against NavigatorService.calculate_role_compensation
+    so that the Career Graph always mirrors live market rates and country/tier calibrations.
     """
     tier_key_map = {1: "junior", 2: "mid", 3: "senior", 4: "lead", 5: "director"}
-    tier_info = EXPERIENCE_TIERS.get(tier_key_map.get(level, "mid"), {"factor": 1.0})
-    factor = tier_info.get("factor", 1.0)
+    tier_key = tier_key_map.get(level, "mid")
 
-    # 1. Direct match in REALISTIC_BENCHMARKS
-    bm = REALISTIC_BENCHMARKS.get(role_title)
-    if not bm:
-        # Fallback match by token
-        norm_title = role_title.lower()
-        for k, v in REALISTIC_BENCHMARKS.items():
-            k_norm = k.lower()
-            if k_norm in norm_title or norm_title in k_norm:
-                bm = v
-                break
-
-    if bm:
-        min_val = round(bm.get("p25", bm["median"] * 0.85) * factor)
-        med_val = round(bm["median"] * factor)
-        max_val = round(bm.get("p75", bm["median"] * 1.25) * factor)
-        return {"min": min_val, "median": med_val, "max": max_val}
-
-    # Safe fallback based on tier
-    tier_fallbacks = {
-        1: {"min": 65000, "median": 82000, "max": 105000},
-        2: {"min": 95000, "median": 120000, "max": 150000},
-        3: {"min": 130000, "median": 165000, "max": 205000},
-        4: {"min": 175000, "median": 220000, "max": 275000},
-        5: {"min": 210000, "median": 265000, "max": 340000},
-    }
-    return tier_fallbacks.get(level, tier_fallbacks[2])
+    try:
+        from app.services.navigator_service import NavigatorService
+        comp = NavigatorService.calculate_role_compensation(
+            role_title=role_title,
+            country_code=country,
+            experience_level=tier_key
+        )
+        return {
+            "min": comp["p25"],
+            "median": comp["median"],
+            "max": comp["p75"],
+            "p10": comp["p10"],
+            "p90": comp["p90"],
+            "currency": comp["currency"],
+            "currency_symbol": comp["currency_symbol"],
+            "monthly_median": comp["monthly_median"],
+            "monthly_p25": comp["monthly_p25"],
+            "monthly_p75": comp["monthly_p75"]
+        }
+    except Exception as e:
+        logger.warning("Error calculating synced salary for %s in %s: %s", role_title, country, e)
+        tier_fallbacks = {
+            1: {"min": 65000, "median": 82000, "max": 105000},
+            2: {"min": 95000, "median": 120000, "max": 150000},
+            3: {"min": 130000, "median": 165000, "max": 205000},
+            4: {"min": 175000, "median": 220000, "max": 275000},
+            5: {"min": 210000, "median": 265000, "max": 340000},
+        }
+        fb = tier_fallbacks.get(level, tier_fallbacks[2])
+        return {
+            "min": fb["min"],
+            "median": fb["median"],
+            "max": fb["max"],
+            "p10": round(fb["min"] * 0.85),
+            "p90": round(fb["max"] * 1.15),
+            "currency": "USD",
+            "currency_symbol": "$",
+            "monthly_median": round(fb["median"] / 12),
+            "monthly_p25": round(fb["min"] / 12),
+            "monthly_p75": round(fb["max"] / 12),
+        }
 
 
 # -----------------------------------------------------------------------------
@@ -1135,7 +1148,7 @@ class CareerGraphService:
         return INDUSTRIES
 
     @classmethod
-    def get_full_graph(cls, industry_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_full_graph(cls, industry_id: Optional[str] = None, country: str = "us") -> Dict[str, Any]:
         """
         Returns full Directed Career Knowledge Graph with dynamically calibrated
         compensation matching the Live Salary Explorer.
@@ -1151,8 +1164,8 @@ class CareerGraphService:
         edges = []
 
         for role_id, role in selected_roles.items():
-            # Synchronize salary dynamically
-            synced_salary = get_synced_salary_range(role["title"], role["level"])
+            # Synchronize salary dynamically for the selected country
+            synced_salary = get_synced_salary_range(role["title"], role["level"], country=country)
 
             nodes.append({
                 "id": role_id,
@@ -1166,6 +1179,8 @@ class CareerGraphService:
                 "level_label": role["level_label"],
                 "salary_median": synced_salary["median"],
                 "salary_range": synced_salary,
+                "currency": synced_salary.get("currency", "USD"),
+                "currency_symbol": synced_salary.get("currency_symbol", "$"),
                 "description": role["description"],
                 "core_skills": role["core_skills"],
                 "advanced_skills": role.get("advanced_skills", []),
@@ -1186,25 +1201,33 @@ class CareerGraphService:
 
         categories = sorted(list({n["category"] for n in nodes}))
 
+        from app.services.navigator_service import GLOBAL_COUNTRIES
+        c_code = country.lower().strip()
+        c_meta = GLOBAL_COUNTRIES.get(c_code, GLOBAL_COUNTRIES["us"])
+
         return {
             "nodes": nodes,
             "edges": edges,
             "categories": categories,
             "industries": INDUSTRIES,
-            "active_industry": target_industry
+            "active_industry": target_industry,
+            "country": c_code,
+            "currency": c_meta["currency"],
+            "currency_symbol": c_meta["symbol"]
         }
 
     @classmethod
-    def get_graph_data(cls, industry_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_graph_data(cls, industry_id: Optional[str] = None, country: str = "us") -> Dict[str, Any]:
         """Alias for get_full_graph for backward compatibility."""
-        return cls.get_full_graph(industry_id)
+        return cls.get_full_graph(industry_id, country=country)
 
     @classmethod
     def find_career_bridge(
         cls,
         current_role_id: str,
         target_role_id: str,
-        candidate_skills: Optional[List[str]] = None
+        candidate_skills: Optional[List[str]] = None,
+        country: str = "us"
     ) -> Dict[str, Any]:
         """
         Calculates optimal transition path using Dijkstra / BFS shortest path.
@@ -1230,15 +1253,24 @@ class CareerGraphService:
         for r_id in path:
             if r_id in CAREER_ROLES:
                 m_role = dict(CAREER_ROLES[r_id])
-                m_role["salary_range"] = get_synced_salary_range(m_role["title"], m_role["level"])
+                m_role["salary_range"] = get_synced_salary_range(m_role["title"], m_role["level"], country=country)
                 m_role["salary_median"] = m_role["salary_range"]["median"]
+                m_role["currency"] = m_role["salary_range"].get("currency", "USD")
+                m_role["currency_symbol"] = m_role["salary_range"].get("currency_symbol", "$")
                 milestones.append(m_role)
 
         # 3. Target role and current role
         target_role = dict(CAREER_ROLES[target_role_id])
-        target_role["salary_range"] = get_synced_salary_range(target_role["title"], target_role["level"])
+        target_role["salary_range"] = get_synced_salary_range(target_role["title"], target_role["level"], country=country)
+        target_role["salary_median"] = target_role["salary_range"]["median"]
+        target_role["currency"] = target_role["salary_range"].get("currency", "USD")
+        target_role["currency_symbol"] = target_role["salary_range"].get("currency_symbol", "$")
+
         current_role = dict(CAREER_ROLES[current_role_id])
-        current_role["salary_range"] = get_synced_salary_range(current_role["title"], current_role["level"])
+        current_role["salary_range"] = get_synced_salary_range(current_role["title"], current_role["level"], country=country)
+        current_role["salary_median"] = current_role["salary_range"]["median"]
+        current_role["currency"] = current_role["salary_range"].get("currency", "USD")
+        current_role["currency_symbol"] = current_role["salary_range"].get("currency_symbol", "$")
 
         required_core = target_role["core_skills"]
         required_adv = target_role.get("advanced_skills", [])
@@ -1319,6 +1351,8 @@ class CareerGraphService:
             },
             "recommended_certifications": certs,
             "learning_roadmap": learning_steps,
+            "currency": target_role.get("currency", "USD"),
+            "currency_symbol": target_role.get("currency_symbol", "$"),
             "salary_delta": target_role["salary_range"]["median"] - current_role["salary_range"]["median"]
         }
 
