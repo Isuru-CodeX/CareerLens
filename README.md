@@ -1,9 +1,9 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:4f46e5,100:0f172a&height=240&section=header&text=CareerLens%20AI&fontSize=68&fontColor=ffffff&animation=fadeIn&fontAlignY=36&desc=Autonomous%20AI%20Career%20Co-Pilot%20%E2%80%A2%20ATS%20Intelligence%20%E2%80%A2%20Voice%20Mock%20Interview&descAlignY=58&descSize=20" width="100%" alt="CareerLens AI banner" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1e1b4b,25:312e81,50:4f46e5,75:06b6d4,100:0f172a&height=260&section=header&text=CareerLens%20AI&fontSize=68&fontColor=ffffff&animation=twinkling&fontAlignY=36&desc=%E2%9C%A8%20Autonomous%20AI%20Career%20Co-Pilot%20%E2%80%A2%20Voice%20Mock%20Interview%20%E2%80%A2%2054-Role%20Navigator%20%E2%80%A2%20Vector%20RAG&descAlignY=58&descSize=19" width="100%" alt="CareerLens AI banner" />
 
 <a href="https://github.com/Isuru-CodeX/CareerLens">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=21&duration=3000&pause=900&color=6366F1&center=true&vCenter=true&width=780&lines=Autonomous+AI+Career+Co-Pilot+%26+ATS+Intelligence;Interactive+Voice+Mock+Interviewer+with+STAR+Scoring;Exemplar+Model+Answers+(Executive%2C+Technical%2C+Agile);Deep+Semantic+Job+Matching+%26+Skill+Gap+Roadmaps;Smart+Cover+Letter+Studio+with+Human-Like+Polishing" alt="Typing animation" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&duration=2800&pause=800&color=818CF8&center=true&vCenter=true&width=840&lines=Autonomous+AI+Career+Co-Pilot+%26+ATS+Intelligence;54-Role+Career+Trajectory+Comparator+with+Profile+Baseline;Interactive+Voice+AI+Mock+Interviewer+with+STAR+Scoring;Zero-PII+GitHub+%26+LinkedIn+AI+Skill+Discovery;Dense+Vector+RAG+%26+4-Tier+ATS+Stress-Test+Engine;In-Browser+Live+Coding+Sandbox+with+Big-O+Complexity;6-Pillar+Evidence-Weighted+Career+Readiness+Scorecard;Explainable+AI+(SHAP)+%26+DEI+Unconscious+Bias+Auditor" alt="Typing animation" />
 </a>
 
 <br/>
@@ -19,22 +19,22 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Tests-87%20Passed-10b981?style=flat-square&logo=pytest&logoColor=white" alt="Tests" />
-  <img src="https://img.shields.io/github/last-commit/Isuru-CodeX/CareerLens?style=flat-square&logo=git&color=indigo" alt="Last Commit" />
-  <img src="https://img.shields.io/github/repo-size/Isuru-CodeX/CareerLens?style=flat-square&color=purple" alt="Repo Size" />
-  <img src="https://img.shields.io/badge/Privacy-GDPR%20Compliant-10b981?style=flat-square" alt="Privacy" />
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/Tests-87%20Passed%20%E2%9C%85-10b981?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests" />
+  <img src="https://img.shields.io/badge/Lint-0%20Warnings-6366f1?style=for-the-badge&logo=oxc&logoColor=white" alt="Lint" />
+  <img src="https://img.shields.io/badge/Security-Zero%20PII%20Policy-0ea5e9?style=for-the-badge&logo=shield&logoColor=white" alt="Security" />
+  <img src="https://img.shields.io/badge/Privacy-GDPR%20Compliant-10b981?style=for-the-badge" alt="Privacy" />
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
 </p>
 
 <p>
   <a href="#-about"><b>📱 About</b></a> •
   <a href="#-features"><b>✨ Features</b></a> •
   <a href="#-real-time-voice-mock-interviewer"><b>🎙️ Voice Interviewer</b></a> •
+  <a href="#-54-role-career-trajectory-comparator--knowledge-graph"><b>🗺️ Career Navigator</b></a> •
   <a href="#-architecture"><b>🏗️ Architecture</b></a> •
   <a href="#-tech-stack"><b>🛠️ Tech Stack</b></a> •
   <a href="#-getting-started"><b>🚀 Quick Start</b></a> •
-  <a href="#-project-structure"><b>📂 Structure</b></a> •
-  <a href="#-testing"><b>🧪 Testing</b></a> •
+  <a href="#-testing--code-quality"><b>🧪 Testing</b></a> •
   <a href="#-roadmap"><b>🗺️ Roadmap</b></a>
 </p>
 
@@ -88,6 +88,12 @@ Whether you need to stress-test your resume against algorithmic hiring filters, 
 
 ## 🎙️ Real-Time Voice Mock Interviewer
 
+<div align="center">
+
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=15&duration=2000&pause=400&color=10B981&center=true&vCenter=true&width=580&lines=%E2%96%81%E2%96%82%E2%96%85%E2%96%88%E2%96%86%E2%96%83%E2%96%81%E2%96%84%E2%96%87+LIVE+WEB+AUDIO+API+ANALYSIS+ACTIVE;%E2%96%83%E2%96%86%E2%96%88%E2%96%85%E2%96%82%E2%96%81%E2%96%84%E2%96%87%E2%96%85+DECIBEL+VU+EQUALIZER+STREAMING+(0--100%25);%E2%96%85%E2%96%88%E2%96%87%E2%96%84%E2%96%82%E2%96%86%E2%96%83%E2%96%81%E2%96%82+COMPUTER+VISION+HUD+GAZE+%26+POSTURE+TRACKING+ONLINE" alt="Live Audio Equalizer Animation" />
+
+</div>
+
 The **Voice AI Mock Interview Studio** replicates high-stakes technical and behavioral hiring screens in your browser:
 
 1. **Natural Question Delivery**: The AI interviewer reads role-targeted questions out loud using the Web Speech SpeechSynthesis API.
@@ -104,7 +110,7 @@ The **Voice AI Mock Interview Studio** replicates high-stakes technical and beha
 
 ---
 
-## 🗺️ Career Path Knowledge Graph & Skill Navigator
+## 🗺️ 54-Role Career Trajectory Comparator & Knowledge Graph
 
 The **Career Knowledge Graph & Trajectory Navigator** models technical and business careers as a directed graph of 54 specialized industry roles across 8 major domains (*Software Engineering, Data Science & AI, Cloud & DevOps, Cybersecurity, Product Management, UI/UX Design, Enterprise & Business Systems, Mobile Engineering*):
 
@@ -215,7 +221,7 @@ flowchart TD
 | **Audio Processing**| `imageio-ffmpeg` (bundled binary), `SpeechRecognition` | Format-agnostic server-side audio conversion and fallback transcription |
 | **Document Processing**| `pypdf`, `python-docx`, `reportlab`, `beautifulsoup4` | Lossless PDF & DOCX text extraction, audit report generation |
 | **AI Integration** | Google Gemini API, OpenAI API, Anthropic Claude | LLM inference with resilient heuristic rule-based fallbacks |
-| **Testing & Quality**| `pytest`, `httpx`, `oxlint`, `tsc` | 46 automated backend tests, zero-warning linting, type safety |
+| **Testing & Quality**| `pytest`, `httpx`, `oxlint`, `tsc` | 87 automated backend tests, zero-warning linting, strict TypeScript compilation |
 
 ---
 
@@ -358,13 +364,13 @@ CareerLens/
 CareerLens AI enforces comprehensive test coverage across both API routes and client bundles:
 
 ```bash
-# 1️⃣ Run Backend Test Suite (85 Tests)
-backend\venv\Scripts\pytest.exe backend\tests
+# 1️⃣ Run Backend Test Suite (87 Tests)
+backend\venv\Scripts\pytest.exe backend\tests -v
 
 # 2️⃣ Run Frontend Linter (oxlint)
 npm run lint --prefix frontend
 
-# 3️⃣ Verify Production Type Compilation
+# 3️⃣ Verify Production Type Compilation & Vite Build
 npm run build --prefix frontend
 ```
 
@@ -440,9 +446,23 @@ This project is licensed under the **MIT License** — feel free to use and adap
 <a href="https://github.com/Isuru-CodeX">
   <img src="https://img.shields.io/badge/GitHub-Isuru--CodeX-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
 </a>
+<a href="https://www.linkedin.com/in/isuru-rathnayaka-220484288/">
+  <img src="https://img.shields.io/badge/LinkedIn-Isuru_Rathnayaka-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" />
+</a>
+<a href="mailto:isururathnayaka999@gmail.com">
+  <img src="https://img.shields.io/badge/Email-isururathnayaka999@gmail.com-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" />
+</a>
+
+<br/><br/>
 
 ⭐ **If you find CareerLens AI helpful for your job search or project, give it a star on GitHub!** ⭐
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:4f46e5,100:0f172a&height=120&section=footer" width="100%" alt="CareerLens AI footer" />
+<br/>
+
+<a href="#-about"><b>⬆️ Back to Top</b></a>
+
+<br/><br/>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:4f46e5,50:06b6d4,100:0f172a&height=130&section=footer" width="100%" alt="CareerLens AI footer" />
 
 </div>
