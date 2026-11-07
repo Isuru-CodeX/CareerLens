@@ -10,7 +10,7 @@ CareerLens AI utilizes a professional executive palette featuring royal blue, de
 |---|---|---|---|
 | `--bg-page` | `#f8fafc` (Slate 50) | `#0b1120` (Navy Dark) | Page background |
 | `--bg-surface` | `#ffffff` (Pure White) | `#0f172a` (Slate 900) | Cards, panels, modals |
-| `--bg-surface-elevated`| `#ffffff` | `#1e293b` (Slate 800) | Tooltips, dropdowns |
+| `--bg-surface-elevated`| `#ffffff` | `#1e293b` (Slate 800) | Tooltips, dropdowns, code editors |
 | `--border-subtle` | `#e2e8f0` (Slate 200) | `#1e293b` (Slate 800) | Component borders |
 | `--text-primary` | `#0f172a` (Slate 900) | `#f8fafc` (Slate 50) | Primary headings & body |
 | `--text-muted` | `#64748b` (Slate 500) | `#94a3b8` (Slate 400) | Subtitles, labels |
@@ -24,19 +24,41 @@ CareerLens AI utilizes a professional executive palette featuring royal blue, de
 ## 2. Mandatory Appearance System
 
 ### 2.1 The Three Modes
-1. **System (Default)**: Follows the browser and operating system preference via `window.matchMedia('(prefers-color-scheme: dark)')`. Automatically responds to live OS changes without a reload.
-2. **Light**: Bright, document-friendly design optimized for reading resumes and formal previews.
-3. **Dark**: Deep navy surfaces with high-contrast text and luminous score meters.
+1. **System (Default)**: Automatically follows operating system preference via `window.matchMedia('(prefers-color-scheme: dark)')` without page reload.
+2. **Light**: Bright, document-friendly design optimized for reading resumes, code, and formal previews.
+3. **Dark**: Deep navy slate surfaces (`#0f172a`) with high-contrast text and luminous score meters.
 
 ### 2.2 Flash-Free Early Initialization
-To prevent any flash of unstyled theme on initial load, `index.html` executes an inline JavaScript snippet in `<head>` that parses `careerlens_theme` from `localStorage` and applies `.dark` to `<html>` before DOM painting occurs.
+To prevent any flash of unstyled theme on initial load, `index.html` executes an inline JavaScript snippet in `<head>` that reads `careerlens_theme` from `localStorage` and immediately applies `.dark` to `<html>` before DOM painting occurs.
 
 ### 2.3 Print Stylesheet
 When printing or exporting a resume preview to paper or PDF, `@media print` rules apply pure white backgrounds (`#ffffff`), dark typography (`#000000`), suppress non-printable sidebars and navigation, and preserve typography hierarchy.
 
 ---
 
-## 3. Responsive Breakpoints
+## 3. Component Design Patterns
+
+### 3.1 Explainable AI (SHAP) Token Heatmap
+- **Positive Attributions**: Soft emerald highlight (`bg-emerald-50/50`, `border-emerald-200`) with high-contrast green delta pill (`+14.2%`).
+- **Improvement Areas**: Soft rose highlight (`bg-rose-50/50`, `border-rose-200`) with negative delta pill (`-8.5%`).
+- **Neutral Elements**: Monospaced clean typography with standard slate border.
+
+### 3.2 In-Browser Live Coding Sandbox
+- Dark monospaced code editing workspace (`bg-slate-900`, `text-slate-100`, `font-mono`) with syntax contrast.
+- Execution panel displaying instant test pass/fail indicators, milliseconds latency, and Big-O complexity target comparisons.
+
+### 3.3 Computer Vision (CV) Interview Studio HUD
+- Mirrored video feed with rounded corners and high-contrast status overlays.
+- Real-time indicator pills: 🟢 Eye Contact % (Optimal), 🟢 Upright & Centered Posture, 🟡 Fidget Cadence.
+
+### 3.4 University Placement Cell Portal
+- 4-Column executive KPI stat cards with clear numerical hierarchy.
+- Curriculum Deficit Alert cards with gap percentages, severity tags, and actionable recommendations.
+- Filterable candidate roster table with responsive wrapping and status pills.
+
+---
+
+## 4. Responsive Breakpoints
 
 CareerLens AI follows a mobile-first responsive architecture tested across all specified viewports:
 
@@ -51,12 +73,9 @@ CareerLens AI follows a mobile-first responsive architecture tested across all s
 
 ---
 
-## 4. Animation Principles
+## 5. Animation Principles
 
-CareerLens AI utilizes subtle, fresh animations powered by Framer Motion:
 - **Page Transitions**: Smooth vertical opacity reveals (`opacity: 0, y: 10` $\rightarrow$ `opacity: 1, y: 0`).
 - **Interactive Score Meters**: Radial SVG gauge animations with spring physics.
 - **Card Hover Effects**: Micro-elevations (`y: -2px` to `y: -3px`) with smooth shadow transitions.
 - **Offer Celebration**: Lightweight particle confetti triggers upon advancing any application to the "Offer" stage.
-- **Modal Transitions**: Backdrop blur with scale-in dialog physics.
-

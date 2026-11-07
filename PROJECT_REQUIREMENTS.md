@@ -1,104 +1,102 @@
 # CareerLens AI - Project Requirements & Product Scope
 
-## AI Resume Analyzer, Job Matcher and Application Tracker
+## Autonomous Career Intelligence, ATS Resume Elevation & Interview Co-Pilot
 
 ### 1. Product Vision and Goals
-Help users understand and improve their resumes, compare resume content against job descriptions, generate tailored suggestions and track job applications. Do not promise guaranteed ATS results or employment outcomes.
+Help users understand and improve their resumes, compare resume content against job descriptions using dense semantic embeddings, generate tailored evidence-grounded proposals, prepare for high-stakes interviews with real-time speech and video analysis, and navigate data-backed career trajectories. The platform delivers algorithmic guidance and heuristic scoring without guaranteeing employment outcomes or private employer ATS results.
 
 ---
 
 ### 2. Visual Theme and Design Direction
-Professional career platform using royal blue, navy and emerald accents. Light mode is bright and document-friendly; dark mode uses navy surfaces and carefully contrasted score indicators. Resume previews should remain readable and printable in either theme.
+Professional executive platform utilizing royal blue, deep navy, and emerald accents. Light mode provides bright, document-friendly readability; dark mode utilizes deep navy slate surfaces (`#0f172a`) with luminous score indicators. Document previews and resume builders remain readable and printable in either theme.
 
 ---
 
 ### 3. Mandatory Appearance System
-• Provide three appearance preferences: System, Light, and Dark.
-• System is the default for first-time visitors and follows the operating system/browser `prefers-color-scheme` setting.
-• Users can manually choose Light or Dark at any time. Apply the change immediately without a full-page reload.
-• Persist authenticated users' preference in their account settings; persist anonymous users' preference locally.
-• When System is selected, listen for operating-system appearance changes and update the interface automatically.
-• Apply the selected theme consistently to every route and component, including navigation, forms, dialogs, tables, charts, notifications, document previews, and third-party UI components.
-• Apply the theme before the first visible render to avoid a flash of the wrong theme.
-• Use central design tokens/CSS variables. Do not scatter hard-coded colour values throughout components.
-• Check colour contrast, focus states, disabled states, borders, shadows, and status colours in both themes.
+- Provide three appearance preferences: **System**, **Light**, and **Dark**.
+- System is the default for first-time visitors and automatically follows the operating system/browser `prefers-color-scheme` setting via media listeners.
+- Users can manually switch to Light or Dark at any time with immediate visual effect and zero page reload.
+- Persist authenticated users' preference in the database; persist anonymous users' preference in `localStorage`.
+- Execute an inline theme initialization script in `<head>` before the first visible paint to guarantee **zero flash of the wrong theme**.
+- Centralize all styling around semantic CSS variables (`--bg-page`, `--bg-surface`, `--text-primary`, `--brand-primary`, `--emerald-primary`).
 
 ---
 
 ### 4. Responsive Design Requirements
-• Use a mobile-first layout and test at 320, 375, 480, 768, 1024, 1280, 1440, and wider viewport widths.
-• Use responsive navigation: collapsible sidebar or drawer on smaller screens; compact navigation where appropriate.
-• Make tables usable on phones through responsive cards, prioritised columns, or controlled horizontal scrolling.
-• Ensure forms, dialogs, menus, charts, cards, and file upload controls fit small screens.
-• Use touch-friendly controls, readable typography, and adequate spacing.
-• Prevent clipped content, overlapping controls, layout shifts, and unintended horizontal scrolling.
-• Verify both portrait and landscape mobile layouts where relevant.
+- Mobile-first responsive architecture tested across 320px, 375px, 480px, 768px, 1024px, 1280px, and 1440px+ viewports.
+- Responsive navigation: collapsible slide-over drawer on mobile/tablet viewports; persistent left sidebar on widescreen desktop.
+- Touch-friendly controls, readable typography, and zero horizontal scrolling on mobile viewports.
 
 ---
 
-### 5. Functional Requirements
+### 5. Functional Scope & Feature Pillars
 
-#### Accounts and Career Profile
-• Registration, login, password reset and profile management.
-• Store career interests, preferred roles, skills, education and experience with user control.
-• Allow users to view, export and permanently delete their personal data and uploaded resumes.
+#### 5.1 Accounts, Candidate Profiles & Presets
+- User registration, JWT authentication, and profile management.
+- Multi-candidate selector and education history presets (*University, High School, Diplomas, Certifications*).
+- Complete GDPR data export (`GET /api/users/export`) and permanent account erasure (`DELETE /api/users/account`).
 
-#### Resume Library and Parsing
-• Upload PDF and DOCX resumes; show upload progress, preview and parsing status.
-• Store multiple resume versions and label each version for a target role.
-• Extract contact details, summary, education, experience, projects, skills and certifications where detectable.
-• Allow users to review and correct extracted fields; parsing must not silently overwrite the original file.
+#### 5.2 Resume Parsing & Heuristic Audit
+- Lossless text extraction across PDF, DOCX, and TXT resumes.
+- Structured section segmentation (`contact`, `summary`, `experience`, `education`, `skills`, `projects`).
+- User review drawer allowing field corrections without modifying original immutable files.
+- Heuristic scoring across structure, readability, quantified impact, and skills coverage.
+- Passive/vague phrase detector suggesting high-impact action verbs.
 
-#### Resume Analysis
-• Review completeness, clarity, grammar, consistency, measurable achievements and section structure.
-• Identify vague phrases and suggest stronger, truthful alternatives.
-• Identify missing or underrepresented skills based on the user's supplied target role or job description.
-• Show an explanation and evidence for each suggestion; do not invent qualifications, employers or achievements.
+#### 5.3 Hybrid Semantic Search & Vector RAG (Pillar 1)
+- 256-D normalized vector embeddings and cosine similarity matching between resume accomplishments and job posting requirements:
+  $$\text{SemanticMatch}(R, J) = \frac{\mathbf{v}_R \cdot \mathbf{v}_J}{\|\mathbf{v}_R\|_2 \|\mathbf{v}_J\|_2}$$
+- Hybrid scoring architecture combining dense vector embeddings (55%), exact BM25 keyword overlap (30%), and seniority fit (15%).
+- 4-Tier Enterprise ATS Stress-Test Engine simulating **Workday**, **Greenhouse**, **Taleo**, and **Lever** parsing filters.
 
-#### Scoring and Job Matching
-• Provide clearly labelled heuristic/AI guidance scores for structure, readability, skills coverage and job relevance.
-• Let users paste or upload a job description and extract required/preferred skills.
-• Show matching skills, missing skills and relevant resume evidence.
-• Explain score limitations; do not describe the score as an actual employer ATS score or guarantee an interview.
+#### 5.4 Real-Time Voice AI Mock Interview Simulator (Pillar 2 & Module 8)
+- Spoken interview studio with natural question delivery via text-to-speech.
+- Dual-channel audio capture (in-browser Web Speech API + native `MediaRecorder` with server-side bundled FFmpeg fallback).
+- Real-time Web Audio API decibel equalizer (VU meter 0–100%).
+- Multimodal performance scorecard tracking Words-Per-Minute (WPM), pause pacing, filler words, and 5-criterion STAR scoring.
+- Tri-perspective exemplar benchmark answers (*Executive*, *Technical*, *Agile*).
+- Real-time Computer Vision (CV) HUD tracking eye-contact percentage, head pose posture alignment, and fidget cadence.
 
-#### AI Writing Assistant
-• Improve a professional summary, bullet points and project descriptions while preserving factual meaning.
-• Tailor suggestions to a specific job description and allow side-by-side comparison with original wording.
-• Generate a cover-letter draft using only user-confirmed details and the supplied job description.
-• Require user review and editing before exporting or using generated content.
+#### 5.5 Career Knowledge Graph & ML Salary Predictor (Pillars 3 & 5)
+- Directed knowledge graph of 46 technical roles across 9 industries and 5 seniority tiers.
+- Dijkstra shortest-path career bridges with transition difficulty weighting and prerequisite trees.
+- Supervised compensation regression estimating 25th, 50th, 75th, and 90th percentile salary bands calibrated against 5 global location tiers.
+- Interactive game-theory negotiation simulator with 5 battle-tested counter-offer scripts.
 
-#### Application Tracker
-• Save company, role, job URL, location, source, salary range if supplied, application date and notes.
-• Track stages such as Interested, Applied, Assessment, Interview, Offer, Rejected and Withdrawn.
-• Add interview dates, reminders, contacts and follow-up notes.
-• Show application statistics and filter/sort applications.
+#### 5.6 Browser Extension & Automated Application Ingestion (Pillar 4)
+- Manifest V3 Chrome Extension auto-detecting job postings on LinkedIn, Indeed, Glassdoor, and Wellfound.
+- 1-Click job clipping directly into the application Kanban pipeline.
+- In-page floating match badge showing candidate vector alignment score without leaving the tab.
+- Inbound recruiter email parser webhook classifying email intent.
 
-#### Dashboard and Development Recommendations
-• Show resume versions, recent analyses, saved job matches and application pipeline.
-• Recommend skills to learn based on selected roles and gaps, clearly distinguishing suggestions from requirements.
-• Generate interview practice questions from a supplied job description.
+#### 5.7 Fact-Preserving Dynamic Resume Tailor (Pillar 6)
+- 1-Click targeted adaptation re-ordering accomplishments based on vector similarity.
+- Strict zero-hallucination factuality invariant preserving verified metrics and employers.
+
+#### 5.8 Explainable AI (XAI) & DEI Bias Auditor (Module 7)
+- Token- and sentence-level Shapley value attribution heatmaps ($\phi_i = \text{Score}(S \cup \{i\}) - \text{Score}(S)$).
+- DEI unconscious bias scanner detecting masculine-coded jargon, ageism markers, and elitism.
+- 1-Click blind recruitment de-identifier masking candidate PII, pronouns, and graduation years.
+
+#### 5.9 GitHub Artifact "Proof of Work" Verifier (Module 10)
+- Automated claim-to-code cross-verification matching resume skills against public GitHub repository codebases.
+- Cryptographic SHA-256 verifiable competency badge.
+
+#### 5.10 In-Browser Live Coding Sandbox (Module 11)
+- Interactive algorithmic coding challenges tailored to candidate target roles.
+- Test suite runner and automated Big-O time and space complexity reviewer.
+
+#### 5.11 University Placement Cell & Multi-Tenant Portal (Module 12)
+- Cohort readiness analytics, average ATS scores, and systemic curriculum deficit alerts.
+- Candidate roster management and 1-click CSV export for campus hiring partners.
 
 ---
 
-### 6. Recommended Technology Stack
-- **Frontend**: React + TypeScript, Vite, Tailwind CSS, Lucide icons, Framer Motion, Recharts, Canvas-Confetti.
-- **Backend**: Python + FastAPI, Pydantic, SQLAlchemy.
-- **Database**: SQLite (local) / PostgreSQL (production).
-- **Parsing**: PyPDF, python-docx.
-- **PDF Report Generation**: ReportLab.
-- **Tests**: Pytest, HTTPX.
-- **Deployment**: Docker and private object/filesystem storage.
-
----
-
-### 7. Universal Definition of Done
-1. All stated features have working UI, backend logic and persistent data where required.
-2. Authentication and authorisation are enforced server-side; user data is isolated.
-3. System, Light and Dark appearance modes work and persist correctly.
-4. Critical workflows are tested automatically and manually.
-5. Mobile, tablet and desktop layouts are verified.
-6. Loading, empty, success, error and confirmation states are implemented.
-7. No secrets are committed; production configuration is documented.
-8. README, API, database, testing and deployment documentation is accurate.
-9. The application has been run and verified; incomplete features and limitations are disclosed.
-
+### 6. Technology Stack
+- **Frontend**: React 19, TypeScript, Vite 6, Tailwind CSS 4, Lucide React, Framer Motion, Recharts, Canvas-Confetti.
+- **Backend API**: Python 3.12+, FastAPI, Uvicorn, Pydantic v2, SQLAlchemy 2.0.
+- **Audio & Media**: Web Audio API, Web Speech API, `MediaRecorder`, bundled FFmpeg (`imageio-ffmpeg`), SpeechRecognition.
+- **Document Processing**: `pypdf`, `python-docx`, `reportlab`, `beautifulsoup4`.
+- **Database**: SQLite (development) / PostgreSQL + `pgvector` (production).
+- **Testing**: `pytest`, `httpx`, `oxlint`, `tsc` (78 backend tests passed, 0 lint warnings).
+- **Browser Extension**: Manifest V3, Content Scripts, Service Worker.

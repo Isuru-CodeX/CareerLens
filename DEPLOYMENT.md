@@ -3,20 +3,21 @@
 ## 1. Quick Local Execution
 
 ### Prerequisites
-- Python 3.10+ (tested with Python 3.14.7)
-- Node.js 18+ (tested with Node v24.13.0)
+- Python 3.10+ (tested with Python 3.12+ and Python 3.14.7)
+- Node.js 18+ (tested with Node v20+ / Node v24 LTS)
 - npm 9+
+- Git
 
-### Option A: One-Click Startup Script (Windows)
+### Option A: One-Click Startup Script (Recommended for Windows)
 Run the automated launcher script from the root repository:
 ```powershell
 .\run_dev.ps1
 ```
-or double click:
+or double-click:
 ```cmd
 run_dev.bat
 ```
-This automatically initializes the Python virtual environment, installs backend dependencies, seeds the database with demo career data if empty, and boots both servers:
+This automatically configures the Python virtual environment, installs backend dependencies, seeds the database with demo career data if empty, and spins up both servers:
 - **Frontend App**: `http://localhost:5173`
 - **Backend API Docs**: `http://localhost:8000/docs`
 - **Pre-seeded Demo User**: `demo@careerlens.ai` / `CareerLens2026!`
@@ -27,7 +28,12 @@ This automatically initializes the Python virtual environment, installs backend 
 ```bash
 cd backend
 python -m venv venv
+
+# Windows:
 .\venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
 pip install -r requirements.txt
 python ..\database\seed-data\seed.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -58,37 +64,30 @@ docker-compose ps
 docker-compose logs -f backend
 ```
 
-Services exposed:
-- **Frontend (Nginx)**: `http://localhost:3000`
-- **FastAPI Backend**: `http://localhost:8000`
-- **PostgreSQL Database**: `localhost:5432`
+---
+
+## 3. Chrome / Edge Extension Deployment (Manifest V3)
+
+1. Open **Google Chrome** or **Microsoft Edge**.
+2. Navigate to `chrome://extensions` (or `edge://extensions`).
+3. Toggle on **Developer mode** in the top-right corner.
+4. Click **Load unpacked**.
+5. Select the `CareerLens/extension` directory.
+6. Open any job posting on LinkedIn, Indeed, Glassdoor, or Wellfound to see the in-page match badge and 1-click clipper.
 
 ---
 
-## 3. Production Configuration & Environment Variables
+## 4. Production Operational Considerations
 
-| Variable | Description | Example / Default |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL or SQLite connection string | `postgresql+psycopg2://user:pass@host:5432/careerlens` |
-| `SECRET_KEY` | JWT signing secret key | 64-character randomized hex string |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token validity duration | `10080` (7 days) |
-| `UPLOAD_DIR` | Private storage path for resumes | `/app/storage` |
-| `MAX_UPLOAD_SIZE_MB` | Maximum resume file size limit | `10` |
-| `OPENAI_API_KEY` | Optional: OpenAI API key | `sk-...` (Heuristic engine used if empty) |
-| `GEMINI_API_KEY` | Optional: Gemini API key | `AIza...` |
-| `CORS_ORIGINS` | Permitted client domains | `["https://careerlens.example.com"]` |
+### 4.1 Server-Side Audio & FFmpeg
+CareerLens AI bundles `imageio-ffmpeg` to provide format-agnostic audio conversion without requiring external system FFmpeg installations.
 
----
-
-## 4. Database Backup & Disaster Recovery
-
-### Automated PostgreSQL Backup
-```bash
-docker exec -t careerlens-postgres pg_dump -U careerlens careerlens > backup_$(date +%Y%m%d).sql
+### 4.2 Database Migrations
+On startup, FastAPI automatically initializes tables and synchronizes schema additions via SQLAlchemy:
+```python
+Base.metadata.create_all(bind=engine)
 ```
+For enterprise deployments, standard PostgreSQL connections are configured via `DATABASE_URL` in `.env`.
 
-### Restoration
-```bash
-cat backup_20261105.sql | docker exec -i careerlens-postgres psql -U careerlens -d careerlens
-```
-
+### 4.3 Background Task Refresh
+CareerLens runs an asynchronous APScheduler job refreshing stale salary benchmarks every 6 hours.

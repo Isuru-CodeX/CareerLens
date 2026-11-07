@@ -1,44 +1,66 @@
 # CareerLens AI - Security, Privacy & Data Protection Architecture
 
-Resumes and career application records contain sensitive Personally Identifiable Information (PII). CareerLens AI implements strict security and privacy standards to protect user confidentiality.
+Resumes, interview transcripts, and career application records contain sensitive Personally Identifiable Information (PII). CareerLens AI implements defense-in-depth security and privacy standards to protect user confidentiality.
 
 ---
 
 ## 1. Threat Model & Mitigations
 
 ### 1.1 Multi-Tenant Data Isolation
-- **Threat**: Insecure Direct Object Reference (IDOR) attacks where a user accesses another candidate's resume, job matches, or applications.
+- **Threat**: Insecure Direct Object Reference (IDOR) attacks where a user accesses another candidate's resumes, analyses, or job applications.
 - **Mitigation**: Every database query explicitly checks ownership on the backend:
   ```python
-  resume = db.query(Resume).filter(Resume.id == resume_id, Resume.user_id == current_user.id).first()
+  resume = db.query(Resume).filter(
+      Resume.id == resume_id,
+      Resume.user_id == current_user.id
+  ).first()
   if not resume:
       raise HTTPException(status_code=404, detail="Resume not found.")
   ```
-  Client-side UI permissions are backed by strict server-side authorization.
+  Client-side UI states are backed by strict server-side authorization.
 
 ### 1.2 File Upload Validation & Path Traversal Prevention
 - **Threat**: Uploading executable payloads, malicious scripts, or path traversal attacks via filenames (e.g. `../../etc/passwd`).
 - **Mitigation**:
   1. File extensions are strictly whitelisted (`.pdf`, `.docx`, `.doc`, `.txt`, `.md`).
   2. Maximum upload size is enforced (10MB limit).
-  3. Original filenames are never used on the filesystem; files are stored using cryptographically random UUIDs (`uuid.uuid4()`) in a private storage directory outside the public web root.
+  3. Original filenames are never used directly on the filesystem; documents are stored using cryptographically random UUIDs (`uuid.uuid4()`) in a private storage directory outside the public web root.
 
 ### 1.3 Credential Storage & Token Security
 - **Threat**: Credential leakage and brute-force password cracking.
 - **Mitigation**:
-  - Passwords are encrypted using salted `bcrypt` with automatic cost-factor scaling. Plaintext passwords are never logged or stored.
+  - Passwords are encrypted using salted `bcrypt` with automatic cost-factor scaling. Plaintext passwords are never logged or persisted.
   - Authentication tokens use signed JSON Web Tokens (HS256 algorithm) with configurable expiration (`ACCESS_TOKEN_EXPIRE_MINUTES`).
 
-### 1.4 AI Truthfulness & Non-Fabrication
+### 1.4 AI Truthfulness & Non-Fabrication Invariant
 - **Threat**: Generative AI models fabricating credentials, past employers, or fake degrees.
 - **Mitigation**:
-  - The AI Assistant prompt instructions strictly prohibit inventing qualifications.
-  - Cover letters and summary proposals use only user-verified facts from their uploaded resume sections.
-  - The UI explicitly mandates user review before exporting or sending generated content.
+  - System prompts strictly prohibit inventing qualifications or metrics.
+  - Resume tailoring engines only re-order and elevate verified bullet points from the candidate's existing portfolio.
+  - Cover letters are grounded strictly in user-verified facts.
 
-### 1.5 GDPR & Right to Erasure
-- **Data Portability**: Users can download a complete JSON export of all their personal data at any time via `GET /api/users/export`.
-- **Permanent Erasure**: Calling `DELETE /api/users/account` permanently deletes the user account, career profile, and physically deletes all uploaded resume files from the server's disk storage.
+### 1.5 Blind Recruitment De-Identification (Module 7)
+- **Threat**: Demographic bias in early-stage candidate evaluations.
+- **Mitigation**:
+  - Automated masking engine redacts candidate full names, email addresses, phone numbers, gender pronouns (neutralized to they/them), graduation years, and physical locations.
+  - Produces an anonymized candidate alias (`[CANDIDATE_ID_XXXX]`) with an audit log of all redactions applied.
+
+### 1.6 Cryptographic Proof-of-Work Verification (Module 10)
+- **Threat**: Fabricated claims of software engineering expertise.
+- **Mitigation**:
+  - Cross-verifies claimed skills against public GitHub repositories.
+  - Generates a tamper-proof SHA-256 verification hash:
+    $$\text{BadgeHash} = \text{SHA256}(\text{candidate\_id} + \text{username} + \text{verified\_skills} + \text{timestamp} + \text{salt})$$
+
+### 1.7 Browser Extension Sandboxing (Pillar 4)
+- **Threat**: Cross-site scripting or malicious extension data theft.
+- **Mitigation**:
+  - Built strictly on **Manifest V3** with scoped host permissions (`linkedin.com`, `indeed.com`, `glassdoor.com`, `wellfound.com`).
+  - API communication with CareerLens is protected by JWT Bearer tokens stored in browser local storage.
+
+### 1.8 GDPR & Right to Erasure
+- **Data Portability**: Users can download a complete JSON archive of all personal data, resumes, analyses, and applications via `GET /api/users/export`.
+- **Permanent Erasure**: Calling `DELETE /api/users/account` permanently deletes the user account, profile, database records, and physically deletes all stored resume files from the server's disk storage.
 
 ---
 
@@ -50,4 +72,3 @@ Resumes and career application records contain sensitive Personally Identifiable
   ```bash
   python -c "import secrets; print(secrets.token_hex(32))"
   ```
-
