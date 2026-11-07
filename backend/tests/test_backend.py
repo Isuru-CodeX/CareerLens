@@ -2,6 +2,7 @@ import pytest
 import os
 import sys
 import uuid
+import re
 
 # Ensure backend root is on PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -652,6 +653,114 @@ def test_experience_intelligence_engine_and_verification():
     assert len(dash_data["recent_activities"]) > 0
     assert "experience_summary" in dash_data
     assert dash_data["experience_summary"] is not None
+
+
+def test_all_career_roles_and_trajectory_comparison():
+    """
+    Validates fetching all 54 specialized roles and running multi-role
+    trajectory comparisons side-by-side with profile baseline and AI alignment.
+    """
+    reg = client.post("/api/auth/register", json={
+        "email": f"nav_{uuid.uuid4().hex[:6]}@example.com",
+        "password": "Password123!",
+        "full_name": "Navigator Tester",
+        "appearance_preference": "dark"
+    })
+    assert reg.status_code == 200, reg.text
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Fetch all roles
+    r_roles = client.get("/api/career/roles", headers=headers)
+    assert r_roles.status_code == 200
+    roles = r_roles.json()["roles"]
+    assert len(roles) >= 50
+    first_role = roles[0]
+    assert "title" in first_role
+    assert "domain" in first_role
+    assert "required_skills" in first_role
+
+    # 2. Add profile skills for user
+    client.post("/api/profile/skills", json={"names": ["FastAPI", "Python", "Docker", "PostgreSQL", "React", "TypeScript"]}, headers=headers)
+
+    # 3. Compare trajectories including user's active profile
+    payload = {
+        "target_role_ids": ["MY_PROFILE", "Cloud Solutions Architect", "Machine Learning Engineer"],
+        "country": "us",
+        "include_current_profile": True
+    }
+    r_comp = client.post("/api/career/compare", json=payload, headers=headers)
+    assert r_comp.status_code == 200
+    comparisons = r_comp.json()["comparisons"]
+    assert len(comparisons) == 3
+
+    # Baseline card checks
+    baseline = comparisons[0]
+    assert baseline["is_current_profile"] is True
+    assert baseline["match_percent"] == 100
+    assert baseline["estimated_transition_months"] == 0
+
+    # Target trajectory checks
+    cloud_role = comparisons[1]
+    assert cloud_role["is_current_profile"] is False
+    assert "verified_skills" in cloud_role
+    assert "missing_skills" in cloud_role
+    assert "match_percent" in cloud_role
+    assert cloud_role["match_percent"] > 0
+    assert "salary_delta" in cloud_role
+    assert "transition_roadmap" in cloud_role
+
+
+def test_social_skill_extraction_and_import():
+    """
+    Validates AI extraction of legitimate skills from GitHub and LinkedIn
+    with strict PII rejection and bulk import into candidate profile.
+    """
+    reg = client.post("/api/auth/register", json={
+        "email": f"soc_{uuid.uuid4().hex[:6]}@example.com",
+        "password": "Password123!",
+        "full_name": "Social Tester",
+        "appearance_preference": "dark"
+    })
+    assert reg.status_code == 200, reg.text
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Extract skills from social profiles
+    scan_payload = {
+        "github_url": "https://github.com/alexrivera",
+        "linkedin_url": "https://linkedin.com/in/alexrivera"
+    }
+    r_scan = client.post("/api/profile/extract-social-skills", json=scan_payload, headers=headers)
+    assert r_scan.status_code == 200
+    data = r_scan.json()
+    assert data["total_extracted"] > 0
+    assert len(data["skills"]) > 0
+
+    # Verify strict sanitization: no emails, no phones, no URLs, no raw digits
+    for s in data["skills"]:
+        name = s["name"]
+        assert "@" not in name
+        assert "http" not in name.lower()
+        assert not re.match(r"^\+?[\d\s\-\(\)\.]{7,20}$", name)
+        assert not re.match(r"^\d+$", name)
+
+    # 2. Pick top 3 discovered skills and import
+    to_import = [s["name"] for s in data["skills"][:3]]
+    r_import = client.post("/api/profile/import-social-skills", json={"skills": to_import}, headers=headers)
+    assert r_import.status_code == 200
+    import_res = r_import.json()
+    assert import_res["status"] == "success"
+    assert import_res["imported_count"] == len(to_import)
+
+    # 3. Verify user profile skills list contains the imported skills
+    r_skills = client.get("/api/profile/skills", headers=headers)
+    assert r_skills.status_code == 200
+    user_skills = r_skills.json()
+    user_skill_names = [s["name"] for s in user_skills]
+    for skill_name in to_import:
+        assert skill_name in user_skill_names
+
 
 
 

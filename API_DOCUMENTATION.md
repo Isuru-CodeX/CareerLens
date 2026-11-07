@@ -355,9 +355,62 @@ Adds candidate-supplied evidence (project link, publication, GitHub artifact, or
 ### `POST /api/profile/skills/evidence/{evidence_id}/dispute`
 Flags or removes an incorrect skill inference. Automatically triggers atomic recalculation of the parent skill's confidence and verification tier.
 
+### `POST /api/profile/extract-social-skills`
+Scans candidate GitHub and LinkedIn profile URLs, applying strict regex-driven PII sanitization to extract verified technical and professional competencies.
+- **Request Body**:
+```json
+{
+  "github_url": "https://github.com/alexrivera",
+  "linkedin_url": "https://linkedin.com/in/alexrivera"
+}
+```
+- **Guarantees**: Zero PII policy — strictly excludes phone numbers, email addresses, personal names, geographical locations, dates, and non-competency prose.
+- **Response** `200 OK`:
+```json
+{
+  "total_extracted": 14,
+  "skills": [
+    {
+      "name": "FastAPI",
+      "category": "backend",
+      "confidence": 0.95,
+      "source": "github",
+      "reason": "Direct code evidence & language stats across public repositories"
+    }
+  ]
+}
+```
+
+### `POST /api/profile/import-social-skills`
+Performs atomic bulk ingestion of user-selected skills from social extraction into `ProfileSkill` with `source="github_linkedin"`, creating associated `UserSkillEvidence` audit records.
+- **Request Body**:
+```json
+{
+  "skills": ["FastAPI", "Docker", "PostgreSQL", "React"]
+}
+```
+- **Response** `200 OK`: Returns `{ "status": "success", "imported_count": 4, "skills": [...] }`.
+
 ---
 
 ## 19. Career Goals, Milestones & Multi-Path Matrix (Spec 4.4)
+
+### `GET /api/career/roles`
+Returns all 54 platform roles across 8 major domains (Software Engineering, Data Science & AI, Cloud & DevOps, Cybersecurity, Product Management, UI/UX Design, Enterprise & Business Systems, Mobile Engineering) complete with taxonomy requirements and search terms for comparison and career path discovery.
+- **Response** `200 OK`:
+```json
+{
+  "total": 54,
+  "roles": [
+    {
+      "id": 1,
+      "title": "Full Stack Engineer",
+      "domain": "Software Engineering",
+      "required_skills": ["TypeScript", "React", "Node.js", "PostgreSQL", "Docker", "RESTful APIs"]
+    }
+  ]
+}
+```
 
 ### `GET /api/career/goals`
 Retrieves the user's active career goal, timeline targets, and milestone progress checklists.
@@ -369,7 +422,53 @@ Persists a new active career target role with structured milestone tasks (verifi
 Toggles milestone completion status between pending and complete, with audit log tracking.
 
 ### `POST /api/career/compare`
-Compares 2 or 3 target roles side-by-side: computes verified skill alignment percentage, missing prerequisites, transition duration (months), and calibrated salary percentiles (25th, median, 75th).
+Compares 1 to 6 target trajectories side-by-side with an optional candidate baseline (`"MY_PROFILE"`). Computes deep AI semantic skill alignment, experience fit, missing prerequisites, transition duration (months), salary percentiles, salary delta vs. baseline, and 3-phase transition roadmaps.
+- **Request Body**:
+```json
+{
+  "target_role_ids": ["MY_PROFILE", "Cloud Solutions Architect", "Machine Learning Engineer"],
+  "country": "us",
+  "include_current_profile": true
+}
+```
+- **Response** `200 OK`:
+```json
+{
+  "comparisons": [
+    {
+      "role_id": "current_profile",
+      "role_title": "My Current Profile (Baseline)",
+      "is_current_profile": true,
+      "match_percent": 100,
+      "verified_skills": ["FastAPI", "Python", "Docker", "PostgreSQL"],
+      "partial_skills": [],
+      "missing_skills": [],
+      "estimated_transition_months": 0,
+      "salary_delta": 0,
+      "salary_percentiles": { "p25": 115000, "median": 135000, "p75": 160000 }
+    },
+    {
+      "role_id": "Cloud Solutions Architect",
+      "role_title": "Cloud Solutions Architect",
+      "is_current_profile": false,
+      "match_percent": 78,
+      "verified_skills": ["Docker", "PostgreSQL"],
+      "partial_skills": [
+        { "skill": "Kubernetes", "rationale": "Transferable container management background from Docker" }
+      ],
+      "missing_skills": ["Terraform", "AWS Solutions Architecture"],
+      "estimated_transition_months": 5,
+      "salary_delta": 35000,
+      "salary_percentiles": { "p25": 145000, "median": 170000, "p75": 205000 },
+      "transition_roadmap": [
+        { "phase": "Phase 1: Foundation (Mo 1-2)", "focus": "Bridge prerequisite core skills" },
+        { "phase": "Phase 2: Project Proof (Mo 3-4)", "focus": "Build verified capstone projects" },
+        { "phase": "Phase 3: Market Readiness (Mo 5)", "focus": "Targeted mock interview prep" }
+      ]
+    }
+  ]
+}
+```
 
 ---
 

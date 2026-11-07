@@ -8,15 +8,16 @@ Modern, responsive Single-Page Application (SPA) built with **React 19**, **Type
 
 | View / Module | Route / Component | Description |
 | :--- | :--- | :--- |
-| **Dashboard** | `DashboardView.tsx` | High-level metrics, upcoming interview schedules, active job applications, and quick actions. |
+| **Dashboard** | `DashboardView.tsx`, `ProjectTagsMatrix.tsx` | High-level metrics, upcoming interview schedules, active job applications, and the 5-pillar Categorized Capabilities Matrix (User Data, AI Writing, Career Analytics, Multimodal AI, Verification). |
 | **Resume Studio & Builder** | `ResumesView.tsx`, `ResumeBuilderStudio.tsx` | Drag-and-drop section reordering, 4 templates (Executive, Academic, Tech Modern, Minimalist), live Typst/PDF preview, and ATS score emulator. |
 | **Application Pipeline** | `JobsView.tsx`, `KanbanBoard.tsx` | Drag-and-drop Kanban workflow (Saved, Applied, Screening, Interview, Offer, Rejected) with real-time stage updates. |
 | **Voice & CV Interview Studio** | `InterviewsView.tsx`, `VoiceInterviewStudio.tsx` | Real-time speech-to-text (STT) + text-to-speech (TTS) audio interview simulation, STAR response evaluator, and live Computer Vision (CV) non-verbal coach. |
-| **Career Path Navigator** | `CareerNavigatorView.tsx` | Interactive D3.js knowledge graph, Dijkstra/A* shortest-path career bridge, and 19-country localized salary predictor. |
+| **Career Path Navigator** | `CareerNavigatorView.tsx`, `CareerPathComparator.tsx` | Interactive D3.js knowledge graph, Dijkstra/A* shortest-path career bridge, 54-role trajectory comparator with searchable dropdown, "My Current Profile" baseline, and AI semantic skill alignment. |
 | **Explainable AI & Bias Auditor** | `AIAssistantView.tsx`, `XaiBiasAuditorStudio.tsx` | Token-level SHAP attribution heatmaps, DEI unconscious bias scanner (gendered words, ageism, elitism), and blind recruitment masking engine. |
 | **Live Coding Sandbox** | `AIAssistantView.tsx`, `LiveCodingSandbox.tsx` | In-browser algorithm sandbox with automated test case evaluation and AST-based Big-O time/space complexity analysis. |
 | **Placement Cell SaaS Portal** | `PlacementPortalView.tsx` | Multi-tenant university administration dashboard, cohort telemetry, curriculum deficit alerts, and one-click candidate CSV exports. |
 | **GitHub Proof-of-Work Verifier** | `ProfileView.tsx`, `GithubProofOfWorkModal.tsx` | Automated commit verification against resume claims with SHA-256 cryptographic verification badge (`CL-POW-XXXX`). |
+| **Social Profile Skill Discovery** | `ProfileView.tsx`, `SocialSkillDiscoveryModal.tsx` | Automated GitHub & LinkedIn skill discovery scanning profiles for legitimate competencies with strict Zero-PII sanitization and bulk import into unified profile skills. |
 
 ---
 

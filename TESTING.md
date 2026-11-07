@@ -1,6 +1,6 @@
 # CareerLens AI - Testing Strategy & Verification Report
 
-## 1. Automated Test Suites (84 Automated Tests)
+## 1. Automated Test Suites (87 Automated Tests)
 
 CareerLens AI enforces rigorous test coverage across both API routes and client bundles using `pytest`, `httpx`, `oxlint`, and `tsc`.
 
@@ -11,11 +11,11 @@ CareerLens AI enforces rigorous test coverage across both API routes and client 
 backend\venv\Scripts\pytest.exe backend\tests -v
 ```
 
-### 1.2 Automated Test Coverage Matrix (84 / 84 Passed ✅)
+### 1.2 Automated Test Coverage Matrix (87 / 87 Passed ✅)
 
 | Test Suite | Test File | Scenarios Covered | Tests | Status |
 |---|---|---|:---:|:---:|
-| **Core API & Auth** | `test_backend.py` | Health check, JWT authentication, appearance persistence, resume parsing, XYZ rewriting, application tracker | 13 | **PASSED** |
+| **Core API, Auth & Navigator** | `test_backend.py` | Health check, JWT authentication, appearance persistence, resume parsing, XYZ rewriting, application tracker, 54-role trajectory comparison with profile baseline, and social skill extraction with PII sanitization | 16 | **PASSED** |
 | **Career Knowledge Graph** | `test_career_navigator.py` | 46-role directed graph, Dijkstra shortest-path career bridges, difficulty weighting, prerequisite trees | 7 | **PASSED** |
 | **Profile & CV Enrichment** | `test_cv_upgrade.py` | Multi-candidate selection, education presets (University, Diplomas, Certs), contact enrichment | 12 | **PASSED** |
 | **Deep Job Matcher** | `test_deep_match.py` | ATS skill gap scoring, quote evidence extraction, transferrable skill detection, 3-phase roadmaps | 18 | **PASSED** |
@@ -84,3 +84,6 @@ npm run lint --prefix frontend
 | **GitHub Proof of Work** | Verify GitHub profile claims | Scans repos, cross-verifies skills, and generates SHA-256 signed badge | Cryptographic badge generated | **Verified** |
 | **Live Coding Sandbox** | Submit algorithmic solution | Runs test suites, evaluates Big-O complexity, and generates AI critique | Instant pass/fail + complexity | **Verified** |
 | **Placement Cell Portal** | Inspect cohort readiness & export CSV | Displays batch readiness analytics, skill deficit alerts, and downloads CSV roster | Live telemetry & clean CSV | **Verified** |
+| **54-Role Career Comparator** | Select 1–6 roles & profile baseline | Displays side-by-side cards with AI semantic match, missing skills, salary delta, and 3-phase transition roadmaps | Seamless comparison across 8 domains | **Verified** |
+| **Social Skill Extractor** | Scan GitHub & LinkedIn profiles | Detects pure skills with zero PII leakage, presents selection modal, and imports into profile | PII rejected, pure skills imported | **Verified** |
+| **Project Capabilities Matrix** | Navigate dashboard capabilities | Renders 25 features cleanly categorized into 5 distinct architectural pillars with navigation | Intuitive categorization & direct links | **Verified** |

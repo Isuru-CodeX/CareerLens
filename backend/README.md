@@ -32,10 +32,11 @@ backend/
 │   │   ├── xai_bias_service.py         # SHAP feature attribution & DEI bias scanner
 │   │   ├── github_verifier_service.py  # Repository commit & claim verification
 │   │   ├── coding_challenge_service.py # Challenge runner & AST Big-O analyzer
-│   │   └── placement_service.py        # University placement telemetry & deficit alerts
+│   │   ├── placement_service.py        # University placement telemetry & deficit alerts
+│   │   └── social_skill_extractor.py   # AI social profile skill extraction & PII sanitization
 │   ├── core/                    # Config, database engine, & security utilities
 │   └── main.py                  # Application entrypoint & CORS middleware
-└── tests/                       # Comprehensive pytest suite (78 tests, 100% passing)
+└── tests/                       # Comprehensive pytest suite (87 tests, 100% passing)
 ```
 
 ---
@@ -73,7 +74,7 @@ backend/
 
 ## 🧪 Testing & Verification
 
-The test suite covers all endpoints, services, edge cases, and algorithmic engines with **78 unit and integration tests**:
+The test suite covers all endpoints, services, edge cases, and algorithmic engines with **87 unit and integration tests**:
 
 ```bash
 # Activate virtual environment
@@ -86,8 +87,8 @@ source venv/bin/activate
 pytest -v
 ```
 
-All 78 tests pass with 0 failures:
-- `test_backend.py` (Auth, Resumes, Jobs, Analysis, ATS)
+All 87 tests pass with 0 failures:
+- `test_backend.py` (Auth, Resumes, Jobs, Analysis, ATS, 54-Role Trajectory Comparator & Profile Baseline, Social Skill Extraction & Ingestion)
 - `test_interviews.py` (Voice sessions, STAR scoring, Speech telemetry)
 - `test_vector_rag_and_ats.py` (Vector similarity, ATS parsing stress-tests)
 - `test_career_navigator.py` (Knowledge graph pathfinding, role requirements)
@@ -95,6 +96,8 @@ All 78 tests pass with 0 failures:
 - `test_salary_benchmark_service.py` (19-country salary percentiles, purchasing power parity)
 - `test_cv_upgrade.py` (CV non-verbal metrics, posture and gaze tracking)
 - `test_major_project_modules.py` (XAI attributions, DEI bias, Blind masking, GitHub verification, Coding challenges, Placement telemetry)
+- `test_matching_benchmark.py` (Information Retrieval IR benchmark on ground-truth candidate pairs)
+- `test_specification_p0_p1.py` (CV review provenance, multi-source skill evidence, career goals, adaptive learning, and 6-pillar scorecard)
 
 ---
 

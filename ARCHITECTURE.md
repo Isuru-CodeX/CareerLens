@@ -95,9 +95,14 @@ flowchart TD
 - Server-side fallback audio transcription using bundled FFmpeg and Google Speech.
 - Client-side Computer Vision HUD monitoring eye contact gaze percentage, head pose posture alignment, and nervous fidget indicators during spoken answers.
 
-### 2.4 Graph-Theoretic Career Progression (Pillar 3)
-- Models 46 canonical roles across 9 industries as a directed graph $G = (V, E)$.
+### 2.4 Graph-Theoretic Career Progression & Trajectory Comparator (Pillar 3)
+- Models 54 specialized technical and business roles across 8 domains as a directed knowledge graph $G = (V, E)$.
 - Applies **Dijkstra's Shortest Path Algorithm** with edge weights proportional to prerequisite skill gaps and estimated difficulty to compute personalized upskilling roadmaps.
+- **54-Role Side-by-Side Trajectory Comparator**:
+  - Compares 1 to 6 roles simultaneously via a categorized, searchable dropdown.
+  - **"My Current Profile" Baseline**: Establishes a 100% baseline card derived from the candidate's active `CareerProfile`, `ProfileSkill`, and `ProfileExperience`.
+  - **AI Semantic Skill Alignment**: Evaluates target requirements against candidate profile via exact matches, semantic synonyms, and token overlaps ($0.75 \cdot \text{SkillMatch} + 0.25 \cdot \text{ExperienceFit}$).
+  - Computes verified competencies, partial competencies with transferability rationales, missing prerequisites, real-time salary deltas, and 3-phase transition roadmaps.
 
 ### 2.5 Supervised Machine Learning Salary Prediction (Pillar 5)
 - Multi-tier regression model generating calibrated compensation bands: 25th (Entry), 50th (Median), 75th (Top Quartile), and 90th (Lead/Staff).
@@ -120,6 +125,10 @@ flowchart TD
   - `mentioned`: Inferred from CV keywords, capped at $75\%$ confidence.
   - `demonstrated`: Backed by high-integrity proof (production GitHub repository, verified quiz $\ge 66\%$, or validated project milestone), granting $\ge 85\%$ confidence.
   - Candidate disputes immediately recalculate parent skill confidence and verification tiers.
+- **Social Profile Skill Discovery Engine (`SocialSkillExtractorService`)**:
+  - Scans candidate GitHub and LinkedIn profile links with an immutable **Zero-PII Policy**.
+  - Aggressively filters candidates against phone number regexes, emails, locations, URLs, personal names, dates, and non-competency sentences.
+  - Generates verifiable `UserSkillEvidence` audit records with `source_type="github"` and provenance badges upon bulk user import.
 
 ### 2.9 Adaptive Learning Plan & Quiz Verification Engine (Spec 4.5)
 - Automated curriculum generation tailored to candidate skill gaps and weekly study cadence.

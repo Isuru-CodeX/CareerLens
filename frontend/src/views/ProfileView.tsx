@@ -29,6 +29,7 @@ import { EducationEditor } from '../components/EducationEditor';
 import { ExperienceEditor } from '../components/ExperienceEditor';
 import { SkillsEditor } from '../components/SkillsEditor';
 import { GithubProofOfWorkModal } from '../components/verification/GithubProofOfWorkModal';
+import { SocialSkillDiscoveryModal } from '../components/profile/SocialSkillDiscoveryModal';
 import { ProfileExperience, ProfileSkill, EducationItem } from '../types';
 
 // Custom clean icons for professional profiles
@@ -67,6 +68,7 @@ export const ProfileView: React.FC = () => {
   const [otherLinks, setOtherLinks] = useState<{ label: string; url: string }[]>([]);
   const [address, setAddress] = useState<AddressData>({});
   const [showGithubProofModal, setShowGithubProofModal] = useState(false);
+  const [showSocialSkillModal, setShowSocialSkillModal] = useState(false);
 
   // Career profile fields
   const [targetTitle, setTargetTitle] = useState('');
@@ -556,6 +558,34 @@ export const ProfileView: React.FC = () => {
             </div>
           </div>
 
+          {/* AI Skill Discovery from Social Profiles Button */}
+          <div className="sm:col-span-2">
+            <button
+              type="button"
+              onClick={() => setShowSocialSkillModal(true)}
+              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-950/50 dark:via-indigo-950/40 dark:to-purple-950/50 hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/60 dark:hover:to-indigo-900/60 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-200 font-bold text-xs flex flex-col sm:flex-row items-center justify-between gap-2 transition-all shadow-xs cursor-pointer group"
+              title="Scan public repositories and LinkedIn endorsements to extract legitimate professional & technical skills"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                </div>
+                <div className="text-left">
+                  <span className="block text-xs font-extrabold text-purple-950 dark:text-purple-100">
+                    AI Skill Discovery from GitHub &amp; LinkedIn
+                  </span>
+                  <span className="block text-[11px] font-medium text-purple-700 dark:text-purple-300">
+                    Scan code repositories and professional endorsements to auto-upload verified skills
+                  </span>
+                </div>
+              </div>
+
+              <span className="px-2.5 py-1 rounded-xl bg-purple-200/80 dark:bg-purple-900/80 text-purple-900 dark:text-purple-100 text-[10px] font-black uppercase tracking-wider shrink-0">
+                Zero PII Guarantee
+              </span>
+            </button>
+          </div>
+
           {/* Portfolio / Personal Website */}
           <div className="sm:col-span-2">
             <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -920,6 +950,15 @@ export const ProfileView: React.FC = () => {
         isOpen={showGithubProofModal}
         onClose={() => setShowGithubProofModal(false)}
         defaultUsername={githubUrl.split('/').filter(Boolean).pop() || 'alexrivera'}
+      />
+
+      {/* AI Social Profile Skill Discovery Modal */}
+      <SocialSkillDiscoveryModal
+        isOpen={showSocialSkillModal}
+        onClose={() => setShowSocialSkillModal(false)}
+        defaultGithubUrl={githubUrl}
+        defaultLinkedinUrl={linkedinUrl}
+        onSkillsImported={loadSkills}
       />
     </div>
   );

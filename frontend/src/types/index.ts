@@ -1248,10 +1248,44 @@ export interface CareerComparisonItem {
   match_percent: number;
   required_skills: string[];
   verified_skills: string[];
+  partial_skills?: Array<{ skill: string; matched_with?: string; reason?: string }>;
   missing_skills: string[];
   estimated_transition_months: number;
   salary_bands: Record<string, number>;
   currency: string;
+  is_current_profile?: boolean;
+  salary_delta?: number;
+  transition_roadmap?: string[];
+  experience_years_min?: number;
+  experience_years?: number;
+  total_verified_count?: number;
+}
+
+export interface CareerRoleOption {
+  id: string;
+  title: string;
+  domain: string;
+  industry: string;
+  seniority_tier: string;
+  experience_years_min: number;
+  required_skills: string[];
+}
+
+export interface ExtractedSocialSkill {
+  name: string;
+  category: string;
+  source: string;
+  confidence: number;
+  already_in_profile?: boolean;
+  platform?: 'github' | 'linkedin';
+}
+
+export interface SocialSkillExtractionResponse {
+  total_extracted: number;
+  new_skills_count: number;
+  github_scanned: boolean;
+  linkedin_scanned: boolean;
+  skills: ExtractedSocialSkill[];
 }
 
 export interface LearningTaskData {

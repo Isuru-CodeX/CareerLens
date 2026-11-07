@@ -19,7 +19,7 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Tests-84%20Passed-10b981?style=flat-square&logo=pytest&logoColor=white" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-87%20Passed-10b981?style=flat-square&logo=pytest&logoColor=white" alt="Tests" />
   <img src="https://img.shields.io/github/last-commit/Isuru-CodeX/CareerLens?style=flat-square&logo=git&color=indigo" alt="Last Commit" />
   <img src="https://img.shields.io/github/repo-size/Isuru-CodeX/CareerLens?style=flat-square&color=purple" alt="Repo Size" />
   <img src="https://img.shields.io/badge/Privacy-GDPR%20Compliant-10b981?style=flat-square" alt="Privacy" />
@@ -56,8 +56,10 @@ Whether you need to stress-test your resume against algorithmic hiring filters, 
 |---|---|---|
 | 🔍 | **Bi-Directional Profile & Resume Sync** | 1-click **"Apply Profile Details to Resume"** (Profile ➔ Resume), **"Create Resume from Profile"** (instant ATS document compilation), and **"Review & Import CV to Profile"** (CV ➔ Profile) with collision alerts and provenance audit trail |
 | 🛡️ | **Unified Evidence-Aware Skill Profile** | Multi-source tracking (`UserSkillEvidence`), demonstrated vs. mentioned vs. unverified status, and automatic dispute recalculation |
+| 🌐 | **GitHub & LinkedIn AI Skill Discovery** | Automated profile scanning extracting genuine technical/professional competencies with **Strict Zero-PII Policy** (no phone numbers, emails, addresses, personal names, dates, or prose) |
 | 📊 | **Information Retrieval Match Benchmark** | Empirical evaluation achieving NDCG@3: 0.9856 and Recall@5: 1.0000 on ground-truth pairs (+2.1% relative lift over keyword search) |
-| 🎯 | **Multi-Role Career Path Matrix** | Interactive side-by-side comparison of 2–3 roles with transferrable skills, time-to-learn estimates, and active milestone checklists (`CareerGoal`) |
+| 🎯 | **54-Role Career Trajectory Comparator** | Interactive side-by-side comparison of 1–6 roles across 8 domains with searchable dropdown, **"My Current Profile" Baseline**, AI semantic alignment scoring, salary delta badges, and 3-phase transition roadmaps |
+| 🏷️ | **Categorized Project Capabilities Matrix** | Dashboard matrix categorizing 25 system capabilities into 5 pillars: *User Data & Stats*, *AI Writing & Gen*, *Career Analytics*, *Multimodal Simulation*, and *Verification & Audits* |
 | 📚 | **Adaptive Learning Plan & Skill Quizzes** | Dynamic curriculum generation with study cadence controls and automated quiz evaluation elevating skills to Demonstrated ($\ge 66\%$) |
 | 🎖️ | **6-Pillar Career Readiness Scorecard** | Diagnostic weighted scorecard replacing subjective readiness claims with transparent mathematical formulation across 6 verifiable dimensions |
 | ⚖️ | **Explainable AI & Bias Auditor** | SHAP token-level attribution heatmaps, DEI unconscious bias scanner, and blind recruitment masking |
@@ -104,14 +106,19 @@ The **Voice AI Mock Interview Studio** replicates high-stakes technical and beha
 
 ## 🗺️ Career Path Knowledge Graph & Skill Navigator
 
-The **Career Knowledge Graph** models technical careers as a directed graph of 18 industry roles, competencies, tools, and prerequisite skill trees across 7 domains (*Frontend, Full Stack, Backend, DevOps & Cloud, Data & AI, Security, Management*):
+The **Career Knowledge Graph & Trajectory Navigator** models technical and business careers as a directed graph of 54 specialized industry roles across 8 major domains (*Software Engineering, Data Science & AI, Cloud & DevOps, Cybersecurity, Product Management, UI/UX Design, Enterprise & Business Systems, Mobile Engineering*):
 
-1. **Dijkstra Shortest-Path Bridging**: Computes the optimal promotion or lateral transition sequence connecting your current baseline role to your target dream role with estimated transition months and difficulty weighting.
-2. **Categorized Skill Gap Breakdown**:
-   - 🟢 **Verified Skills**: Competencies already confirmed from your synced resume.
-   - 🟡 **Transferrable Skills**: Adjacent competencies where you possess prerequisite foundations.
+1. **54-Role Side-by-Side Trajectory Comparator**:
+   - Compare 1 to 6 career trajectories simultaneously using a categorized, searchable dropdown.
+   - **"My Current Profile" Baseline**: One-click option to include your active candidate profile as the 100% baseline anchor card, reflecting verified competencies, professional experience, and current salary tier.
+   - **AI Semantic Skill Alignment**: Evaluates candidate competencies against target requirements using exact matching, domain synonyms, and token overlaps ($75\%$ skill alignment $+ 25\%$ experience tenure fit).
+   - **Real-Time Financial Delta**: Displays calculated compensation deltas (`+$35k/yr`) calibrated against 25th, median, and 75th market percentiles.
+   - **3-Phase Transition Roadmaps**: Custom phase breakdown (Foundation, Project Proof, Market Readiness) based on candidate gap depth.
+2. **Dijkstra Shortest-Path Bridging**: Computes the optimal promotion or lateral transition sequence connecting your current baseline role to your target dream role with estimated transition months and difficulty weighting.
+3. **Categorized Skill Gap Breakdown**:
+   - 🟢 **Verified Skills**: Competencies already confirmed from your synced profile and verified evidence.
+   - 🟡 **Transferrable / Partial Skills**: Adjacent competencies with AI-generated transferability rationales (e.g., *"Transferable container management background from Docker to Kubernetes"*).
    - 🔴 **Missing Prerequisite Gaps**: Critical technical tools and architectural paradigms required for the target level.
-3. **3-Phase Structured Learning Roadmap**: Decomposes upskilling into actionable phases (*Foundations & Quick Wins, Core Prerequisite Mastery, Production Scale & System Design*) with real-world milestone project recommendations.
 4. **Interactive Hierarchy Matrix**: Filter and inspect roles by seniority tiers (*L1 Entry, L2 Mid-Level, L3 Senior, L4 Staff / Lead*).
 
 ---

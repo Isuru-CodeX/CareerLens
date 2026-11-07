@@ -67,6 +67,13 @@ Resumes, interview transcripts, and career application records contain sensitive
 - **Field-Level Provenance (`ProfileFieldSource`)**: Every modified profile attribute maintains cryptographic traceability (`source_document_id`, `source_type`, `confidence`, `confirmed_by_user`).
 - **Dispute & Revocation Ledger**: Candidates can flag or remove inaccurate skill inferences (`UserSkillEvidence`). Disputing an evidence item atomically recalculates the parent skill's verification tier and confidence rating.
 
+### 1.10 Strict Zero-PII Policy in Social Profile Skill Extraction
+- **Threat**: Ingestion of sensitive personal identifiers (phone numbers, personal emails, physical home addresses, family names) during social profile scraping.
+- **Mitigation**:
+  - The `SocialSkillExtractorService` applies multi-stage regex blacklisting and canonical taxonomy matching.
+  - Rejects any candidate containing `@`, protocols, phone number digit patterns, year/date ranges, or geographical designations.
+  - Strictly guarantees that only genuine, human and job-relevant competencies are admitted into candidate profiles.
+
 ---
 
 ## 2. Environment Variables & Secret Handling

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.models.models import User, Resume, CareerGoal, ProfileSkill, UserSkillEvidence
+from app.models.models import User, Resume, CareerGoal, ProfileSkill, UserSkillEvidence, CareerProfile, ProfileExperience
 from app.services.activity_service import record_user_activity
 from app.services.career_graph_service import CareerGraphService, INDUSTRIES
 from app.services.salary_service import SalaryService
@@ -96,6 +96,29 @@ def get_career_knowledge_graph(
     progression edges, and level hierarchies, optionally filtered by industry and calibrated to country.
     """
     return CareerGraphService.get_graph_data(industry_id=industry_id, country=country or "us")
+
+
+@router.get("/roles")
+def get_all_career_roles(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns all 54 specialized industry career roles across domains (Software, Cloud, Data,
+    AI, Product, Finance, Healthcare, Marketing, Ops, Legal) for multi-role trajectory selection.
+    """
+    graph = CareerGraphService.get_full_graph()
+    roles = []
+    for node in graph.get("nodes", []):
+        roles.append({
+            "id": node["id"],
+            "title": node["title"],
+            "domain": node.get("domain", "Engineering"),
+            "industry": node.get("industry", "tech"),
+            "seniority_tier": node.get("seniority_tier", "L2"),
+            "experience_years_min": node.get("experience_years_min", 3.0),
+            "required_skills": node.get("required_skills", [])
+        })
+    return {"roles": roles}
 
 
 @router.post("/bridge")
@@ -265,8 +288,9 @@ class SaveCareerGoalRequest(BaseModel):
 
 
 class ComparePathsRequest(BaseModel):
-    target_role_ids: List[str] = Field(..., min_length=2, max_length=5)
+    target_role_ids: List[str] = Field(..., min_length=1, max_length=6)
     current_role_id: Optional[str] = None
+    include_current_profile: Optional[bool] = False
     country: Optional[str] = "us"
 
 
@@ -396,6 +420,72 @@ def toggle_goal_milestone(
     return {"status": "success", "milestones": goal.milestones}
 
 
+# Semantic Competency Synonyms for AI Alignment Calculation
+SEMANTIC_SKILL_SYNONYMS: Dict[str, List[str]] = {
+    "kubernetes": ["k8s", "containers", "docker", "container orchestration", "cloud infrastructure"],
+    "docker": ["containers", "kubernetes", "k8s", "containerization", "microservices"],
+    "postgresql": ["postgres", "sql", "relational database", "mysql", "database indexing", "rdbms"],
+    "mysql": ["sql", "relational database", "postgresql", "rdbms"],
+    "react": ["react.js", "frontend", "typescript", "javascript", "next.js", "redux toolkit"],
+    "typescript": ["javascript", "ts", "frontend", "node.js"],
+    "fastapi": ["restful apis", "python", "microservices", "flask", "django"],
+    "python": ["fastapi", "django", "flask", "scripting", "backend", "machine learning"],
+    "aws (amazon web services)": ["cloud architecture", "aws", "cloud", "cloud computing", "gcp", "azure"],
+    "ci/cd pipelines": ["ci/cd", "continuous integration", "github actions", "devops", "automation"],
+    "machine learning": ["data science", "pytorch", "deep learning", "ai", "scikit-learn"],
+    "system architecture & design": ["system design", "software architecture", "technical leadership", "distributed systems", "microservices architecture"],
+    "agile / scrum methodologies": ["agile", "scrum", "sprint planning", "jira"],
+    "test-driven development (tdd)": ["unit testing", "pytest", "jest", "code quality", "tdd"],
+    "restful apis": ["fastapi", "rest api", "api design", "graphql", "microservices"],
+    "data science": ["python", "pandas", "numpy", "machine learning", "statistics"]
+}
+
+
+def _check_ai_skill_alignment(req_skill: str, user_skills: List[str]) -> Dict[str, Any]:
+    req_lower = req_skill.strip().lower()
+
+    # 1. Direct Exact / Canonical Match
+    for u in user_skills:
+        u_lower = u.strip().lower()
+        if req_lower == u_lower:
+            return {"type": "exact", "matched_with": u, "weight": 1.0, "reason": "Direct verified competency"}
+
+    # 2. Substring containment match
+    for u in user_skills:
+        u_lower = u.strip().lower()
+        if req_lower in u_lower or u_lower in req_lower:
+            return {"type": "exact", "matched_with": u, "weight": 1.0, "reason": f"Direct match with {u}"}
+
+    # 3. Semantic Synonym / Related Competency
+    synonyms = SEMANTIC_SKILL_SYNONYMS.get(req_lower, [])
+    for syn in synonyms:
+        for u in user_skills:
+            u_lower = u.strip().lower()
+            if syn in u_lower or u_lower in syn:
+                return {
+                    "type": "semantic",
+                    "matched_with": u,
+                    "weight": 0.75,
+                    "reason": f"Semantic overlap with verified {u}"
+                }
+
+    # 4. Partial Token Overlap
+    import re
+    req_words = set(re.findall(r"[a-zA-Z0-9]+", req_lower)) - {"and", "the", "for", "with", "in", "of", "system", "management"}
+    if req_words:
+        for u in user_skills:
+            u_words = set(re.findall(r"[a-zA-Z0-9]+", u.strip().lower()))
+            if req_words & u_words:
+                return {
+                    "type": "semantic",
+                    "matched_with": u,
+                    "weight": 0.65,
+                    "reason": f"Transferrable foundation from {u}"
+                }
+
+    return {"type": "none", "weight": 0.0, "matched_with": None, "reason": None}
+
+
 @router.post("/compare")
 def compare_career_paths(
     req: ComparePathsRequest,
@@ -406,18 +496,62 @@ def compare_career_paths(
     Compares 2 or more target career paths side-by-side:
     required skills, verified skills from profile, skill gaps, estimated effort,
     and calibrated market salary percentiles.
+    Supports comparing directly against the candidate's active profile ('MY_PROFILE').
     """
-    # Load user's profile skills
-    user_skills = [
-        s.name for s in db.query(ProfileSkill).filter(ProfileSkill.user_id == current_user.id).all()
-    ]
+    profile = db.query(CareerProfile).filter(CareerProfile.user_id == current_user.id).first()
+    experiences = db.query(ProfileExperience).filter(ProfileExperience.user_id == current_user.id).all()
+    user_skills_objs = db.query(ProfileSkill).filter(ProfileSkill.user_id == current_user.id).all()
+    user_skills = [s.name for s in user_skills_objs]
+
+    # Calculate actual verified candidate experience years
+    candidate_years = float(profile.years_of_experience) if (profile and profile.years_of_experience) else sum(e.years_count for e in experiences) or 3.0
+
+    # Calculate candidate's current baseline salary benchmark
+    candidate_title = (profile.target_title if profile and profile.target_title else (experiences[0].job_title if experiences else "Software Engineer"))
+    profile_salary_info = SalaryPredictorService.predict_compensation(
+        role_title=candidate_title,
+        experience_years=candidate_years,
+        skills=user_skills,
+        country=req.country or "us"
+    )
+    profile_p50 = profile_salary_info.get("percentiles", {}).get("p50") or profile_salary_info.get("percentiles", {}).get("median") or 115000
 
     comparisons = []
     graph = CareerGraphService.get_full_graph()
     nodes = {n["id"]: n for n in graph.get("nodes", [])}
     nodes_by_title = {n["title"].lower(): n for n in graph.get("nodes", [])}
 
+    # Check if current profile is requested
+    include_profile = req.include_current_profile or "MY_PROFILE" in req.target_role_ids or "current_profile" in req.target_role_ids
+
+    if include_profile:
+        comparisons.append({
+            "role_id": "MY_PROFILE",
+            "title": f"My Profile ({candidate_title})",
+            "domain": (profile.target_industry if profile and profile.target_industry else "Active Profile"),
+            "seniority_tier": f"Level {min(5, max(1, int(candidate_years // 2) + 1))}",
+            "match_percent": 100,
+            "required_skills": user_skills,
+            "verified_skills": user_skills,
+            "partial_skills": [],
+            "missing_skills": [],
+            "estimated_transition_months": 0,
+            "salary_bands": profile_salary_info.get("percentiles", {}),
+            "currency": profile_salary_info.get("currency", "USD"),
+            "is_current_profile": True,
+            "experience_years": candidate_years,
+            "total_verified_count": len(user_skills),
+            "salary_delta": 0,
+            "transition_roadmap": [
+                "Baseline Established: Current verified skills & experience active.",
+                "Compare against adjacent trajectories to uncover promotion pathways."
+            ]
+        })
+
     for role_id in req.target_role_ids:
+        if role_id in ("MY_PROFILE", "current_profile"):
+            continue
+
         node = nodes.get(role_id)
         if not node:
             normalized_key = role_id.lower().replace("_", " ")
@@ -441,17 +575,55 @@ def compare_career_paths(
             continue
 
         req_skills = node.get("required_skills", [])
-        verified = [s for s in req_skills if any(s.lower() == u.lower() for u in user_skills)]
-        missing = [s for s in req_skills if s not in verified]
-        match_pct = round((len(verified) / max(len(req_skills), 1)) * 100)
+        verified: List[str] = []
+        partial: List[Dict[str, Any]] = []
+        missing: List[str] = []
 
-        # Get salary benchmark
+        total_skill_weight = 0.0
+
+        for s in req_skills:
+            alignment = _check_ai_skill_alignment(s, user_skills)
+            if alignment["type"] == "exact":
+                verified.append(s)
+                total_skill_weight += alignment["weight"]
+            elif alignment["type"] == "semantic":
+                partial.append({
+                    "skill": s,
+                    "matched_with": alignment["matched_with"],
+                    "reason": alignment["reason"]
+                })
+                total_skill_weight += alignment["weight"]
+            else:
+                missing.append(s)
+
+        # Precise Mathematical Alignment Formulation:
+        # Skill Alignment (75%) + Experience Seniority Fit (25%)
+        skill_score = (total_skill_weight / max(len(req_skills), 1)) * 100.0
+        exp_min = float(node.get("experience_years_min", 3.0))
+        experience_fit = min(1.0, max(0.4, candidate_years / max(exp_min, 1.0))) * 100.0
+
+        composite_alignment = round((0.75 * skill_score) + (0.25 * experience_fit))
+        match_pct = max(10, min(100, composite_alignment))
+
+        # Get calibrated market salary benchmark
         salary_info = SalaryPredictorService.predict_compensation(
             role_title=node["title"],
-            experience_years=node.get("experience_years_min", 3.0),
+            experience_years=max(candidate_years, exp_min),
             skills=req_skills,
             country=req.country or "us"
         )
+        target_p50 = salary_info.get("percentiles", {}).get("p50") or salary_info.get("percentiles", {}).get("median") or 130000
+        salary_delta = target_p50 - profile_p50
+
+        # Estimated transition effort
+        transition_months = max(2, len(missing) * 2 + (1 if candidate_years < exp_min else 0))
+
+        # Structured Transition Roadmap
+        roadmap = [
+            f"Phase 1: Acquire top priority skills: {', '.join(missing[:2]) or 'Advanced Domain Competencies'}.",
+            f"Phase 2: Leverage transferrable competencies: {', '.join([p['skill'] for p in partial[:2]]) or 'Core Stack'}.",
+            f"Phase 3: Target {node['title']} applications with expected median compensation of ${target_p50:,.0f}."
+        ]
 
         comparisons.append({
             "role_id": role_id,
@@ -461,10 +633,15 @@ def compare_career_paths(
             "match_percent": match_pct,
             "required_skills": req_skills,
             "verified_skills": verified,
+            "partial_skills": partial,
             "missing_skills": missing,
-            "estimated_transition_months": max(3, len(missing) * 2),
+            "estimated_transition_months": transition_months,
             "salary_bands": salary_info.get("percentiles", {}),
-            "currency": salary_info.get("currency", "USD")
+            "currency": salary_info.get("currency", "USD"),
+            "is_current_profile": False,
+            "experience_years_min": exp_min,
+            "salary_delta": salary_delta,
+            "transition_roadmap": roadmap
         })
 
     return {"comparisons": comparisons}

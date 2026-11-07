@@ -55,6 +55,8 @@ import {
   CvReviewData,
   CareerGoalData,
   CareerComparisonItem,
+  CareerRoleOption,
+  SocialSkillExtractionResponse,
   LearningPlanData,
   LearningQuizResult
 } from '../types';
@@ -1324,13 +1326,44 @@ class ApiService {
     });
   }
 
+  async getCareerRoles(): Promise<{ roles: CareerRoleOption[] }> {
+    return this.request<{ roles: CareerRoleOption[] }>('/career/roles');
+  }
+
   async compareCareerPaths(
     targetRoleIds: string[],
-    country: string = 'us'
+    country: string = 'us',
+    includeCurrentProfile: boolean = false
   ): Promise<{ comparisons: CareerComparisonItem[] }> {
     return this.request('/career/compare', {
       method: 'POST',
-      body: JSON.stringify({ target_role_ids: targetRoleIds, country })
+      body: JSON.stringify({
+        target_role_ids: targetRoleIds,
+        country,
+        include_current_profile: includeCurrentProfile
+      })
+    });
+  }
+
+  // Social Profile Skills Extraction & Import (GitHub & LinkedIn)
+  async extractSocialSkills(payload?: {
+    github_url?: string;
+    linkedin_url?: string;
+  }): Promise<SocialSkillExtractionResponse> {
+    return this.request<SocialSkillExtractionResponse>('/profile/extract-social-skills', {
+      method: 'POST',
+      body: JSON.stringify(payload || {})
+    });
+  }
+
+  async importSocialSkills(skills: string[]): Promise<{
+    status: string;
+    imported_count: number;
+    skills: string[];
+  }> {
+    return this.request('/profile/import-social-skills', {
+      method: 'POST',
+      body: JSON.stringify({ skills })
     });
   }
 

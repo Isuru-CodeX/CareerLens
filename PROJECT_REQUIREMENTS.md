@@ -102,13 +102,19 @@ Professional executive platform utilizing royal blue, deep navy, and emerald acc
 #### 5.13 Evidence-Aware Skill Profile & Multi-Source Verification (Spec 4.2)
 - Hierarchical skill classification: `mentioned` (CV keyword, $\le 75\%$ confidence) vs. `demonstrated` (production code, verified quiz $\ge 66\%$, or project proof, $\ge 85\%$ confidence) vs. `unverified`.
 - Multi-source evidence tracking (`UserSkillEvidence`). Candidate dispute trigger automatically recalculates parent skill metrics.
+- **GitHub & LinkedIn AI Skill Discovery Engine**: Automated profile scanner extracting legitimate technical, engineering, and professional competencies with an immutable **Zero-PII Policy** (strictly rejecting phone numbers, emails, addresses, personal names, dates, or arbitrary prose).
+- Bulk skill import automatically connects extracted competencies to `ProfileSkill` with provenance `source="github_linkedin"` and generates `UserSkillEvidence` audit records.
 
 #### 5.14 Empirical Information Retrieval Matching Benchmark (Spec 4.3)
 - Formalized benchmark framework computing `NDCG@K`, `Precision@K`, and `Recall@K` across annotated candidate-job pairs.
 - Validates that hybrid semantic search consistently outranks naive keyword baselines (+2.1% relative NDCG@3 lift).
 
-#### 5.15 Multi-Role Career Path Matrix & Milestones (Spec 4.4)
-- Interactive side-by-side comparison of 2–3 roles evaluating transferrable skills, time-to-learn estimates, and salary percentiles.
+#### 5.15 54-Role Career Trajectory Comparator & Milestones (Spec 4.4)
+- Searchable dropdown supporting all 54 platform roles across 8 domains (Software Engineering, Data Science & AI, Cloud & DevOps, Cybersecurity, Product Management, UI/UX Design, Enterprise & Business, Mobile Engineering).
+- Interactive side-by-side comparison of 1–6 trajectories simultaneously.
+- **"My Current Profile" Baseline Integration**: Allows setting candidate's active profile (`CareerProfile`, `ProfileSkill`, `ProfileExperience`) as the baseline comparison card.
+- **AI Semantic Skill Alignment**: Calculates alignment via exact matches, synonym ontologies, and token overlaps ($75\%$ skill alignment $+ 25\%$ experience tenure fit).
+- Displays verified skills, transferrable/partial skills with explanatory rationale, missing prerequisites, real-time salary deltas, and 3-phase transition roadmaps.
 - Persistent `CareerGoal` with milestone tracking and progress completion metrics.
 
 #### 5.16 Adaptive Learning Plan & Quiz Verification (Spec 4.5)
@@ -119,6 +125,14 @@ Professional executive platform utilizing royal blue, deep navy, and emerald acc
 - Transparent mathematical formulation: Role Alignment (25%), Evidence Depth (20%), Project Proof (15%), CV Quality (15%), Mock Interviews (15%), Learning Progress (10%).
 - Actionable next steps and explanations for every category.
 
+#### 5.18 Categorized Project Capabilities Matrix
+- Clean dashboard matrix organizing all 25 system capabilities into 5 distinct architectural pillars:
+  1. *User Data & Statistics* (Profile, Resume Sync, Education Presets, GDPR Vault, Placement Telemetry)
+  2. *AI Writing & Generation* (ATS Resume Tailor, Cover Letter Studio, Grammar Fixer, Exemplar Answers, Script Generator)
+  3. *Career Trajectory & Analytics* (54-Role Comparator, Knowledge Graph, Salary Predictor, Information Retrieval Benchmark, Readiness Scorecard)
+  4. *Multimodal AI & Simulation* (Voice Interview Studio, Decibel Equalizer, Non-Verbal Eye/Posture Coach, Negotiation Simulator, Live Coding Sandbox)
+  5. *Verification, Auditing & Compliance* (GitHub Proof of Work, ATS Parser & Stress-Tester, Bias & DEI Auditor, Quiz Assessor, Social Skill Extractor)
+
 ---
 
 ### 6. Technology Stack
@@ -127,5 +141,5 @@ Professional executive platform utilizing royal blue, deep navy, and emerald acc
 - **Audio & Media**: Web Audio API, Web Speech API, `MediaRecorder`, bundled FFmpeg (`imageio-ffmpeg`), SpeechRecognition.
 - **Document Processing**: `pypdf`, `python-docx`, `reportlab`, `beautifulsoup4`.
 - **Database**: SQLite (development) / PostgreSQL + `pgvector` (production).
-- **Testing**: `pytest`, `httpx`, `oxlint`, `tsc` (78 backend tests passed, 0 lint warnings).
+- **Testing**: `pytest`, `httpx`, `oxlint`, `tsc` (87 backend tests passed, 0 lint warnings).
 - **Browser Extension**: Manifest V3, Content Scripts, Service Worker.

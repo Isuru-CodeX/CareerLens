@@ -447,7 +447,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
 
       {activeTab === 'compare' && (
         <CareerPathComparator
-          initialRoles={[focusedRole, 'Cloud Solutions Architect']}
+          initialRoles={['MY_PROFILE', focusedRole, 'Cloud Solutions Architect']}
           onSelectRoleForLearning={(roleTitle) => {
             setFocusedRole(roleTitle);
             handleTabSelect('learning');

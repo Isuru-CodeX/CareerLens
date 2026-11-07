@@ -72,6 +72,22 @@ When printing or exporting a resume preview to paper or PDF, `@media print` rule
 - Status indicators: `Strong` (emerald), `Satisfactory` (blue), `Needs Work` (amber).
 - Every category box includes a transparent explanation and an actionable next-step button linking directly to the relevant workspace.
 
+### 3.8 54-Role Career Trajectory Comparator & Profile Baseline
+- Multi-role comparison workbench displaying up to 6 trajectories side-by-side.
+- Categorized dropdown with live text search grouping 54 roles by industry domain.
+- Dedicated "My Current Profile" baseline card with 100% alignment anchor styling, active verified skills, and current compensation band.
+- Comparative target cards displaying AI alignment score %, verified/partial/missing skills, financial salary deltas (`+$35k/yr`), and 3-phase transition roadmaps.
+
+### 3.9 Social Skill Discovery Modal (Zero-PII Guarantee)
+- Interactive discovery modal scanning GitHub and LinkedIn profiles with animated scanning states.
+- Clean category filtering chips (*All*, *Languages*, *Backend*, *Frontend*, *Cloud & DevOps*, *Data & AI*, *Professional*).
+- Clear "Zero-PII Policy" security badge ensuring that phone numbers, emails, addresses, names, and prose are permanently excluded.
+- Checkbox bulk selection and one-click import into unified profile skills.
+
+### 3.10 Categorized Project Capabilities Matrix
+- Dashboard matrix organizing 25 platform features across 5 distinct architectural pillars.
+- Each pillar card features custom iconography, descriptive badges, and one-click navigation links to the relevant studio view.
+
 ---
 
 ## 4. Responsive Breakpoints

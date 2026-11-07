@@ -23,6 +23,7 @@ import { api } from '../services/api';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { ActivityDetailsModal } from '../components/ActivityDetailsModal';
+import { ProjectTagsMatrix } from '../components/common/ProjectTagsMatrix';
 
 interface DashboardViewProps {
   onNavigate: (view: string, extra?: any) => void;
@@ -706,6 +707,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Categorized Project Capabilities & Tags Matrix */}
+      <ProjectTagsMatrix onNavigate={onNavigate} />
 
       {/* Recent User Activity Feed */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
