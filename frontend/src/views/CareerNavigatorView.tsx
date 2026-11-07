@@ -136,15 +136,15 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 sm:pt-8 lg:pt-10 pb-16 space-y-6 sm:space-y-8">
+    <div className="w-full min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 sm:pt-8 pb-16 space-y-6 sm:space-y-8">
       {/* View Header with Sub-tab Switcher */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-        <div className="space-y-2 min-w-0 flex-1">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider border border-indigo-200/60 dark:border-indigo-800/60">
+      <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="space-y-2.5 min-w-0 flex-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider border border-indigo-200/60 dark:border-indigo-800/60">
             <Compass className="w-4 h-4 shrink-0" />
             <span>Pillars 3 & 5 • Algorithmic Career Engine</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-snug">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
             Career Navigator & Salary Intelligence
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-3xl leading-relaxed">
@@ -153,7 +153,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
         </div>
 
         {/* Tab Pill Switcher */}
-        <div className="flex items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1 overflow-x-auto self-start xl:self-end">
+        <div className="flex flex-wrap items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1 self-start 2xl:self-center">
           <button
             type="button"
             onClick={() => handleTabSelect('market')}

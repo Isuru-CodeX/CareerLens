@@ -144,7 +144,7 @@ const MainLayout: React.FC = () => {
       />
 
       {/* Main Body Area: Sidebar + Active View with Max Widescreen Real Estate */}
-      <div className="flex-1 flex max-w-[1720px] w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
+      <div className="flex-1 flex w-full max-w-[2160px] 2xl:max-w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 2xl:px-12">
         <Sidebar
           currentView={currentView}
           onNavigate={handleNavigate}
@@ -155,7 +155,7 @@ const MainLayout: React.FC = () => {
           onQuickUpload={handleQuickUpload}
         />
 
-        <main className="flex-1 w-full min-w-0 pt-2 sm:pt-4 pb-16">
+        <main className="flex-1 w-full min-w-0 pt-3 sm:pt-5 pb-16">
           {currentView === 'dashboard' && (
             <DashboardView
               onNavigate={handleNavigate}

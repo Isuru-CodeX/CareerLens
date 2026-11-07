@@ -199,7 +199,7 @@ Preferred:
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 w-full max-w-[1720px] mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 w-full min-w-0">
       <DisclaimerBanner />
 
       {/* Header */}

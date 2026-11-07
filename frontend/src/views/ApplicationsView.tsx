@@ -206,7 +206,7 @@ export const ApplicationsView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 w-full max-w-[1720px] mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 w-full min-w-0">
       {/* Top Header & Pipeline Metrics */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
