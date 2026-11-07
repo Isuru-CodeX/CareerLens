@@ -525,3 +525,4 @@ class SalaryPredictorService:
         ]
 
         return scripts
+

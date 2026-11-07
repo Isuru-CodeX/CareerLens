@@ -186,3 +186,4 @@ def generate_negotiation_scripts(
         target_salary=req.target_salary,
         highlight_skill=req.highlight_skill
     )
+
