@@ -36,24 +36,24 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-16">
+    <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pb-16">
       {/* View Header with Sub-tab Switcher */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
-            <Compass className="w-4 h-4" />
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="space-y-1.5 min-w-0">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider border border-indigo-200/60 dark:border-indigo-800/60">
+            <Compass className="w-4 h-4 shrink-0" />
             <span>Pillars 3 & 5 • Algorithmic Career Engine</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Career Navigator & Salary Negotiation Coach
           </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-2xl leading-relaxed">
             Explore directed role transitions with Dijkstra shortest-path pathfinding, calibrate ML salary percentiles, and simulate high-leverage compensation negotiations.
           </p>
         </div>
 
         {/* Tab Pill Switcher */}
-        <div className="flex items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shrink-0">
+        <div className="flex flex-wrap sm:flex-nowrap items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1 self-start lg:self-center">
           <button
             type="button"
             onClick={() => setActiveTab('graph')}

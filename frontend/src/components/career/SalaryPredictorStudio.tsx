@@ -116,12 +116,12 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 min-w-0">
       {/* Top Banner / Heading */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+      <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 overflow-hidden min-w-0">
+        <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
-            <DollarSign className="w-4 h-4" />
+            <DollarSign className="w-4 h-4 shrink-0" />
             <span>Supervised ML Compensation Engine</span>
           </div>
           <div className="flex items-center gap-2">
@@ -130,19 +130,19 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
             </h2>
             {loading && <RefreshCw className="w-4 h-4 animate-spin text-indigo-600 shrink-0" />}
           </div>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
+          <p className="text-xs text-slate-500 font-medium max-w-2xl leading-relaxed">
             Calibrated against verified engineering compensation data with location cost multipliers and high-ROI technical skill bonuses.
           </p>
         </div>
 
         {/* Resume Quick Sync */}
         {resumes.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <span className="text-xs font-semibold text-slate-500">Sync Candidate Skills:</span>
             <select
               onChange={(e) => handleImportResumeSkills(e.target.value)}
               defaultValue=""
-              className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+              className="max-w-xs px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate"
             >
               <option value="" disabled>Select Resume...</option>
               {resumes.map((r) => (
@@ -156,10 +156,10 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
       </div>
 
       {/* Main Grid: Inputs vs Prediction Scorecard */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start min-w-0">
         {/* Left Inputs Column (5 Cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+        <div className="lg:col-span-5 space-y-6 min-w-0">
+          <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 overflow-hidden">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
               <Sliders className="w-4 h-4 text-indigo-600" />
               <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
@@ -323,11 +323,11 @@ export const SalaryPredictorStudio: React.FC<SalaryPredictorStudioProps> = ({
         </div>
 
         {/* Right Scorecard Column (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-6 min-w-0">
           {prediction ? (
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               {/* Main Total Compensation Spotlight Card */}
-              <div className="p-6 md:p-8 rounded-3xl bg-linear-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white shadow-lg space-y-6 border border-indigo-800/60">
+              <div className="p-5 sm:p-8 rounded-3xl bg-linear-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white shadow-lg space-y-6 border border-indigo-800/60 overflow-hidden min-w-0">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
                   <div>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-300 border border-indigo-400/30">

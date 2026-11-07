@@ -169,9 +169,9 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 min-w-0">
       {/* Top Controls: Pathfinding Engine Toolbar */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+      <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
@@ -185,12 +185,12 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
 
           {/* Resume Sync Selector */}
           {resumes.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-slate-500">Sync with Resume:</span>
               <select
                 value={selectedResumeId}
                 onChange={(e) => setSelectedResumeId(e.target.value)}
-                className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                className="max-w-xs px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate"
               >
                 {resumes.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -203,41 +203,46 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         </div>
 
         {/* Bridge Role Selectors */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-          <div className="sm:col-span-5 space-y-1.5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-end">
+          {/* Baseline Role (5 cols on lg) */}
+          <div className="lg:col-span-5 space-y-1.5 min-w-0">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Current / Baseline Role
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span>Current / Baseline Role</span>
             </label>
-            <select
-              value={currentRoleId}
-              onChange={(e) => setCurrentRoleId(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-            >
-              {(graphData?.nodes || []).map((n) => (
-                <option key={`curr_${n.id}`} value={n.id}>
-                  {n.title} • {n.level_label} (${(n.salary_median / 1000).toFixed(0)}k)
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="sm:col-span-2 flex justify-center py-1">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <ArrowRight className="w-5 h-5" />
+            <div className="relative min-w-0">
+              <select
+                value={currentRoleId}
+                onChange={(e) => setCurrentRoleId(e.target.value)}
+                className="w-full min-w-0 px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate"
+              >
+                {(graphData?.nodes || []).map((n) => (
+                  <option key={`curr_${n.id}`} value={n.id}>
+                    {n.title} • {n.level_label} (${(n.salary_median / 1000).toFixed(0)}k)
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div className="sm:col-span-5 space-y-1.5">
+          {/* Arrow Divider (1 col on lg, centered between them) */}
+          <div className="hidden lg:flex lg:col-span-1 items-center justify-center pb-1.5">
+            <div className="w-9 h-9 rounded-2xl bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+              <ArrowRight className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Target Role (4 cols on lg) */}
+          <div className="lg:col-span-4 space-y-1.5 min-w-0">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-500" />
-              Target / Dream Role
+              <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+              <span>Target / Dream Role</span>
             </label>
-            <div className="flex gap-2">
+            <div className="relative min-w-0">
               <select
                 value={targetRoleId}
                 onChange={(e) => setTargetRoleId(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-w-0 px-3.5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 truncate"
               >
                 {(graphData?.nodes || []).map((n) => (
                   <option key={`tgt_${n.id}`} value={n.id}>
@@ -245,22 +250,26 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                onClick={handleComputeBridge}
-                disabled={computingBridge}
-                className="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
-              >
-                {computingBridge ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                <span>Calculate Path</span>
-              </button>
             </div>
+          </div>
+
+          {/* Calculate Path Button (2 cols on lg, or full width on mobile/tablet) */}
+          <div className="lg:col-span-2 min-w-0">
+            <button
+              type="button"
+              onClick={handleComputeBridge}
+              disabled={computingBridge}
+              className="w-full h-[42px] px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0"
+            >
+              {computingBridge ? <RefreshCw className="w-4 h-4 animate-spin shrink-0" /> : <Zap className="w-4 h-4 shrink-0" />}
+              <span className="truncate">Calculate Path</span>
+            </button>
           </div>
         </div>
 
         {/* Filters and Search row */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="relative flex-1 min-w-0 sm:max-w-xs">
             <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
             <input
               type="text"
@@ -271,43 +280,47 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-400">Category:</span>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300"
-            >
-              <option value="all">All Domains</option>
-              {(graphData?.categories || []).map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-400">Category:</span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[140px] truncate"
+              >
+                <option value="all">All Domains</option>
+                {(graphData?.categories || []).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
 
-            <span className="text-[11px] font-bold text-slate-400 ml-2">Level:</span>
-            <select
-              value={selectedLevel}
-              onChange={(e) => setSelectedLevel(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300"
-            >
-              <option value="all">All Tiers</option>
-              <option value={1}>L1 (Entry 0-2y)</option>
-              <option value={2}>L2 (Mid 2-5y)</option>
-              <option value={3}>L3 (Senior 5-8y)</option>
-              <option value={4}>L4 (Staff/Lead 8y+)</option>
-            </select>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-400">Level:</span>
+              <select
+                value={selectedLevel}
+                onChange={(e) => setSelectedLevel(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
+                <option value="all">All Tiers</option>
+                <option value={1}>L1 (Entry 0-2y)</option>
+                <option value={2}>L2 (Mid 2-5y)</option>
+                <option value={3}>L3 (Senior 5-8y)</option>
+                <option value={4}>L4 (Staff/Lead 8y+)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Graph Grid / Stage */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start min-w-0">
         {/* Left: 4-Tier Interactive Knowledge Matrix (8 Cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className="lg:col-span-8 space-y-6 min-w-0">
+          <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-600" />
+                <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
                   Technical Progression Hierarchy
                 </h3>
@@ -318,14 +331,14 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
             </div>
 
             {/* 4 Levels Rendered as Structured Visual Progression Columns */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {[
                 { level: 1, title: 'Tier 1: Entry', subtitle: '0-2 Yrs Experience' },
                 { level: 2, title: 'Tier 2: Mid Level', subtitle: '2-5 Yrs Experience' },
                 { level: 3, title: 'Tier 3: Senior', subtitle: '5-8 Yrs Experience' },
                 { level: 4, title: 'Tier 4: Staff / Lead', subtitle: '8+ Yrs Experience' }
               ].map((tier) => (
-                <div key={tier.level} className="space-y-3">
+                <div key={tier.level} className="space-y-3 min-w-0">
                   <div className="pb-2 border-b-2 border-indigo-500/20">
                     <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">{tier.title}</h4>
                     <p className="text-[10px] text-slate-400 font-medium">{tier.subtitle}</p>
@@ -357,22 +370,22 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
                             </div>
                           )}
 
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${catStyle.dot}`} />
+                          <div className="flex items-center gap-1.5 mb-1 min-w-0">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
                               {node.category}
                             </span>
                           </div>
 
-                          <h5 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 leading-snug">
+                          <h5 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug">
                             {node.title}
                           </h5>
 
                           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px]">
-                            <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                            <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate">
                               ${(node.salary_median / 1000).toFixed(0)}k/yr
                             </span>
-                            <span className="text-[10px] font-semibold text-slate-400">
+                            <span className="text-[10px] font-semibold text-slate-400 shrink-0">
                               {node.core_skills.length} skills
                             </span>
                           </div>
@@ -554,9 +567,9 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         </div>
 
         {/* Right: Selected Role Deep Inspector (4 Cols) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-6 min-w-0">
           {selectedNode ? (
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 sticky top-24">
+            <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 lg:sticky lg:top-24 min-w-0">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                   {selectedNode.level_label}
