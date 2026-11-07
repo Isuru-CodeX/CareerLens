@@ -794,9 +794,15 @@ class ApiService {
     return this.request<InterviewSessionSummary[]>('/interviews/sessions');
   }
 
-  async transcribeAudio(audioBlob: Blob): Promise<{ transcript: string; words_count: number; status: string }> {
+  async transcribeAudio(
+    audioBlob: Blob,
+    context?: { question?: string; role_title?: string; company?: string }
+  ): Promise<{ transcript: string; words_count: number; status: string }> {
     const formData = new FormData();
     formData.append('file', audioBlob, 'interview_answer.wav');
+    if (context?.question) formData.append('question', context.question);
+    if (context?.role_title) formData.append('role_title', context.role_title);
+    if (context?.company) formData.append('company', context.company);
     return this.request('/interviews/transcribe', {
       method: 'POST',
       body: formData
@@ -932,27 +938,35 @@ class ApiService {
     return this.request<NavigatorIndustryItem[]>('/navigator/industries');
   }
 
+  async getNavigatorCountries(): Promise<{ code: string; name: string; currency: string; symbol: string; flag: string }[]> {
+    return this.request<{ code: string; name: string; currency: string; symbol: string; flag: string }[]>('/navigator/countries');
+  }
+
   async getNavigatorRoles(params?: {
     industry_id?: number;
     work_mode?: string;
     q?: string;
     country?: string;
+    experience_level?: string;
   }): Promise<JobRoleItem[]> {
     const qp = new URLSearchParams();
     if (params?.industry_id) qp.set('industry_id', String(params.industry_id));
     if (params?.work_mode && params.work_mode !== 'all') qp.set('work_mode', params.work_mode);
     if (params?.q) qp.set('q', params.q);
     if (params?.country) qp.set('country', params.country);
+    if (params?.experience_level) qp.set('experience_level', params.experience_level);
     const qs = qp.toString();
     return this.request<JobRoleItem[]>(`/navigator/roles${qs ? `?${qs}` : ''}`);
   }
 
   async getNavigatorRoleSalary(
     roleId: number,
-    params?: { country?: string; work_mode?: string; days?: number }
+    params?: { country?: string; experience_level?: string; timeframe?: string; work_mode?: string; days?: number }
   ): Promise<RoleSalaryResponse> {
     const qp = new URLSearchParams();
     if (params?.country) qp.set('country', params.country);
+    if (params?.experience_level) qp.set('experience_level', params.experience_level);
+    if (params?.timeframe) qp.set('timeframe', params.timeframe);
     if (params?.work_mode && params.work_mode !== 'all') qp.set('work_mode', params.work_mode);
     if (params?.days) qp.set('days', String(params.days));
     const qs = qp.toString();

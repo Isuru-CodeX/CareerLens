@@ -759,17 +759,23 @@ export interface CounterOfferScript {
 }
 
 export interface SalarySnapshotItem {
-  id: number;
+  id?: number;
   role_id?: number;
-  country: string;
+  country?: string;
   work_mode?: string | null;
-  currency: string;
+  currency?: string;
+  currency_symbol?: string;
+  p10?: number;
   p25: number;
   median: number;
   p75: number;
+  p90?: number;
+  monthly_median?: number;
+  monthly_p25?: number;
+  monthly_p75?: number;
   sample_size: number;
   estimated_share: number;
-  source: string;
+  source?: string;
   fetched_at: string;
   date?: string;
 }
@@ -780,9 +786,11 @@ export interface JobRoleItem {
   industry_id: number;
   industry_name: string;
   search_terms: string[];
-  last_refreshed: string | null;
-  openings_count: number;
-  work_mode_counts: {
+  last_refreshed?: string | null;
+  currency?: string;
+  currency_symbol?: string;
+  openings_count?: number;
+  work_mode_counts?: {
     remote: number;
     hybrid: number;
     onsite: number;
@@ -812,10 +820,33 @@ export interface JobPostingItem {
 export interface RoleSalaryResponse {
   role_id: number;
   role_title: string;
+  country?: {
+    name: string;
+    currency: string;
+    symbol: string;
+    rate: number;
+    ppp: number;
+    flag: string;
+  };
+  experience_level?: {
+    label: string;
+    factor: number;
+    exp_years: string;
+  };
+  currency?: string;
+  currency_symbol?: string;
   latest: SalarySnapshotItem | null;
-  trend: SalarySnapshotItem[];
+  skills_premium?: Array<{ skill: string; boost: string }>;
+  market_demand?: string;
+  timeframe?: string;
+  trend: Array<{
+    date: string;
+    median: number;
+    p25: number;
+    p75: number;
+  }>;
   is_stale: boolean;
-  sample_size: number;
+  sample_size?: number;
   disclaimer: string;
 }
 
@@ -823,7 +854,7 @@ export interface NavigatorIndustryItem {
   id: number;
   name: string;
   role_count: number;
-  openings_count: number;
+  openings_count?: number;
 }
 
 

@@ -77,41 +77,41 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pb-16">
+    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pb-16 space-y-6 sm:space-y-8">
       {/* View Header with Sub-tab Switcher */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-        <div className="space-y-1.5 min-w-0">
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="space-y-2 min-w-0 flex-1">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider border border-indigo-200/60 dark:border-indigo-800/60">
             <Compass className="w-4 h-4 shrink-0" />
             <span>Pillars 3 & 5 • Algorithmic Career Engine</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            Career Navigator & Salary Negotiation Coach
+          <h1 className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-snug">
+            Career Navigator & Salary Intelligence
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-2xl leading-relaxed">
-            Explore live job openings with auto-refreshing market salaries, directed Dijkstra career bridging, ML compensation predictions, and HR counter-offer simulations.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-3xl leading-relaxed">
+            Explore live market salary benchmarks, directed Dijkstra career path bridging, ML compensation predictions, and HR counter-offer simulations.
           </p>
         </div>
 
         {/* Tab Pill Switcher */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1 self-start lg:self-center">
+        <div className="flex items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1 overflow-x-auto self-start xl:self-end">
           <button
             type="button"
             onClick={() => setActiveTab('market')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'market'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Globe className="w-4 h-4" />
-            <span>Live Market & Rates</span>
+            <span>Live Salary Explorer</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('graph')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'graph'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -124,7 +124,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('salary')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'salary'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -137,7 +137,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('coach')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'coach'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -162,6 +162,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
       {activeTab === 'graph' && (
         <CareerKnowledgeGraph
           initialIndustry={activeIndustry}
+          initialRole={focusedRole}
           resumes={resumes}
           onNavigateToSalary={handleNavigateToSalary}
         />

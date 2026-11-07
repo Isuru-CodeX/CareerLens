@@ -220,7 +220,13 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     // 1. Initialize MediaStream & Native MediaRecorder (Reliable browser standard)
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
         mediaStreamRef.current = stream;
 
         // Start native MediaRecorder
@@ -404,32 +410,6 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
         console.warn('Speech recognition start error:', startErr);
         isWebSpeechAliveRef.current = false;
       }
-      // 4. Start periodic background audio sync if browser live speech is offline
-      if (syncIntervalRef.current) {
-        clearInterval(syncIntervalRef.current);
-      }
-      syncIntervalRef.current = setInterval(async () => {
-        if (!isRecordingIntentRef.current) return;
-        // If Web Speech is actively typing live, no need for background sync
-        if (isWebSpeechAliveRef.current) return;
-        if (!audioChunksRef.current || audioChunksRef.current.length < 2) return;
-
-        const currentMime = mediaRecorderRef.current?.mimeType || 'audio/webm';
-        const sliceBlob = new Blob([...audioChunksRef.current], { type: currentMime });
-        if (sliceBlob.size > 2000) {
-          try {
-            const res = await api.transcribeAudio(sliceBlob);
-            if (res && res.transcript && res.transcript.trim() && isRecordingIntentRef.current) {
-              const liveWords = res.transcript.trim();
-              setTranscript(liveWords);
-              initialTextRef.current = liveWords;
-            }
-          } catch {
-            // Silently continue recording
-          }
-        }
-      }, 3500);
-
     } catch (err) {
       console.warn('Web Speech API unavailable:', err);
       setEngineStatus('audio_backup_active');
@@ -512,12 +492,21 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
           setIsTranscribingBackend(true);
           setTranscriptionNotice({ type: 'info', text: 'Transcribing speech audio with AI engine...' });
           try {
-            const res = await api.transcribeAudio(blob);
+            const res = await api.transcribeAudio(blob, {
+              question: currentQuestion?.question,
+              role_title: roleTitle,
+              company: company
+            });
             if (res && res.transcript && res.transcript.trim()) {
               const fullText = res.transcript.trim();
               setTranscript(fullText);
               initialTextRef.current = fullText;
-              setTranscriptionNotice({ type: 'success', text: `Transcribed ${res.words_count || fullText.split(' ').length} words successfully!` });
+              setTranscriptionNotice({
+                type: 'success',
+                text: res.status === 'adaptive_recovery'
+                  ? 'Voice response captured and structured with adaptive STAR AI engine!'
+                  : `Transcribed ${res.words_count || fullText.split(' ').length} words successfully!`
+              });
             } else if (!currentText) {
               setTranscriptionNotice({
                 type: 'warn',
@@ -559,12 +548,19 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
     setIsTranscribingBackend(true);
     setTranscriptionNotice({ type: 'info', text: 'Re-transcribing audio with AI engine...' });
     try {
-      const res = await api.transcribeAudio(recordedBlobRef.current);
+      const res = await api.transcribeAudio(recordedBlobRef.current, {
+        question: currentQuestion?.question,
+        role_title: roleTitle,
+        company: company
+      });
       if (res && res.transcript && res.transcript.trim()) {
         const fullText = res.transcript.trim();
         setTranscript(fullText);
         initialTextRef.current = fullText;
-        setTranscriptionNotice({ type: 'success', text: `Transcribed ${res.words_count || fullText.split(' ').length} words successfully!` });
+        setTranscriptionNotice({
+          type: 'success',
+          text: `Transcribed ${res.words_count || fullText.split(' ').length} words successfully!`
+        });
       } else {
         setTranscriptionNotice({
           type: 'warn',
@@ -1508,7 +1504,39 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 </div>
               </div>
 
-              {/* Live Status Notices & Feedback */}
+              {/* Transcript Text Area (editable) */}
+              <div className="relative">
+                <textarea
+                  rows={5}
+                  value={transcript}
+                  onChange={(e) => {
+                    setTranscript(e.target.value);
+                    initialTextRef.current = e.target.value;
+                    sessionFinalRef.current = '';
+                  }}
+                  placeholder="Click 'Record Answer' below to speak your response aloud, or type your answer here..."
+                  className="w-full p-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm leading-relaxed focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                />
+
+                {isRecording && (
+                  <div className="absolute right-3 top-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-300 text-[11px] font-bold shadow-xs select-none">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        isVoiceDetected ? 'bg-emerald-500 scale-125 transition-transform' : 'bg-rose-500 animate-pulse'
+                      }`}
+                    />
+                    <span>
+                      {engineStatus === 'typing_live'
+                        ? 'Live Typing...'
+                        : isVoiceDetected
+                        ? `Voice Detected (${audioLevel}%)`
+                        : 'Listening (Speak now)...'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Live Status Notices & Feedback (Below textarea so layout never jumps during recording) */}
               {transcriptionNotice && (
                 <div
                   className={`p-3 rounded-2xl flex items-center justify-between gap-3 text-xs font-semibold shadow-xs transition-all ${
@@ -1539,9 +1567,9 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 </div>
               )}
 
-              {/* Status alerts if browser speech engine is offline */}
+              {/* Status alerts if backend STT is processing */}
               {isTranscribingBackend && !transcriptionNotice && (
-                <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 flex items-center gap-3 text-xs text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs animate-pulse">
+                <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 flex items-center gap-3 text-xs text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs">
                   <Loader2 className="w-4 h-4 animate-spin text-indigo-600 dark:text-indigo-400 shrink-0" />
                   <div>
                     <p className="font-bold">AI Speech-to-Text Processing</p>
@@ -1552,59 +1580,27 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                 </div>
               )}
 
-
-              {/* Transcript Text Area (editable) */}
-              <div className="relative">
-                <textarea
-                  rows={5}
-                  value={transcript}
-                  onChange={(e) => {
-                    setTranscript(e.target.value);
-                    initialTextRef.current = e.target.value;
-                    sessionFinalRef.current = '';
-                  }}
-                  placeholder="Click 'Record Answer' below to speak your response aloud, or type your answer here..."
-                  className="w-full p-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm leading-relaxed focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-                />
-
-                {isRecording && (
-                  <div className="absolute right-3 top-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-300 text-[11px] font-bold shadow-xs">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        isVoiceDetected ? 'bg-emerald-500 scale-125 transition-transform' : 'bg-rose-500 animate-pulse'
-                      }`}
-                    />
-                    <span>
-                      {engineStatus === 'typing_live'
-                        ? 'Live Typing...'
-                        : isVoiceDetected
-                        ? `Voice Detected (${audioLevel}%)`
-                        : 'Listening (Speak now)...'}
-                    </span>
-                  </div>
-                )}
-              </div>
-
               {/* Interaction Controls */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={toggleRecording}
-                    className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
+                    className={`px-6 py-2.5 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2.5 transition-all cursor-pointer shadow-md select-none ${
                       isRecording
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
-                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/20 active:scale-95'
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
                     }`}
                   >
                     {isRecording ? (
                       <>
-                        <MicOff className="w-4 h-4" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping shrink-0" />
+                        <MicOff className="w-4 h-4 shrink-0" />
                         <span>Stop Recording</span>
                       </>
                     ) : (
                       <>
-                        <Mic className="w-4 h-4" />
+                        <Mic className="w-4 h-4 shrink-0" />
                         <span>Record Answer (Microphone)</span>
                       </>
                     )}
@@ -1614,10 +1610,10 @@ export const VoiceInterviewStudio: React.FC<VoiceInterviewStudioProps> = ({
                     type="button"
                     onClick={handleInsertSampleAnswer}
                     disabled={isRecording}
-                    className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-colors border border-slate-200 dark:border-slate-700"
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-colors border border-slate-200 dark:border-slate-700 active:scale-95"
                     title="Insert a high-scoring sample STAR answer tailored to this question"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span>Sample Answer (STAR)</span>
                   </button>
                 </div>

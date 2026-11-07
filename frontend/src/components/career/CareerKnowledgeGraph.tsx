@@ -28,6 +28,7 @@ interface CareerKnowledgeGraphProps {
   initialIndustry?: string;
   resumes?: Resume[];
   onNavigateToSalary?: (roleTitle: string) => void;
+  initialRole?: string;
 }
 
 const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; fill: string; dot: string }> = {
@@ -77,7 +78,8 @@ const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string
 export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
   initialIndustry = 'all',
   resumes = [],
-  onNavigateToSalary
+  onNavigateToSalary,
+  initialRole
 }) => {
   const [graphData, setGraphData] = useState<CareerKnowledgeGraphData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -104,10 +106,20 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         if (!active) return;
         setGraphData(data);
         if (data.nodes.length > 0) {
-          const firstNode = data.nodes[0];
-          const secondNode = data.nodes.length > 1 ? data.nodes[data.nodes.length - 1] : firstNode;
-          setSelectedNode(firstNode);
-          setCurrentRoleId(firstNode.id);
+          // If initialRole was requested, search for it
+          let targetNode = data.nodes[0];
+          if (initialRole) {
+            const norm = initialRole.toLowerCase().trim();
+            const matched = data.nodes.find(n =>
+              n.title.toLowerCase().trim() === norm ||
+              n.title.toLowerCase().includes(norm) ||
+              norm.includes(n.title.toLowerCase())
+            );
+            if (matched) targetNode = matched;
+          }
+          const secondNode = data.nodes.length > 1 ? data.nodes[data.nodes.length - 1] : targetNode;
+          setSelectedNode(targetNode);
+          setCurrentRoleId(targetNode.id);
           setTargetRoleId(secondNode.id);
         }
       })
@@ -116,7 +128,24 @@ export const CareerKnowledgeGraph: React.FC<CareerKnowledgeGraphProps> = ({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [selectedIndustry]);
+  }, [selectedIndustry, initialRole]);
+
+  // When initialRole changes, dynamically select and focus it
+  useEffect(() => {
+    if (!graphData || !initialRole) return;
+    const norm = initialRole.toLowerCase().trim();
+    const matched = graphData.nodes.find(n =>
+      n.title.toLowerCase().trim() === norm ||
+      n.title.toLowerCase().includes(norm) ||
+      norm.includes(n.title.toLowerCase())
+    );
+    if (matched && selectedNode?.id !== matched.id) {
+      queueMicrotask(() => {
+        setSelectedNode(matched);
+        setCurrentRoleId(matched.id);
+      });
+    }
+  }, [graphData, initialRole, selectedNode]);
 
   // Handle Dijkstra Bridge calculation
   const handleComputeBridge = async () => {
