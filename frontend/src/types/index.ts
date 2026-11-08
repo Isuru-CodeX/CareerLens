@@ -1356,15 +1356,55 @@ export interface SocialSkillExtractionResponse {
   skills: ExtractedSocialSkill[];
 }
 
+export interface LearningStudyGuide {
+  key_concepts: string[];
+  code_example?: string;
+  code_language?: string;
+  common_pitfalls: string[];
+  practice_exercise: string;
+}
+
+export interface LearningCurvePhase {
+  phase_number: number;
+  phase_name: string;
+  focus: string;
+  milestone_count: number;
+  completed_count: number;
+  estimated_weeks: number;
+  status: 'completed' | 'in_progress' | 'upcoming';
+}
+
+export interface LearningCurveData {
+  role_title: string;
+  industry_id: string;
+  category: string;
+  level: number;
+  curve_type: string;
+  curve_shape: string;
+  difficulty_level: string;
+  difficulty_score: number;
+  estimated_weeks: number;
+  estimated_months: number;
+  total_curriculum_hours: number;
+  weekly_hours: number;
+  trajectory_description: string;
+  phases: LearningCurvePhase[];
+  curve_points: Array<{ x: number; y: number; label: string }>;
+  core_competencies?: string[];
+  advanced_competencies?: string[];
+}
+
 export interface LearningTaskData {
   id: string;
   skill_name: string;
   title: string;
   learning_objective: string;
   estimated_effort_hours: number;
+  difficulty_tier?: string;
   prerequisites: string[];
   resources: Array<{ title: string; url: string; type: string }>;
   mini_project?: string;
+  study_guide?: LearningStudyGuide;
   status: 'planned' | 'in_progress' | 'completed' | 'assessed';
   assessment_score?: number;
   has_quiz: boolean;
@@ -1380,6 +1420,7 @@ export interface LearningPlanData {
     preferred_days: string[];
     progress_percent: number;
     created_at: string;
+    learning_curve?: LearningCurveData;
   } | null;
   tasks: LearningTaskData[];
 }
@@ -1399,7 +1440,9 @@ export interface LearningQuizResult {
     question_id: string;
     question: string;
     is_correct: boolean;
+    chosen_option?: string;
     correct_option?: string;
+    explanation?: string;
   }>;
   skill_verified: boolean;
   message: string;

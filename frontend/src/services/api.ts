@@ -1350,8 +1350,9 @@ class ApiService {
     });
   }
 
-  async getCareerRoles(): Promise<{ roles: CareerRoleOption[] }> {
-    return this.request<{ roles: CareerRoleOption[] }>('/career/roles');
+  async getCareerRoles(industry?: string): Promise<{ roles: CareerRoleOption[] }> {
+    const url = industry && industry !== 'all' ? `/career/roles?industry=${encodeURIComponent(industry)}` : '/career/roles';
+    return this.request<{ roles: CareerRoleOption[] }>(url);
   }
 
   async compareCareerPaths(
@@ -1404,6 +1405,8 @@ class ApiService {
     target_role_id?: string;
     weekly_hours?: number;
     preferred_days?: string[];
+    industry?: string;
+    focus_skills?: string[];
   }): Promise<LearningPlanData> {
     return this.request<LearningPlanData>('/learning/generate', {
       method: 'POST',

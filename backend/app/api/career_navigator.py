@@ -100,23 +100,29 @@ def get_career_knowledge_graph(
 
 @router.get("/roles")
 def get_all_career_roles(
+    industry: Optional[str] = Query(None, description="Filter roles by industry domain (e.g. 'tech', 'data', 'finance', 'all')"),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Returns all 54 specialized industry career roles across domains (Software, Cloud, Data,
-    AI, Product, Finance, Healthcare, Marketing, Ops, Legal) for multi-role trajectory selection.
+    Returns specialized industry career roles across domains (Software, Cloud, Data,
+    AI, Product, Finance, Healthcare, Marketing, Ops, Legal) for multi-role trajectory selection,
+    optionally filtered by industry.
     """
-    graph = CareerGraphService.get_full_graph()
+    graph = CareerGraphService.get_full_graph(industry_id=industry)
     roles = []
     for node in graph.get("nodes", []):
+        level = node.get("level", 2)
+        exp_min = 1.0 if level == 1 else (3.0 if level == 2 else 5.0)
+        skills = node.get("required_skills") or (node.get("core_skills", []) + node.get("advanced_skills", []))
         roles.append({
             "id": node["id"],
             "title": node["title"],
-            "domain": node.get("domain", "Engineering"),
-            "industry": node.get("industry", "tech"),
-            "seniority_tier": node.get("seniority_tier", "L2"),
-            "experience_years_min": node.get("experience_years_min", 3.0),
-            "required_skills": node.get("required_skills", [])
+            "domain": node.get("category") or node.get("domain") or "General",
+            "industry": node.get("industry_id") or node.get("industry") or "tech",
+            "industry_name": node.get("industry_name") or "Technology & Software",
+            "seniority_tier": node.get("seniority_tier") or f"L{level}",
+            "experience_years_min": node.get("experience_years_min", exp_min),
+            "required_skills": skills
         })
     return {"roles": roles}
 

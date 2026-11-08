@@ -4,7 +4,6 @@ import {
   DollarSign,
   MessageSquare,
   Globe,
-  Layers,
   BookOpen,
   Target,
   CheckCircle2,
@@ -15,7 +14,6 @@ import { CareerKnowledgeGraph } from '../components/career/CareerKnowledgeGraph'
 import { SalaryPredictorStudio } from '../components/career/SalaryPredictorStudio';
 import { NegotiationCoachStudio } from '../components/career/NegotiationCoachStudio';
 import { LiveMarketJobsStudio } from '../components/career/LiveMarketJobsStudio';
-import { CareerPathComparator } from '../components/career/CareerPathComparator';
 import { AdaptiveLearningStudio } from '../components/career/AdaptiveLearningStudio';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { Resume, CareerProfile, CareerGoalData } from '../types';
@@ -30,7 +28,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   resumes = []
 }) => {
   const { triggerTransition } = useLoader();
-  const [activeTab, setActiveTab] = useState<'market' | 'graph' | 'compare' | 'learning' | 'salary' | 'coach'>('market');
+  const [activeTab, setActiveTab] = useState<'market' | 'graph' | 'learning' | 'salary' | 'coach'>('market');
   const [_userProfile, setUserProfile] = useState<CareerProfile | null>(null);
   const [activeIndustry, setActiveIndustry] = useState<string>('all');
   const [focusedRole, setFocusedRole] = useState<string>('Senior Full Stack Engineer');
@@ -44,7 +42,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
   const [goalDateInput, setGoalDateInput] = useState<string>('');
   const [savingGoal, setSavingGoal] = useState<boolean>(false);
 
-  const handleTabSelect = (tab: 'market' | 'graph' | 'compare' | 'learning' | 'salary' | 'coach') => {
+  const handleTabSelect = (tab: 'market' | 'graph' | 'learning' | 'salary' | 'coach') => {
     if (tab === activeTab) return;
     const configMap = {
       market: {
@@ -60,13 +58,6 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
         badge: 'Dijkstra Career Graph',
         icon: 'compass' as const,
         accentColor: 'indigo'
-      },
-      compare: {
-        title: 'Comparing Career Trajectories...',
-        subtitle: 'Evaluating multi-role skill overlap, time-to-learn, & compensation bands...',
-        badge: 'Path Matrix Comparator',
-        icon: 'target' as const,
-        accentColor: 'blue'
       },
       learning: {
         title: 'Loading Adaptive Curriculum...',
@@ -249,7 +240,7 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
               Career Navigator & Adaptive Development
             </h1>
             <p className="text-xs sm:text-sm text-indigo-200/80 font-medium max-w-3xl leading-relaxed">
-              Explore global salary benchmarks, navigate Dijkstra career bridge paths, compare multi-role trajectories, pursue adaptive learning milestones, and master offer negotiations.
+              Explore global salary benchmarks, navigate Dijkstra career bridge paths, pursue adaptive learning milestones with unique role learning curves, and master offer negotiations.
             </p>
           </div>
 
@@ -280,19 +271,6 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
               >
                 <Compass className="w-4 h-4 shrink-0" />
                 <span>Career Graph & Bridge</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTabSelect('compare')}
-                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 shrink-0 cursor-pointer ${
-                  activeTab === 'compare'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 ring-1 ring-indigo-400'
-                    : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
-                }`}
-              >
-                <Layers className="w-4 h-4 shrink-0" />
-                <span>Compare Paths</span>
               </button>
 
               <button
@@ -442,17 +420,6 @@ export const CareerNavigatorView: React.FC<CareerNavigatorViewProps> = ({
           initialRole={focusedRole}
           resumes={resumes}
           onNavigateToSalary={handleNavigateToSalary}
-        />
-      )}
-
-      {activeTab === 'compare' && (
-        <CareerPathComparator
-          initialRoles={['MY_PROFILE', focusedRole, 'Cloud Solutions Architect']}
-          onSelectRoleForLearning={(roleTitle) => {
-            setFocusedRole(roleTitle);
-            handleTabSelect('learning');
-          }}
-          onSetRoleAsGoal={handleQuickSetGoal}
         />
       )}
 
