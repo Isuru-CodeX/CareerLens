@@ -1,88 +1,133 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1e1b4b,25:312e81,50:4f46e5,75:06b6d4,100:0f172a&height=260&section=header&text=CareerLens%20AI&fontSize=68&fontColor=ffffff&animation=twinkling&fontAlignY=36&desc=%E2%9C%A8%20Autonomous%20AI%20Career%20Co-Pilot%20%E2%80%A2%20Voice%20Mock%20Interview%20%E2%80%A2%2054-Role%20Navigator%20%E2%80%A2%20Vector%20RAG&descAlignY=58&descSize=19" width="100%" alt="CareerLens AI banner" />
+<!-- Animated Header Wave Banner -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,20:1e1b4b,45:312e81,70:4f46e5,90:06b6d4,100:0f172a&height=280&section=header&text=CareerLens%20AI&fontSize=72&fontColor=ffffff&animation=twinkling&fontAlignY=38&desc=%E2%9C%A8%20Autonomous%20AI%20Career%20Intelligence%20%E2%80%A2%20Model%20Training%20Workbench%20%E2%80%A2%20Voice%20Mock%20Interview%20%E2%80%A2%2054-Role%20Navigator&descAlignY=58&descSize=18" width="100%" alt="CareerLens AI Banner" />
 
+<!-- Dynamic Animated Typing Subtitles -->
 <a href="https://github.com/Isuru-CodeX/CareerLens">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&duration=2800&pause=800&color=818CF8&center=true&vCenter=true&width=840&lines=Autonomous+AI+Career+Co-Pilot+%26+ATS+Intelligence;54-Role+Career+Trajectory+Comparator+with+Profile+Baseline;Interactive+Voice+AI+Mock+Interviewer+with+STAR+Scoring;Zero-PII+GitHub+%26+LinkedIn+AI+Skill+Discovery;Dense+Vector+RAG+%26+4-Tier+ATS+Stress-Test+Engine;In-Browser+Live+Coding+Sandbox+with+Big-O+Complexity;6-Pillar+Evidence-Weighted+Career+Readiness+Scorecard;Explainable+AI+(SHAP)+%26+DEI+Unconscious+Bias+Auditor" alt="Typing animation" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&duration=2600&pause=900&color=38BDF8&center=true&vCenter=true&width=920&lines=%E2%9A%A1+Enterprise+Admin+Command+Center+%26+In-App+AI+Model+Training;%E2%9C%A8+Autonomous+AI+Career+Co-Pilot+%26+4-Tier+ATS+Stress-Test+Engine;%F0%9F%8E%99%EF%B8%8F+Real-Time+Voice+AI+Mock+Interviewer+with+STAR+Evaluation;%F0%9F%97%BA%EF%B8%8F+54-Role+Career+Trajectory+Navigator+with+Profile+Baseline;%F0%9F%A7%A0+Supervised+Salary+Regressor+%26+256-D+Vector+RAG+Embedder;%F0%9F%9B%A1%EF%B8%8F+Level-4+RBAC+Governance+%26+Zero-PII+GDPR+Article+17+Purge;%F0%9F%92%B0+Game-Theory+Offer+Negotiation+Coach+%26+Market+Compensation;%F0%9F%92%BB+In-Browser+Live+Coding+Sandbox+with+Big-O+Complexity+Review" alt="Typing animation" />
 </a>
 
 <br/>
 
-<p>
+<!-- Modern Tech Stack & Quality Badges -->
+<p align="center">
   <img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.0-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-6.x-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
-  <img src="https://img.shields.io/badge/SQLite-SQLAlchemy-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
+  <img src="https://img.shields.io/badge/Scikit--Learn-ML%20Engine-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white" alt="Scikit-Learn" />
+  <img src="https://img.shields.io/badge/SQLite-SQLAlchemy_2.0-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
 </p>
 
-<p>
-  <img src="https://img.shields.io/badge/Tests-87%20Passed%20%E2%9C%85-10b981?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests" />
-  <img src="https://img.shields.io/badge/Lint-0%20Warnings-6366f1?style=for-the-badge&logo=oxc&logoColor=white" alt="Lint" />
-  <img src="https://img.shields.io/badge/Security-Zero%20PII%20Policy-0ea5e9?style=for-the-badge&logo=shield&logoColor=white" alt="Security" />
-  <img src="https://img.shields.io/badge/Privacy-GDPR%20Compliant-10b981?style=for-the-badge" alt="Privacy" />
+<p align="center">
+  <img src="https://img.shields.io/badge/Backend%20Tests-32%2F32%20Passed%20%E2%9C%85-10b981?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest Tests" />
+  <img src="https://img.shields.io/badge/Frontend%20Build-Passing%20(0%20Errors)-6366f1?style=for-the-badge&logo=vite&logoColor=white" alt="Build Status" />
+  <img src="https://img.shields.io/badge/IR%20Benchmark-NDCG%403%20%E2%89%A5%200.985-0ea5e9?style=for-the-badge&logo=googlecloud&logoColor=white" alt="IR Benchmark" />
+  <img src="https://img.shields.io/badge/Governance-Level--4%20RBAC-8b5cf6?style=for-the-badge&logo=auth0&logoColor=white" alt="RBAC" />
+  <img src="https://img.shields.io/badge/Privacy-GDPR%20Article%2017-10b981?style=for-the-badge&logo=shield&logoColor=white" alt="GDPR" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
 </p>
 
-<p>
-  <a href="#-about"><b>📱 About</b></a> •
-  <a href="#-features"><b>✨ Features</b></a> •
+<!-- Quick Link Buttons -->
+<p align="center">
+  <a href="#-about-careerlens-ai"><b>📱 About</b></a> •
+  <a href="#-enterprise-admin-command-center--ai-training-workbench"><b>🛡️ Admin Command Center</b></a> •
+  <a href="#-in-app-ai-model-training-engine"><b>🧠 AI Model Training</b></a> •
   <a href="#-real-time-voice-mock-interviewer"><b>🎙️ Voice Interviewer</b></a> •
-  <a href="#-54-role-career-trajectory-comparator--knowledge-graph"><b>🗺️ Career Navigator</b></a> •
+  <a href="#-54-role-career-trajectory-navigator"><b>🗺️ Career Navigator</b></a> •
   <a href="#-architecture"><b>🏗️ Architecture</b></a> •
-  <a href="#-tech-stack"><b>🛠️ Tech Stack</b></a> •
-  <a href="#-getting-started"><b>🚀 Quick Start</b></a> •
-  <a href="#-testing--code-quality"><b>🧪 Testing</b></a> •
-  <a href="#-roadmap"><b>🗺️ Roadmap</b></a>
+  <a href="#-quick-start"><b>🚀 Quick Start</b></a> •
+  <a href="#-test-suite--code-quality"><b>🧪 Testing</b></a>
 </p>
 
 </div>
 
 ---
 
-## 📱 About
+## 📱 About CareerLens AI
 
-**CareerLens AI** is an enterprise-grade, autonomous **career intelligence and resume elevation platform**. Designed to bridge the gap between job candidates and modern Applicant Tracking Systems (ATS), CareerLens AI moves beyond basic static forms by combining **heuristic ATS parsing, semantic job-match alignment, evidence-preserving AI writing assistance, and an interactive Real-Time Voice AI Mock Interview Simulator**.
+**CareerLens AI** is an enterprise-grade, autonomous **career intelligence ecosystem and AI model training workbench**. Designed to bridge the gap between job candidates, algorithmic hiring systems (Applicant Tracking Systems), and talent operations, CareerLens AI provides an all-in-one suite spanning:
 
-Whether you need to stress-test your resume against algorithmic hiring filters, practice high-stakes technical interviews with live speech-to-text feedback, or generate tailored, grounded cover letters with truth-preserving accuracy, CareerLens AI provides an end-to-end command center for your job search.
+* 🛡️ **Level-4 RBAC Admin Command Center**: Comprehensive control room featuring 14 operations tabs and a dedicated 10-subtab AI Model Training Center.
+* 🧠 **Autonomous AI Model Training Pipeline**: 1-click training, hyperparameter tuning, evaluation matrices, and hot-swappable model registries for compensation regressors and vector embeddings.
+* 🎙️ **Voice AI Mock Interview Studio**: Interactive spoken interviews with real-time Web Audio API decibel metering, speech pacing (WPM), filler-word detection, and STAR rubric grading.
+* 🗺️ **54-Role Career Knowledge Graph**: Directed graph spanning 8 major domains with Dijkstra shortest-path bridging and "My Current Profile" baseline benchmarking.
+* 📑 **4-Tier ATS Stress-Test Engine**: Deep heuristic emulation across Workday, Greenhouse, Taleo, and Lever with explainable SHAP token attribution.
+* 💰 **Market Salary Predictor & Offer Negotiation Coach**: Supervised compensation regression across 5 cost tiers paired with game-theory recruiter roleplay simulation.
+* 🔒 **GDPR Article 17 Governance & Zero-PII Guarantee**: Instant machine-readable SAR export (.JSON) and cryptographic right-to-be-forgotten purges.
 
 ---
 
-## ✨ Features
+## 🛡️ Enterprise Admin Command Center & AI Training Workbench
 
-| | Feature | Details |
-|---|---|---|
-| 🔍 | **Bi-Directional Profile & Resume Sync** | 1-click **"Apply Profile Details to Resume"** (Profile ➔ Resume), **"Create Resume from Profile"** (instant ATS document compilation), and **"Review & Import CV to Profile"** (CV ➔ Profile) with collision alerts and provenance audit trail |
-| 🛡️ | **Unified Evidence-Aware Skill Profile** | Multi-source tracking (`UserSkillEvidence`), demonstrated vs. mentioned vs. unverified status, and automatic dispute recalculation |
-| 🌐 | **GitHub & LinkedIn AI Skill Discovery** | Automated profile scanning extracting genuine technical/professional competencies with **Strict Zero-PII Policy** (no phone numbers, emails, addresses, personal names, dates, or prose) |
-| 📊 | **Information Retrieval Match Benchmark** | Empirical evaluation achieving NDCG@3: 0.9856 and Recall@5: 1.0000 on ground-truth pairs (+2.1% relative lift over keyword search) |
-| 🎯 | **54-Role Career Trajectory Comparator** | Interactive side-by-side comparison of 1–6 roles across 8 domains with searchable dropdown, **"My Current Profile" Baseline**, AI semantic alignment scoring, salary delta badges, and 3-phase transition roadmaps |
-| 🏷️ | **Categorized Project Capabilities Matrix** | Dashboard matrix categorizing 25 system capabilities into 5 pillars: *User Data & Stats*, *AI Writing & Gen*, *Career Analytics*, *Multimodal Simulation*, and *Verification & Audits* |
-| 📚 | **Adaptive Learning Plan & Skill Quizzes** | Dynamic curriculum generation with study cadence controls and automated quiz evaluation elevating skills to Demonstrated ($\ge 66\%$) |
-| 🎖️ | **6-Pillar Career Readiness Scorecard** | Diagnostic weighted scorecard replacing subjective readiness claims with transparent mathematical formulation across 6 verifiable dimensions |
-| ⚖️ | **Explainable AI & Bias Auditor** | SHAP token-level attribution heatmaps, DEI unconscious bias scanner, and blind recruitment masking |
-| 💻 | **Live Coding & Assessment Sandbox**| In-browser algorithmic assessment runner with automated Big-O time and space complexity reviews |
-| 🎓 | **University Placement Cell** | Multi-tenant SaaS portal with cohort readiness metrics, curriculum deficit alerts, and batch candidate exports |
-| 🛡️ | **GitHub "Proof of Work" Verifier** | Claim-to-code cross-verification matching resume skills against GitHub repos with cryptographic SHA-256 badges |
-| 🎥 | **CV Non-Verbal Coach** | Real-time webcam eye contact tracking, head pose posture estimation, and fidget cadence feedback |
-| 🗺️ | **Career Knowledge Graph** | Directed Knowledge Graph modeling 46 technical roles, Dijkstra shortest-path career bridges, and prerequisite trees |
-| 💰 | **ML Salary Predictor** | Supervised compensation regression estimating 25th, 50th, 75th, and 90th percentile bands with location cost tiers |
-| 🤝 | **Negotiation Coach & Simulator** | Interactive game-theory recruiter negotiation simulator measuring leverage, firmness vs. politeness, and concession gains |
-| 📜 | **Battle-Tested Counter-Offers** | 5 1-click structured negotiation templates (*Market Anchor, Competing Offer, Total Comp Bridge, 6-Month Review, Phone Script*) |
-| 🎙️ | **Voice AI Mock Interviewer** | Interactive spoken interview simulator with speech pacing (WPM), filler-word detection, and STAR framework evaluation |
-| 🏆 | **Exemplar Model Answers** | Dissects every question with 3 benchmark answers (*Senior Leadership & ROI*, *Deep Technical Architecture*, *Agile Incident Recovery*) with audio playback |
-| 📊 | **Live Mic Visualizer (VU Meter)** | Real-time Web Audio API decibel sound equalizer confirming active microphone sensitivity (0–100%) |
-| 🔄 | **Dual-Engine Speech Pipeline** | Simultaneous in-browser live streaming + native `MediaRecorder` audio buffering with server-side bundled FFmpeg speech-to-text fallback |
-| 📄 | **ATS Parser & Audit Engine** | Scans multi-column layouts, tables, and typography across PDF, DOCX, and TXT resumes with structural score breakdowns |
-| 🎯 | **Job Description Matcher** | Deep skill-gap analysis comparing resume bullet evidence against job postings with targeted learning roadmaps |
-| ✍️ | **Cover Letter Studio** | Live streaming cover letter generator with 1-click **"Fix Grammar"** and **"Make More Human"** NLP rewriting tools |
-| 👤 | **Candidate Master Profile** | Unified candidate profiles, multi-candidate selection, and education presets (*University, High School, Diplomas, Certifications*) |
-| 📍 | **AI Location & Industry Autocomplete** | Automated geographical enrichment (postal codes, provinces, countries) and role-to-industry domain discovery |
-| 📋 | **Interactive Kanban Pipeline** | Drag-and-drop job application tracker (*Interested, Applied, Interviewing, Offer, Rejected*) with celebratory feedback |
-| 🌓 | **Triple Appearance System** | Zero-flash theme engine supporting **System**, **Dark (Navy Slate)**, and **Light** modes with printable resume styles |
-| 🔐 | **GDPR & Privacy Governance** | Strict user data isolation, 1-click complete data export (JSON), and permanent disk/database erasure |
+The **Admin Command Center** is a mission-control portal tailored for ML engineers, talent operators, and platform super-administrators:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              CareerLens Admin Command Center                           │
+├───────────────────┬───────────────────┬──────────────────────┬─────────────────────────┤
+│ 1. AI Ops &       │ 2. Career &       │ 3. User & Access     │ 4. System &             │
+│    Model Training │    Market Intel   │    Governance        │    Integrations         │
+├───────────────────┼───────────────────┼──────────────────────┼─────────────────────────┤
+│ • ML Training Hub │ • 54-Role Graph   │ • Level-4 RBAC       │ • System Health Monitor │
+│ • 256-D Indexer   │ • Salary Tiers    │ • Masked PII Vault   │ • Real-Time Vector Ping │
+│ • Prompt Sandbox  │ • ATS Filters     │ • GDPR Erasure (A17) │ • SQLite / Disk Storage │
+│ • Token Spend     │ • Question Banks  │ • Immutable Audit    │ • Multi-Format Exporter │
+└───────────────────┴───────────────────┴──────────────────────┴─────────────────────────┘
+```
+
+### 📋 Complete 14-Tab Command Center Breakdown:
+
+| Tab | Module | Core Functionality & Capabilities |
+|:---:|---|---|
+| **01** | **Executive Dashboard** | Real-time platform KPI metrics, 7-day usage time-series analytics, vector latency ping, and rapid operational actions. |
+| **02** | **Users & RBAC** | Role management across 6 tiers (`super_admin`, `admin`, `ml_engineer`, `reviewer`, `support`, `analyst`), temporary password resets (`CareerLensReset2026!`), and user account suspension/activation. |
+| **03** | **Resumes Vault** | Centralized resume repository with parse status indicators (`parsed`, `warning`, `failed`), masked PII modals, and audited raw file downloads. |
+| **04** | **Analysis Simulator** | Real-time ATS scoring simulator with live weight sliders (ATS, Impact, Brevity, Structure with 100% sum validation) and vague-phrase leaderboards. |
+| **05** | **Job Matching Index** | Active job description catalog, match score distribution histograms, and percentile compensation calibration curves. |
+| **06** | **Applications & Funnel** | 6-stage recruitment funnel cards and mock interview STAR performance analytics (**Situation 82%**, **Task 79.5%**, **Action 86.2%**, **Result 78%**). |
+| **07** | **AI Model Training Center** | Complete 10-subtab machine learning lifecycle studio (detailed below). |
+| **08** | **Knowledge Base** | 54-role career trajectory graph, skill synonym clustering, and language heuristic rule management. |
+| **09** | **AI Prompts Playground** | System prompt template registry, locked guardrail badges, and interactive live model sandbox. |
+| **10** | **Feedback & Support** | User feedback triage with a 1-click **"Convert to AI Mistake Report"** action for regression testing. |
+| **11** | **Reports & CSV Exporter** | One-click verified CSV downloads for Users, Models, Resumes, and Audit Logs, alongside comprehensive Executive Audit Reports. |
+| **12** | **Audit Ledger** | Append-only security audit trail recording actor IDs, roles, client IP addresses, and state modification diffs. |
+| **13** | **Privacy & GDPR** | Consent donor statistics, automated training data isolation, and configurable retention schedules. |
+| **14** | **System & Diagnostics** | Microservice health monitors, SQLite table sizes, parsed resume storage count, and live 256-D vector latency ping tests. |
+
+---
+
+## 🧠 In-App AI Model Training Engine
+
+CareerLens AI features an integrated, end-to-end ML workbench built directly into the admin panel:
+
+<div align="center">
+
+```
+   Raw Data Ingestion          Annotation & Curation          Training Pipeline           Evaluation & Gates          Production Registry
+┌──────────────────────┐      ┌─────────────────────┐      ┌────────────────────┐      ┌─────────────────────┐      ┌─────────────────────┐
+│ • User Resumes       │      │ • Segment Annotator │      │ • Scikit-Learn ML  │      │ • Confusion Matrix  │      │ • Staging / Prod    │
+│ • Scraped JDs        │ ───► │ • Human Quality QA  │ ───► │ • Vector Embedder  │ ───► │ • Regression Scatter│ ───► │ • 1-Click Rollback  │
+│ • Salary Snapshots   │      │ • Mistake Reviews   │      │ • Hyperparameters  │      │ • IR NDCG Benchmark │      │ • Hot-Swap Models   │
+└──────────────────────┘      └─────────────────────┘      └────────────────────┘      └─────────────────────┘      └─────────────────────┘
+```
+
+</div>
+
+### 🔬 The 10 Subtabs of the AI Training Center:
+1. **Overview & Telemetry**: Live metrics on active models, labeled datasets, LLM token consumption, and IR benchmark performance ($\text{NDCG@3} \ge 0.9856$, $\text{Recall@5} = 1.0000$).
+2. **Datasets Catalog**: Searchable repository of training corpora categorized by model family (*Salary, ATS Classifier, Vector Embeddings*).
+3. **Manual Upload**: Drag-and-drop file ingestion with automatic train/validation/test split assignment (70/15/15).
+4. **Online Import**: Secure external URL and dataset fetcher with built-in SSRF protection and schema validation.
+5. **Annotation Workbench**: Interactive segment labeling tool allowing human evaluators to score resume bullet quality and skill relevance.
+6. **Mistake Review & Regression Tests**: Review false-positive/false-negative predictions and convert them into permanent automated test assertions with 1 click.
+7. **Training Jobs Launcher**: Launch background Scikit-Learn model training with live progress telemetry, epoch counters, and loss metrics.
+8. **Evaluation Workbench**: Interactive confusion matrices, $R^2$ regression scatter plots, and MAE/RMSE calculation.
+9. **Model Registry & Hot-Swapping**: Track staged vs. active production models with instant zero-downtime rollback capabilities.
+10. **Auto-Learning Pipeline**: Configurable scheduled pipelines that automatically ingest verified feedback and trigger self-improvement loops.
 
 ---
 
@@ -90,68 +135,54 @@ Whether you need to stress-test your resume against algorithmic hiring filters, 
 
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=15&duration=2000&pause=400&color=10B981&center=true&vCenter=true&width=580&lines=%E2%96%81%E2%96%82%E2%96%85%E2%96%88%E2%96%86%E2%96%83%E2%96%81%E2%96%84%E2%96%87+LIVE+WEB+AUDIO+API+ANALYSIS+ACTIVE;%E2%96%83%E2%96%86%E2%96%88%E2%96%85%E2%96%82%E2%96%81%E2%96%84%E2%96%87%E2%96%85+DECIBEL+VU+EQUALIZER+STREAMING+(0--100%25);%E2%96%85%E2%96%88%E2%96%87%E2%96%84%E2%96%82%E2%96%86%E2%96%83%E2%96%81%E2%96%82+COMPUTER+VISION+HUD+GAZE+%26+POSTURE+TRACKING+ONLINE" alt="Live Audio Equalizer Animation" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=15&duration=2000&pause=400&color=10B981&center=true&vCenter=true&width=620&lines=%E2%96%81%E2%96%82%E2%96%85%E2%96%88%E2%96%86%E2%96%83%E2%96%81%E2%96%84%E2%96%87+LIVE+WEB+AUDIO+API+ANALYSIS+ACTIVE;%E2%96%83%E2%96%86%E2%96%88%E2%96%85%E2%96%82%E2%96%81%E2%96%84%E2%96%87%E2%96%85+DECIBEL+VU+EQUALIZER+STREAMING+(0--100%25);%E2%96%85%E2%96%88%E2%96%87%E2%96%84%E2%96%82%E2%96%86%E2%96%83%E2%96%81%E2%96%82+COMPUTER+VISION+HUD+GAZE+%26+POSTURE+TRACKING+ONLINE" alt="Live Audio Equalizer Animation" />
 
 </div>
 
-The **Voice AI Mock Interview Studio** replicates high-stakes technical and behavioral hiring screens in your browser:
+The **Voice AI Mock Interview Studio** simulates rigorous technical, behavioral, and executive hiring interviews inside the browser:
 
-1. **Natural Question Delivery**: The AI interviewer reads role-targeted questions out loud using the Web Speech SpeechSynthesis API.
-2. **Real-Time Spoken Transcription**: Speak your answer naturally. Words are transcribed live into the response workbench with continuous pause tolerance.
-3. **Dual-Channel Resilience**: Even if your network restricts browser-based speech APIs, the native `MediaRecorder` captures high-definition audio and transcribes it on the server via bundled FFmpeg.
-4. **Multimodal Performance Scorecard**:
-   - **Speech Metrics**: Words-Per-Minute (WPM), total duration, and pause pacing.
-   - **Linguistic Quality**: Real-time filler-word tracking (*"um"*, *"like"*, *"basically"*, *"you know"*).
-   - **STAR Methodology**: Situation, Task, Action, and Measurable Result compliance scored on a 0–100 scale.
-5. **Interactive Model Answer Benchmarks**:
-   - Switch between **3 distinct narrative archetypes** under your turn score.
-   - Inspect the complete 4-pill STAR breakdown explaining why each answer satisfies hiring rubrics.
-   - Click **"Listen Aloud"** to hear the model answer synthesized or **"Copy Script"** to study the phrasing.
+* **Spoken Question Synthesis**: The AI interviewer reads role-calibrated questions aloud using the Web Speech SpeechSynthesis API.
+* **Dual-Channel Transcription**: Simultaneous in-browser live streaming speech recognition + native `MediaRecorder` audio capture with server-side bundled FFmpeg fallback.
+* **Live Decibel VU Equalizer**: Visual 5-band sound equalizer rendered with the Web Audio API (`AnalyserNode`) providing active mic sensitivity (0–100%).
+* **STAR Methodology Scoring**: Every spoken response is scored against Situation, Task, Action, and Result dimensions (0–100).
+* **Verbal & Delivery Metrics**: Real-time Words-Per-Minute (WPM), speech cadence, and filler-word detection (*"um"*, *"like"*, *"basically"*, *"you know"*).
+* **3-Pill Exemplar Model Answers**: Compare your answer against 3 benchmark scripts (*Executive Leadership & ROI*, *Deep Technical Architecture*, *Agile Incident Recovery*) with audio playback.
+* **Computer Vision Coach**: Real-time webcam eye contact tracking, head pose posture estimation, and fidget cadence detection.
 
 ---
 
-## 🗺️ 54-Role Career Trajectory Comparator & Knowledge Graph
+## 🗺️ 54-Role Career Trajectory Navigator
 
-The **Career Knowledge Graph & Trajectory Navigator** models technical and business careers as a directed graph of 54 specialized industry roles across 8 major domains (*Software Engineering, Data Science & AI, Cloud & DevOps, Cybersecurity, Product Management, UI/UX Design, Enterprise & Business Systems, Mobile Engineering*):
+The **Career Knowledge Graph** models tech and product careers as a directed graph of 54 industry roles across 8 core domains:
 
-1. **54-Role Side-by-Side Trajectory Comparator**:
-   - Compare 1 to 6 career trajectories simultaneously using a categorized, searchable dropdown.
-   - **"My Current Profile" Baseline**: One-click option to include your active candidate profile as the 100% baseline anchor card, reflecting verified competencies, professional experience, and current salary tier.
-   - **AI Semantic Skill Alignment**: Evaluates candidate competencies against target requirements using exact matching, domain synonyms, and token overlaps ($75\%$ skill alignment $+ 25\%$ experience tenure fit).
-   - **Real-Time Financial Delta**: Displays calculated compensation deltas (`+$35k/yr`) calibrated against 25th, median, and 75th market percentiles.
-   - **3-Phase Transition Roadmaps**: Custom phase breakdown (Foundation, Project Proof, Market Readiness) based on candidate gap depth.
-2. **Dijkstra Shortest-Path Bridging**: Computes the optimal promotion or lateral transition sequence connecting your current baseline role to your target dream role with estimated transition months and difficulty weighting.
-3. **Categorized Skill Gap Breakdown**:
-   - 🟢 **Verified Skills**: Competencies already confirmed from your synced profile and verified evidence.
-   - 🟡 **Transferrable / Partial Skills**: Adjacent competencies with AI-generated transferability rationales (e.g., *"Transferable container management background from Docker to Kubernetes"*).
-   - 🔴 **Missing Prerequisite Gaps**: Critical technical tools and architectural paradigms required for the target level.
-4. **Interactive Hierarchy Matrix**: Filter and inspect roles by seniority tiers (*L1 Entry, L2 Mid-Level, L3 Senior, L4 Staff / Lead*).
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        54-Role Career Trajectory Knowledge Graph                       │
+├───────────────────┬───────────────────┬──────────────────────┬─────────────────────────┤
+│ Software Eng (8)  │ Data & AI (7)     │ Cloud & DevOps (6)   │ Cybersecurity (5)       │
+│ • Full-Stack L1-L4│ • ML Engineer     │ • DevOps Specialist  │ • SecOps Analyst        │
+│ • Systems Arch    │ • Data Scientist  │ • Cloud Architect    │ • Penetration Tester    │
+├───────────────────┼───────────────────┼──────────────────────┼─────────────────────────┤
+│ Product (6)       │ UI/UX Design (6)  │ Mobile Eng (6)       │ Enterprise Systems (10) │
+│ • Technical PM    │ • Design Systems  │ • iOS / Android      │ • SAP / Salesforce Arch │
+│ • Growth Lead     │ • UX Researcher   │ • Flutter / RN       │ • Solutions Architect   │
+└───────────────────┴───────────────────┴──────────────────────┴─────────────────────────┘
+```
+
+* **Multi-Role Trajectory Comparator**: Compare 1 to 6 roles side-by-side with compensation bands, transition months, and prerequisite matrices.
+* **"My Current Profile" Baseline**: One-click baseline comparison anchoring candidate skills against market demands.
+* **Dijkstra Shortest-Path Bridging**: Calculates the mathematical shortest career bridge to reach any target seniority level with minimal skill gap friction.
+* **Semantic Alignment Matrix**: $75\%$ skill alignment $+ 25\%$ experience tenure fit calculation.
 
 ---
 
-## 💰 Market Salary Predictor & Offer Negotiation Coach
+## 💰 Salary Predictor & Offer Negotiation Coach
 
-The **Salary Predictor & Negotiation Coach** merges supervised compensation regression with game-theory roleplay simulation:
-
-1. **Calibrated Compensation Bands**: Predicts **25th (Entry)**, **50th (Median Market)**, **75th (Top Quartile)**, and **90th (Staff/Lead)** percentile salary benchmarks.
-2. **Location Cost Multipliers**: Calibrates benchmarks across 5 global tiers:
-   - `US Tier 1` (SF Bay Area, NYC, Seattle - 100% benchmark)
-   - `US Tier 2` (Austin, Boston, Denver, Chicago - 88%)
-   - `UK & Western Europe` (London, Berlin, Amsterdam - 76%)
-   - `Canada & Australia` (Toronto, Sydney - 80%)
-   - `Global Remote / APAC / LatAm` (65%)
-3. **High-ROI Skill Value Boosters**: Quantifies the annual dollar lift and percentage premium for high-demand skills (*Kubernetes +8%, PyTorch +12%, GenAI/LLM +14%, Distributed Systems +10%, Rust +11%*).
-4. **Interactive Recruiter Roleplay Simulator**:
-   - Real-time **Leverage Index** (0–100%) and **Recruiter Acceptance Probability**.
-   - **Tactical Balance** metric scoring candidate firmness vs. collaborative politeness.
-   - Simulated hiring lead dialogue with concessions (higher base, signing bonuses, or equity grants).
-   - Instant **Coach Critique** after every turn highlighting tactical strengths and recommended follow-up phrasing.
-5. **5 Battle-Tested Counter-Offer Scripts**:
-   - 📌 *Strategy 1: Market Data & Specialization Anchor*
-   - ⚡ *Strategy 2: Competing Offer Alignment*
-   - 🌉 *Strategy 3: Total Comp Bridge (Base + Signing Bonus)*
-   - 📈 *Strategy 4: Accelerated 6-Month Performance Review*
-   - 📞 *Strategy 5: Verbal Phone Pitch (Live Talking Points)*
+* **Calibrated Compensation Bands**: Predicts **25th (Entry)**, **50th (Median Market)**, **75th (Top Quartile)**, and **90th (Staff/Lead)** percentiles.
+* **5 Global Location Tiers**: US Tier 1 (100%), US Tier 2 (88%), UK & Western Europe (76%), Canada & Australia (80%), APAC/Remote (65%).
+* **High-ROI Skill Premiums**: Identifies top compensation drivers (*GenAI +14%, PyTorch +12%, Rust +11%, Kubernetes +8%*).
+* **Game-Theory Recruiter Simulator**: Practice real-time negotiations with dynamic leverage scores, recruiter acceptance probability, and tactical feedback.
+* **5 Battle-Tested Counter-Offers**: 1-click strategy scripts (*Market Data Anchor, Competing Offer, Total Comp Bridge, 6-Month Review, Phone Script*).
 
 ---
 
@@ -159,87 +190,88 @@ The **Salary Predictor & Negotiation Coach** merges supervised compensation regr
 
 ```mermaid
 flowchart TD
-    subgraph Client["🌐 Modern React 19 Frontend (Vite)"]
-        UI["Tailwind CSS 4 Responsive UI<br/>(Dark / Light / System)"]
-        VoiceStudio["🎙️ Voice Interview Studio"]
-        AudioMeter["🔊 Web Audio Analyser<br/>Live Decibel Equalizer"]
-        WebSpeech["🗣️ Web Speech API<br/>(TTS & Live STT)"]
-        MediaRec["📼 Native MediaRecorder<br/>Hardware Buffered Audio"]
-        Kanban["📋 Application Kanban Board"]
+    subgraph Client["🌐 Modern React 19 Frontend (Vite 6)"]
+        UI["Responsive Tailwind CSS 4 UI<br/>(Dark / Light / System Mode)"]
+        AdminView["🛡️ Level-4 RBAC Admin Command Center<br/>(14 Management Tabs)"]
+        AITrainingUI["🧠 AI Model Training Workbench<br/>(10 Subtabs: Ingest · Annotate · Train · Eval)"]
+        VoiceStudio["🎙️ Voice Interview Studio & VU Meter"]
+        Kanban["📋 Application Kanban Tracker"]
     end
 
-    subgraph Server["⚡ FastAPI Backend Engine (Python 3.12+)"]
-        API["REST Endpoints<br/>/api/interviews · /api/resumes · /api/matches"]
-        Transcribe["🎧 Server Transcriber<br/>Bundled FFmpeg + Google Speech REST"]
-        Simulator["🤖 Interview Simulator<br/>STAR Rubric Evaluation & Question Banks"]
-        DeepMatch["🎯 Deep Matcher & Gap Analyzer"]
-        ATSEngine["📑 ATS Document Parser<br/>(pypdf · python-docx · ReportLab)"]
+    subgraph Backend["⚡ FastAPI Backend Engine (Python 3.12+)"]
+        API["FastAPI REST Routers<br/>/api/admin · /api/auth · /api/interviews · /api/resumes"]
+        AdminService["⚙️ Admin & Governance Service<br/>RBAC Guard · GDPR Article 17 Purge"]
+        MLTrainer["🧪 Scikit-Learn Model Training Pipeline<br/>Salary Regressor · Confusion Matrix · Registry"]
+        VectorEngine["🔍 256-D Vector RAG & ATS Engine<br/>Cosine Similarity · Heuristic Parsers"]
+        Transcribe["🎧 Audio Engine<br/>Web Speech + Bundled FFmpeg Fallback"]
     end
 
-    subgraph AI_Providers["🧠 AI & LLM Inference"]
+    subgraph AI_Inference["🤖 AI & Language Models"]
         Gemini["Google Gemini API<br/>(gemini-2.5-flash / gemini-1.5-flash)"]
         OpenAI["OpenAI / Anthropic Models"]
-        RuleNLP["Fallback Heuristic NLP & Text Polish"]
+        Heuristics["Resilient Fallback Heuristics & Rule NLP"]
     end
 
-    subgraph Storage["🗄️ Persistence & Vault"]
-        DB[("🐬 SQLite Database<br/>SQLAlchemy 2.0 ORM")]
-        FileVault["📁 Private Disk Storage<br/>Encrypted UUID Document Vault"]
+    subgraph Persistence["🗄️ Storage & Database"]
+        DB[("🐬 SQLite Database (careerlens.db)<br/>SQLAlchemy 2.0 ORM")]
+        VectorCache[("📦 In-Memory 256-D Vector Cache")]
+        DiskVault["📁 Private Encrypted Document Vault"]
     end
 
     UI --> API
-    VoiceStudio --> WebSpeech
-    VoiceStudio --> AudioMeter
-    VoiceStudio --> MediaRec
-    MediaRec -->|WAV / WebM Audio| Transcribe
-    API --> Simulator
-    API --> DeepMatch
-    API --> ATSEngine
-    Simulator --> AI_Providers
-    DeepMatch --> AI_Providers
+    AdminView --> API
+    AITrainingUI --> API
+    VoiceStudio --> API
+    API --> AdminService
+    API --> MLTrainer
+    API --> VectorEngine
+    API --> Transcribe
+    MLTrainer --> DB
+    VectorEngine --> VectorCache
     API --> DB
-    ATSEngine --> FileVault
+    API --> DiskVault
+    AdminService --> AI_Inference
+    MLTrainer --> AI_Inference
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Complete Tech Stack
 
 <div align="center">
 
-<img src="https://skillicons.dev/icons?i=python,fastapi,react,ts,tailwind,vite,sqlite,git,github,vscode&theme=dark" alt="tech stack icons" />
+<img src="https://skillicons.dev/icons?i=python,fastapi,react,ts,tailwind,vite,sqlite,scikitlearn,git,github,vscode&theme=dark" alt="Tech Stack Icons" />
 
 </div>
 
 | Layer | Technologies | Purpose |
 |---|---|---|
-| **Frontend** | React 19, TypeScript, Vite 6, Tailwind CSS 4 | Reactive SPA interface, high-speed HMR, accessible dark theme |
-| **Icons & Motion** | Lucide React, Framer Motion, Canvas Confetti | Modern iconography, micro-interactions, celebration animations |
-| **Audio & Speech** | Web Speech API, Web Audio API (`AnalyserNode`), `MediaRecorder` | Real-time speech-to-text, TTS voice synthesis, dynamic VU meter |
-| **Backend API** | Python 3.12+, FastAPI, Uvicorn, Pydantic v2 | High-throughput asynchronous REST API, strict request schemas |
-| **Database & ORM** | SQLite, SQLAlchemy 2.0 | Relational user profiles, turn records, resumes, and Kanban states |
-| **Audio Processing**| `imageio-ffmpeg` (bundled binary), `SpeechRecognition` | Format-agnostic server-side audio conversion and fallback transcription |
-| **Document Processing**| `pypdf`, `python-docx`, `reportlab`, `beautifulsoup4` | Lossless PDF & DOCX text extraction, audit report generation |
-| **AI Integration** | Google Gemini API, OpenAI API, Anthropic Claude | LLM inference with resilient heuristic rule-based fallbacks |
-| **Testing & Quality**| `pytest`, `httpx`, `oxlint`, `tsc` | 87 automated backend tests, zero-warning linting, strict TypeScript compilation |
+| **Frontend Framework** | React 19, TypeScript 5, Vite 6 | High-speed SPA, reactive hooks, sub-second HMR |
+| **Styling & Icons** | Tailwind CSS 4, Lucide React, Framer Motion | Accessible themes, fluid layout transitions, micro-interactions |
+| **Audio & Speech** | Web Audio API, Web Speech API, `MediaRecorder` | Real-time speech transcription, TTS voice synthesis, live VU meter |
+| **Backend API** | Python 3.12+, FastAPI, Uvicorn, Pydantic v2 | High-performance asynchronous REST endpoints, strict typing |
+| **Machine Learning** | Scikit-Learn, NumPy, SciPy | Supervised compensation regression, feature vectorization, evaluation |
+| **Vector Search & RAG**| Custom 256-D Cosine Similarity Vector Engine | Fast semantic document matching and job-description retrieval |
+| **Database & ORM** | SQLite, SQLAlchemy 2.0 | User profiles, audit logs, model registry, application records |
+| **Audio Processing** | `imageio-ffmpeg` (bundled binary), `SpeechRecognition` | Server-side audio conversion and speech-to-text fallback |
+| **Document Parsers** | `pypdf`, `python-docx`, `reportlab`, `beautifulsoup4` | Lossless extraction and generation of PDF/DOCX resumes |
+| **AI LLM Inference** | Google Gemini API, OpenAI API, Anthropic Claude | Generative writing with zero-downtime heuristic rule fallbacks |
+| **Testing & Quality** | `pytest`, `pytest-asyncio`, `respx`, `oxlint`, `tsc` | 32 automated tests, zero-warning linting, production build verification |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-### ✅ Prerequisites
-
-- **Python**: 3.10+ (Python 3.12 recommended)
-- **Node.js**: v18+ (Node 20+ LTS recommended)
-- **npm**: 9+
-- **Git**
-- *(Optional)* **Google Gemini API Key**: For advanced LLM rewriting (heuristics automatically handle all tasks if key is omitted).
+### ✅ System Prerequisites
+* **Python**: 3.10+ (Python 3.12+ recommended)
+* **Node.js**: v18+ (Node 20+ LTS recommended)
+* **Git**
 
 ---
 
 ### 📥 1-Click Launch (Recommended for Windows)
 
-The project includes an automated launcher that configures virtual environments, checks ports 8000 and 5173, seeds demo data, and spins up both servers:
+The project includes automated scripts that set up the virtual environment, install dependencies, seed demo data, and start both the backend and frontend:
 
 ```powershell
 # In PowerShell:
@@ -248,10 +280,21 @@ The project includes an automated launcher that configures virtual environments,
 
 Or double-click **`run_dev.bat`** from Windows File Explorer.
 
-Once launched:
-- **Frontend App**: [http://localhost:5173](http://localhost:5173)
-- **FastAPI Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Pre-seeded Demo Account**: `demo@careerlens.ai` / `CareerLens2026!`
+Once initialized:
+* **Candidate Portal**: [http://localhost:5173](http://localhost:5173)
+* **Admin Login Portal**: [http://localhost:5173](http://localhost:5173) $\rightarrow$ Profile $\rightarrow$ **Admin Command Center**
+* **FastAPI Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+### 🔑 Verified Credentials Table
+
+| Role | Email Address | Password | Access Level |
+|:---:|:---:|:---:|:---:|
+| **Super Admin** | `admin@careerlens.ai` | `admin123456` | Full Level-4 RBAC (AI Training, Database Purge, Prompts, Latency Tests) |
+| **Demo Admin** | `demo@careerlens.ai` | `CareerLens2026!` | Master Admin Operations & Demo Account |
+
+> **1-Click Login:** On the Admin Login page, click **"Super Admin"** or **"Demo Admin"** to autofill credentials instantly.
 
 ---
 
@@ -265,177 +308,86 @@ cd CareerLens
 
 #### 2️⃣ Backend Setup
 ```bash
-# Navigate to backend and create virtual environment
 cd backend
 python -m venv venv
 
-# Activate virtual environment
+# Activate Virtual Environment
 # Windows:
 .\venv\Scripts\activate
 # Linux/macOS:
 source venv/bin/activate
 
-# Install dependencies
+# Install Dependencies
 pip install -r requirements.txt
 
-# Seed sample data & database tables
-python ..\database\seed-data\seed.py
-
-# Start FastAPI development server
+# Start Development Server
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 #### 3️⃣ Frontend Setup
 ```bash
-# In a new terminal, navigate to frontend:
+# In a separate terminal:
 cd frontend
 
-# Install dependencies
+# Install Packages
 npm install
 
-# Start Vite development server
+# Start Vite Server
 npm run dev
 ```
 
 ---
 
-### ⚙️ Environment Configuration
+## 🧪 Test Suite & Code Quality
 
-Configuration is managed via `backend/.env`. You can copy the example file:
-
-```bash
-cp .env.example backend/.env
-```
-
-Key environment variables:
-
-```ini
-# Server Settings
-PROJECT_NAME="CareerLens AI"
-PORT=8000
-DEBUG=True
-
-# Security
-SECRET_KEY="your-super-secret-jwt-key"
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-
-# AI Provider Keys (Optional: Gemini, OpenAI, or Anthropic)
-# The system operates 100% out-of-the-box using built-in rule heuristics if keys are omitted.
-LLM_PROVIDER="gemini"
-GEMINI_API_KEY=""
-OPENAI_API_KEY=""
-```
-
----
-
-## 📂 Project Structure
+CareerLens AI enforces strict code quality and test coverage:
 
 ```bash
-CareerLens/
-├── 📁 backend/
-│   ├── 📁 app/
-│   │   ├── 📁 api/             # FastAPI routers (interviews, resumes, matches, profiles)
-│   │   ├── 📁 core/            # Config, security (JWT/bcrypt), database engine
-│   │   ├── 📁 models/          # SQLAlchemy data models
-│   │   ├── 📁 schemas/         # Pydantic validation schemas
-│   │   └── 📁 services/        # Interview simulator, ATS parser, AI engine, audio transcriber
-│   ├── 📁 tests/               # Pytest suite (46 automated tests)
-│   ├── 📄 requirements.txt     # Python dependencies
-│   └── 📄 .env.example         # Template environment configuration
-├── 📁 frontend/
-│   ├── 📁 src/
-│   │   ├── 📁 components/      # UI components (VoiceInterviewStudio, Kanban, Resumes, CoverLetter)
-│   │   ├── 📁 services/        # API client and WebSocket handlers
-│   │   ├── 📁 types/           # TypeScript interfaces (SuitableAnswer, Scorecard, TurnRecord)
-│   │   └── 📄 App.tsx          # Application shell & route coordinator
-│   ├── 📄 package.json         # Frontend scripts & dependencies
-│   └── 📄 vite.config.ts       # Vite bundler configuration
-├── 📁 database/
-│   └── 📁 seed-data/           # Database initialization & mock data scripts
-├── 📄 run_dev.ps1              # Windows 1-click PowerShell dev launcher
-├── 📄 run_dev.bat              # Windows batch dev launcher
-└── 📄 README.md
+# 1️⃣ Run Backend Test Suite (32 Tests)
+cd backend
+.\venv\Scripts\pytest.exe tests/test_admin_spec.py tests/test_admin_ml.py tests/test_backend.py tests/test_matching_benchmark.py tests/test_vector_rag_and_ats.py -v
+
+# 2️⃣ Verify Frontend Production TypeScript Build
+npm --prefix frontend run build
+```
+
+```
+======================= 32 passed, 1 warning in 12.89s =======================
+✓ 2910 modules transformed.
+✓ built in 747ms
 ```
 
 ---
 
-## 🧪 Testing & Code Quality
+## 🗺️ Completed Milestones & Roadmap
 
-CareerLens AI enforces comprehensive test coverage across both API routes and client bundles:
-
-```bash
-# 1️⃣ Run Backend Test Suite (87 Tests)
-backend\venv\Scripts\pytest.exe backend\tests -v
-
-# 2️⃣ Run Frontend Linter (oxlint)
-npm run lint --prefix frontend
-
-# 3️⃣ Verify Production Type Compilation & Vite Build
-npm run build --prefix frontend
-```
-
-### ✅ Test Suite Breakdown:
-- **`test_interviews.py`**: Validates start session, question generation, audio transcription via FFmpeg, STAR score evaluation, model answers presence, and session completion.
-- **`test_cv_upgrade.py`**: Tests education preset schemas, candidate details merging, and resume import operations.
-- **`test_deep_match.py`**: Verifies ATS skill-gap scoring, transferrable skill detection, and learning roadmap generation.
-- **`test_backend.py`**: Tests authentication, JWT verification, file upload guards, and profile mutations.
-
----
-
-## ⚠️ Known Notes & Browser Guidelines
-
-- 🎙️ **Microphone Permissions**: Ensure microphone permissions are allowed in your browser address bar when using the Voice AI Simulator.
-- 🌐 **Network Speech Fallback**: On corporate VPNs or networks that restrict Google Speech cloud sockets, CareerLens AI automatically activates the **Dual-Engine MediaRecorder** pipeline to transcribe your speech on the server via bundled FFmpeg with zero audio loss.
-- 📱 **Mobile Audio**: Mobile browsers require explicit user interaction (tapping the record button) before opening audio input streams.
-
----
-
-## 🗺️ Roadmap
-
-- [x] Full-Stack ATS Resume Parser & Heuristic Scorer
-- [x] Truth-Preserving AI Cover Letter Generator with "Fix Grammar" and "Human Polish"
-- [x] Candidate Master Profile with Multi-Candidate Selectors & Education Presets
-- [x] Real-Time Voice AI Mock Interview Simulator with TTS question playback
-- [x] Live 5-Bar Web Audio Equalizer Meter (0–100% sensitivity feedback)
-- [x] Multi-Approach Exemplar Model Answers (*Executive*, *Technical*, *Agile*)
-- [x] Native `MediaRecorder` + Bundled FFmpeg Server-Side Transcription Fallback
-- [x] Drag-and-drop Kanban Application Pipeline Tracker
-- [x] Hybrid Semantic Search & Vector RAG Engine (256-D Cosine Similarity)
-- [x] 4-Tier Enterprise ATS Stress-Test Engine (Workday, Greenhouse, Taleo, Lever)
-- [x] Manifest V3 Browser Extension with 1-Click LinkedIn/Indeed Job Clipper
-- [x] Market Salary Predictor & Interactive Offer Negotiation Coach
-- [x] Directed Career Path Knowledge Graph with Dijkstra Shortest-Path Bridges
-- [x] Explainable AI (XAI) with SHAP Token Attribution Heatmaps & Blind Recruitment Redaction
-- [x] DEI Unconscious Bias & Inclusion Scanner with Automated Remediation Hints
-- [x] Computer Vision (CV) Real-Time Webcam Eye-Contact & Posture Stability Coach
-- [x] In-Browser Live Coding Sandbox with Algorithmic Big-O Complexity Review
-- [x] GitHub Claim-to-Code "Proof of Work" Verifier with SHA-256 Signed Badges
-- [x] University Placement Cell Multi-Tenant SaaS Portal with Cohort Readiness Telemetry
-- [x] CV-to-Profile Side-by-Side Review with Non-Overwriting Guarantee & Provenance (`ProfileFieldSource`)
-- [x] Evidence-Aware Multi-Source Skill Profile (`UserSkillEvidence`) with Dispute & Recalculation Lifecycle
-- [x] Information Retrieval Evaluation Benchmark (NDCG@3 0.9856, Recall@5 1.0000, +2.1% Lift)
-- [x] Multi-Role Career Path Matrix & Persistent Milestones (`CareerGoal`)
-- [x] Adaptive Learning Plan & Quiz Verification Elevating Skills to Demonstrated
-- [x] 6-Pillar Career Readiness Scorecard Diagnostic (Role Alignment, Evidence, Projects, CV, Interviews, Learning)
-- [ ] Celery + Redis distributed background worker queue for asynchronous batch processing
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
-1. 🍴 **Fork the repository**
-2. 🌿 **Create your branch**: `git checkout -b feature/amazing-feature`
-3. 💾 **Commit your changes**: `git commit -m "feat: add amazing feature"`
-4. 📤 **Push to branch**: `git push origin feature/amazing-feature`
-5. 🔃 **Open a Pull Request**
+- [x] **Full-Stack ATS Resume Parser & Heuristic Scorer**
+- [x] **Truth-Preserving AI Cover Letter Studio with NLP Refinements**
+- [x] **Real-Time Voice AI Mock Interviewer with Spoken Audio Synthesis**
+- [x] **Live 5-Band Web Audio Equalizer Meter (0–100% sensitivity feedback)**
+- [x] **Native `MediaRecorder` + Bundled FFmpeg Server-Side Transcription**
+- [x] **Drag-and-Drop Kanban Job Application Pipeline Tracker**
+- [x] **Hybrid Semantic Search & 256-D Vector RAG Engine**
+- [x] **4-Tier Enterprise ATS Stress-Test Engine (Workday, Greenhouse, Taleo, Lever)**
+- [x] **54-Role Career Knowledge Graph with Dijkstra Shortest-Path Bridges**
+- [x] **Market Salary Predictor & Interactive Offer Negotiation Coach**
+- [x] **Explainable AI (SHAP) Token Heatmaps & Blind Recruitment Masking**
+- [x] **Computer Vision Real-Time Webcam Eye-Contact & Posture Stability Coach**
+- [x] **In-Browser Live Coding Sandbox with Algorithmic Big-O Complexity Review**
+- [x] **GitHub "Proof of Work" Verifier with SHA-256 Signed Badges**
+- [x] **Level-4 RBAC Admin Command Center with 14 Management Tabs**
+- [x] **In-App AI Model Training Center with 10 ML Lifecycle Subtabs**
+- [x] **Scikit-Learn Supervised Compensation Regressor Training Pipeline**
+- [x] **Mistake Review & 1-Click Regression Test Generator**
+- [x] **Model Registry with Staging Promotion Gates & Zero-Downtime Rollback**
+- [x] **GDPR Article 17 Data Rights Machine-Readable SAR Export & Purges**
+- [ ] Celery + Redis distributed background worker queue for enterprise multi-tenancy
 
 ---
 
 ## 📜 License
 
-This project is licensed under the **MIT License** — feel free to use and adapt it for your own career preparation or coursework.
+This project is licensed under the **MIT License** — feel free to explore, customize, and deploy it for your own career preparation or university programs.
 
 ---
 
@@ -455,14 +407,15 @@ This project is licensed under the **MIT License** — feel free to use and adap
 
 <br/><br/>
 
-⭐ **If you find CareerLens AI helpful for your job search or project, give it a star on GitHub!** ⭐
+⭐ **If you find CareerLens AI helpful, give it a star on GitHub!** ⭐
 
 <br/>
 
-<a href="#-about"><b>⬆️ Back to Top</b></a>
+<a href="#-about-careerlens-ai"><b>⬆️ Back to Top</b></a>
 
 <br/><br/>
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:4f46e5,50:06b6d4,100:0f172a&height=130&section=footer" width="100%" alt="CareerLens AI footer" />
+<!-- Animated Footer Wave Banner -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:4f46e5,50:06b6d4,100:0f172a&height=140&section=footer" width="100%" alt="CareerLens AI Footer" />
 
 </div>
