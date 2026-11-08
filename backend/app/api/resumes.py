@@ -2,6 +2,7 @@ import os
 import uuid
 import logging
 from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Response
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -784,6 +785,97 @@ def get_resume_file(
         media_type=media_type,
         headers=headers
     )
+
+
+# ---------------------------------------------------------------------------
+# AI CV Canvas Enhancement Endpoints
+# ---------------------------------------------------------------------------
+
+class AiEnhanceCanvasRequest(BaseModel):
+    sections: List[dict]
+    candidate_name: Optional[str] = ""
+    candidate_title: Optional[str] = ""
+    candidate_contact: Optional[str] = ""
+    enhancement_mode: Optional[str] = "full"
+    section_id: Optional[str] = None
+    target_role: Optional[str] = None
+
+
+@router.post("/ai-enhance-canvas")
+async def ai_enhance_canvas(
+    payload: AiEnhanceCanvasRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    AI-powered CV canvas enhancement.
+    Accepts the current canvas sections from the ResumeBuilderStudio,
+    runs AI gap analysis and content enhancement, and returns improved sections
+    along with a gap analysis report covering missing skills and weak content.
+    """
+    from app.services.ai_service import AIService
+
+    result = await AIService.enhance_cv_canvas(
+        sections=payload.sections,
+        candidate_name=payload.candidate_name or (current_user.full_name or ""),
+        candidate_title=payload.candidate_title or "",
+        candidate_contact=payload.candidate_contact or "",
+        enhancement_mode=payload.enhancement_mode or "full",
+        section_id=payload.section_id,
+        target_role=payload.target_role
+    )
+
+    record_user_activity(
+        db, current_user.id, "cv_canvas_ai_enhanced",
+        f"AI enhanced CV canvas in '{payload.enhancement_mode}' mode — {result.get('auto_fixes_applied', 0)} fixes applied",
+        entity_type="profile"
+    )
+
+    return result
+
+
+@router.post("/ai-build-from-resume/{resume_id}")
+async def ai_build_canvas_from_resume(
+    resume_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Given an uploaded resume ID from the user's library, extract and AI-enhance
+    its content into canvas sections ready to load into ResumeBuilderStudio.
+    This trains the AI on the user's actual CV content.
+    """
+    from app.services.ai_service import AIService
+
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found in your library.")
+
+    raw_text = resume.raw_text or ""
+    if not raw_text.strip():
+        raise HTTPException(status_code=400, detail="Resume has no extracted text. Please re-parse it first.")
+
+    result = await AIService.build_cv_from_resume_text(
+        resume_raw_text=raw_text,
+        candidate_name=current_user.full_name or "",
+        target_role=resume.target_role or ""
+    )
+
+    record_user_activity(
+        db, current_user.id, "cv_canvas_built_from_resume",
+        f"Built AI CV canvas from resume '{resume.title or resume.file_name}'",
+        entity_type="resume", entity_id=resume.id
+    )
+
+    return {
+        **result,
+        "resume_id": resume.id,
+        "resume_title": resume.title or resume.file_name,
+    }
+
 
 @router.get("/{resume_id}/download")
 def download_resume_file(

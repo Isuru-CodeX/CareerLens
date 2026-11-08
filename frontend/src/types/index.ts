@@ -1423,6 +1423,48 @@ export interface CareerReadinessScorecard {
   categories: ReadinessCategoryItem[];
 }
 
+// ============================================================
+// AI CV CANVAS ENHANCEMENT TYPES
+// ============================================================
+
+export interface CanvasSectionItem {
+  id: string;
+  type: 'summary' | 'experience' | 'skills' | 'education' | 'projects' | string;
+  title: string;
+  content: string[];
+}
+
+export interface AiGapAnalysis {
+  missing_skills: string[];
+  missing_sections: string[];
+  weak_summary: boolean;
+  sparse_experience_lines: string[];
+  overall_strength: 'strong' | 'moderate' | 'needs_work';
+  top_recommendations: string[];
+}
+
+export interface AiCanvasEnhanceResponse {
+  enhanced_sections: CanvasSectionItem[];
+  gap_analysis: AiGapAnalysis;
+  auto_fixes_applied: number;
+  enhancement_notes: string[];
+}
+
+export interface AiCanvasBuildResponse {
+  header: {
+    name: string;
+    title: string;
+    contact: string;
+  };
+  sections: CanvasSectionItem[];
+  gap_analysis: AiGapAnalysis;
+  auto_fixes_applied: number;
+  enhancement_notes: string[];
+  resume_id: string;
+  resume_title: string;
+}
+
+
 
 
 
