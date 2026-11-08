@@ -59,7 +59,18 @@ import {
   CareerRoleOption,
   SocialSkillExtractionResponse,
   LearningPlanData,
-  LearningQuizResult
+  LearningQuizResult,
+  AdminModelItem,
+  AdminTrainingMetrics,
+  AdminRagReindexResult,
+  AdminTelemetryData,
+  AdminStatsData,
+  AdminUsersPageResponse,
+  AdminCareerRole,
+  AdminMultipliersResponse,
+  AdminAtsRuleEngine,
+  AdminInterviewQuestion,
+  AdminAuditLogItem
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -1452,6 +1463,381 @@ class ApiService {
       body: JSON.stringify(data)
     });
   }
+
+  // =========================================================================
+  // Admin Command Center & Model Training API Methods
+  // =========================================================================
+  async getAdminStats(): Promise<AdminStatsData> {
+    return this.request<AdminStatsData>('/admin/stats');
+  }
+
+  async getAdminModels(): Promise<AdminModelItem[]> {
+    return this.request<AdminModelItem[]>('/admin/ai/models');
+  }
+
+  async trainSalaryModel(): Promise<{ message: string; metrics: AdminTrainingMetrics }> {
+    return this.request<{ message: string; metrics: AdminTrainingMetrics }>('/admin/ai/train-salary', {
+      method: 'POST'
+    });
+  }
+
+  async reindexRag(conceptWeights?: Record<string, string[]>): Promise<{ message: string; results: AdminRagReindexResult }> {
+    return this.request<{ message: string; results: AdminRagReindexResult }>('/admin/ai/reindex-rag', {
+      method: 'POST',
+      body: conceptWeights ? JSON.stringify(conceptWeights) : undefined
+    });
+  }
+
+  async getAdminTelemetry(days: number = 30): Promise<AdminTelemetryData> {
+    return this.request<AdminTelemetryData>(`/admin/ai/telemetry?days=${days}`);
+  }
+
+  async getAdminUsers(
+    page: number = 1,
+    limit: number = 20,
+    search?: string,
+    role?: string
+  ): Promise<AdminUsersPageResponse> {
+    const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+    if (search) params.append('search', search);
+    if (role && role !== 'all') params.append('role', role);
+    return this.request<AdminUsersPageResponse>(`/admin/users?${params.toString()}`);
+  }
+
+  async updateUserRole(userId: string, role: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role })
+    });
+  }
+
+  async toggleUserStatus(userId: string, isActive: boolean): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: isActive })
+    });
+  }
+
+  async exportUserData(userId: string): Promise<Record<string, any>> {
+    return this.request<Record<string, any>>(`/admin/users/${userId}/export`);
+  }
+
+  async deleteUserGdpr(userId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/users/${userId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getAdminRoles(industry?: string): Promise<{ total_roles: number; industries: any[]; roles: AdminCareerRole[] }> {
+    const q = industry ? `?industry=${encodeURIComponent(industry)}` : '';
+    return this.request<{ total_roles: number; industries: any[]; roles: AdminCareerRole[] }>(`/admin/taxonomy/roles${q}`);
+  }
+
+  async updateAdminRole(roleId: string, data: Partial<AdminCareerRole>): Promise<{ message: string; role: any }> {
+    return this.request<{ message: string; role: any }>(`/admin/taxonomy/roles/${roleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getAdminMultipliers(): Promise<AdminMultipliersResponse> {
+    return this.request<AdminMultipliersResponse>('/admin/taxonomy/multipliers');
+  }
+
+  async updateAdminMultiplier(tierId: string, multiplier: number, description?: string): Promise<{ message: string; tier: any }> {
+    return this.request<{ message: string; tier: any }>('/admin/taxonomy/multipliers', {
+      method: 'PUT',
+      body: JSON.stringify({ tier_id: tierId, multiplier, description })
+    });
+  }
+
+  async getSkillClusters(): Promise<{ clusters: Record<string, string[]> }> {
+    return this.request<{ clusters: Record<string, string[]> }>('/admin/taxonomy/skill-clusters');
+  }
+
+  async updateSkillCluster(clusterName: string, keywords: string[]): Promise<{ message: string; clusters: any }> {
+    return this.request<{ message: string; clusters: any }>('/admin/taxonomy/skill-clusters', {
+      method: 'PUT',
+      body: JSON.stringify({ cluster_name: clusterName, keywords })
+    });
+  }
+
+  async getAtsRules(): Promise<{ rules: Record<string, AdminAtsRuleEngine> }> {
+    return this.request<{ rules: Record<string, AdminAtsRuleEngine> }>('/admin/ats/rules');
+  }
+
+  async updateAtsRules(engineKey: string, passThreshold?: number, tablePenaltyPts?: number): Promise<{ message: string; engine: any }> {
+    const params = new URLSearchParams({ engine_key: engineKey });
+    if (passThreshold !== undefined) params.append('pass_threshold', passThreshold.toString());
+    if (tablePenaltyPts !== undefined) params.append('table_penalty_pts', tablePenaltyPts.toString());
+    return this.request<{ message: string; engine: any }>(`/admin/ats/rules?${params.toString()}`, {
+      method: 'PUT'
+    });
+  }
+
+  async getInterviewQuestions(role?: string): Promise<{ questions: AdminInterviewQuestion[] }> {
+    const q = role ? `?role=${encodeURIComponent(role)}` : '';
+    return this.request<{ questions: AdminInterviewQuestion[] }>(`/admin/interviews/questions${q}`);
+  }
+
+  async createInterviewQuestion(data: {
+    role: string;
+    category: string;
+    question: string;
+    difficulty: string;
+    star_benchmark?: Record<string, string>;
+  }): Promise<{ message: string; question: AdminInterviewQuestion }> {
+    return this.request<{ message: string; question: AdminInterviewQuestion }>('/admin/interviews/questions', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteInterviewQuestion(qId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/interviews/questions/${qId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async triggerSalaryRefresh(maxRoles: number = 10): Promise<{ message: string; status: string }> {
+    return this.request<{ message: string; status: string }>(`/admin/scheduler/trigger-salary-refresh?max_roles=${maxRoles}`, {
+      method: 'POST'
+    });
+  }
+
+  async getAdminAuditLogs(limit: number = 30, action?: string): Promise<{ items: AdminAuditLogItem[] }> {
+    const q = action ? `?limit=${limit}&action=${encodeURIComponent(action)}` : `?limit=${limit}`;
+    return this.request<{ items: AdminAuditLogItem[] }>(`/admin/audit-logs${q}`);
+  }
+
+  // --- 14-Tab Admin Panel & AI Training Center API Extensions ---
+  async getAdminMe(): Promise<{ id: string; email: string; full_name: string | null; role: string; is_admin: boolean; permissions: Record<string, boolean> }> {
+    return this.request('/admin/me');
+  }
+
+  async getDashboardSummary(): Promise<any> {
+    return this.request('/admin/dashboard/summary');
+  }
+
+  async getDashboardTimeseries(days: number = 30): Promise<{ timeseries: Array<{ date: string; signups: number; analyses: number; avg_score: number }> }> {
+    return this.request(`/admin/dashboard/timeseries?days=${days}`);
+  }
+
+  async getAdminResumes(page: number = 1, limit: number = 20, search?: string, fileType?: string): Promise<{ total: number; page: number; limit: number; items: any[] }> {
+    const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+    if (search) params.append('search', search);
+    if (fileType) params.append('file_type', fileType);
+    return this.request(`/admin/resumes?${params.toString()}`);
+  }
+
+  async getAdminResumeDetail(id: string): Promise<any> {
+    return this.request(`/admin/resumes/${id}`);
+  }
+
+  async getAnalysisStats(): Promise<any> {
+    return this.request('/admin/analysis/stats');
+  }
+
+  async simulateScoring(weights: { structure_weight: number; readability_weight: number; impact_weight: number; skills_weight: number; sample_size?: number }): Promise<any> {
+    return this.request('/admin/analysis/simulate', {
+      method: 'POST',
+      body: JSON.stringify(weights)
+    });
+  }
+
+  async getApplicationsFunnel(): Promise<any> {
+    return this.request('/admin/activity/funnel');
+  }
+
+  async getTrainingOverview(): Promise<any> {
+    return this.request('/admin/training/overview');
+  }
+
+  async getTrainingDatasets(): Promise<{ datasets: any[] }> {
+    return this.request('/admin/training/datasets');
+  }
+
+  async createTrainingDataset(data: { name: string; description?: string; source_type?: string; license?: string }): Promise<any> {
+    return this.request('/admin/training/datasets', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async startOnlineImport(data: { dataset_id: string; source_mode: string; license_declared: string; confirm_right_to_use: boolean; urls?: string[]; target_roles?: string[]; count_per_role?: number }): Promise<any> {
+    return this.request('/admin/training/imports', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getNextAnnotation(datasetId?: string): Promise<{ document: any; pre_annotations: any }> {
+    const q = datasetId ? `?dataset_id=${encodeURIComponent(datasetId)}` : '';
+    return this.request(`/admin/training/annotation/next${q}`);
+  }
+
+  async saveAnnotation(data: { document_id: string; task_type?: string; label_data: any; status: string; is_gold?: boolean }): Promise<any> {
+    return this.request('/admin/training/annotations', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getMistakesQueue(status?: string, component?: string): Promise<{ mistakes: any[] }> {
+    const params = new URLSearchParams();
+    if (status) params.append('status_filter', status);
+    if (component) params.append('component', component);
+    return this.request(`/admin/training/mistakes?${params.toString()}`);
+  }
+
+  async resolveMistake(id: string, data: { resolution_type: string; resolution_note: string; create_regression_test?: boolean }): Promise<any> {
+    return this.request(`/admin/training/mistakes/${id}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getRegressionTests(): Promise<{ summary: any; tests: any[] }> {
+    return this.request('/admin/training/regression-tests');
+  }
+
+  async createTrainingJob(data: { model_type: string; dataset_ids?: string[]; preset?: string; epochs?: number }): Promise<any> {
+    return this.request('/admin/training/jobs', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getTrainingJobs(): Promise<{ jobs: any[] }> {
+    return this.request('/admin/training/jobs');
+  }
+
+  async getEvaluationMetrics(modelType: string = 'section'): Promise<any> {
+    return this.request(`/admin/training/evaluation?model_type=${encodeURIComponent(modelType)}`);
+  }
+
+  async getModelRegistry(): Promise<{ models: any[] }> {
+    return this.request('/admin/models');
+  }
+
+  async promoteModel(id: string, overrideReason?: string): Promise<any> {
+    return this.request(`/admin/models/${id}/promote`, {
+      method: 'POST',
+      body: JSON.stringify({ override_reason: overrideReason })
+    });
+  }
+
+  async rollbackModel(modelType: string): Promise<any> {
+    return this.request(`/admin/models/${modelType}/rollback`, {
+      method: 'POST'
+    });
+  }
+
+  async getAutoLearningSettings(): Promise<any> {
+    return this.request('/admin/training/auto-learning');
+  }
+
+  async updateAutoLearningSettings(data: any): Promise<any> {
+    return this.request('/admin/training/auto-learning', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getSkillsTaxonomy(): Promise<{ skills: any[] }> {
+    return this.request('/admin/skills');
+  }
+
+  async createSkillTaxonomy(data: { canonical_name: string; category?: string; aliases?: string[] }): Promise<any> {
+    return this.request('/admin/skills', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getLanguageRules(): Promise<{ rules: any[] }> {
+    return this.request('/admin/language-rules');
+  }
+
+  async createLanguageRule(data: { rule_type: string; phrase: string; severity?: string; suggested_replacements?: string[] }): Promise<any> {
+    return this.request('/admin/language-rules', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getScoringConfigs(): Promise<{ configs: any[] }> {
+    return this.request('/admin/scoring-configs');
+  }
+
+  async createScoringConfig(data: { version: string; name: string; structure_weight: number; readability_weight: number; impact_weight: number; skills_weight: number }): Promise<any> {
+    return this.request('/admin/scoring-configs', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async activateScoringConfig(id: string): Promise<any> {
+    return this.request(`/admin/scoring-configs/${id}/activate`, {
+      method: 'POST'
+    });
+  }
+
+  async getPromptTemplates(): Promise<{ prompts: any[] }> {
+    return this.request('/admin/prompts');
+  }
+
+  async testPrompt(id: string, data: { template_text: string; sample_resume_text: string }): Promise<any> {
+    return this.request(`/admin/prompts/${id}/test`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getFeedbackInbox(status?: string): Promise<{ feedback: any[] }> {
+    const q = status ? `?status_filter=${encodeURIComponent(status)}` : '';
+    return this.request(`/admin/feedback${q}`);
+  }
+
+  async convertFeedbackToMistake(id: string): Promise<any> {
+    return this.request(`/admin/feedback/${id}/to-mistake`, {
+      method: 'POST'
+    });
+  }
+
+  async getTrainingConsents(): Promise<any> {
+    return this.request('/admin/privacy/consents');
+  }
+
+  async getSystemSettings(): Promise<any> {
+    return this.request('/admin/system/settings');
+  }
+
+  async getFeatureFlags(): Promise<{ flags: any[] }> {
+    return this.request('/admin/system/feature-flags');
+  }
+
+  async updateFeatureFlag(key: string, enabled: boolean): Promise<any> {
+    return this.request('/admin/system/feature-flags', {
+      method: 'PUT',
+      body: JSON.stringify({ key, enabled })
+    });
+  }
+
+  async updateUserTrainingConsent(consent: boolean): Promise<{ message: string; training_consent: boolean }> {
+    return this.request('/users/training-consent', {
+      method: 'PUT',
+      body: JSON.stringify({ consent })
+    });
+  }
+
+  async submitFeedback(data: { category: string; description: string; resume_id?: string }): Promise<{ message: string; feedback_id: string }> {
+    return this.request('/users/feedback', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
 }
 
 export const api = new ApiService();

@@ -29,6 +29,10 @@ class UserOut(UserBase):
     id: str
     appearance_preference: str
     is_active: bool
+    is_admin: bool = False
+    role: str = "candidate"
+    training_consent: Optional[bool] = False
+    last_login_at: Optional[datetime] = None
     created_at: datetime
     avatar_url: Optional[str] = None
     avatar_source: Optional[str] = "manual"

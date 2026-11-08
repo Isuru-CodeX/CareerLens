@@ -25,6 +25,11 @@ class User(Base):
     avatar_source = Column(String(50), nullable=True, default="manual")  # "cv" or "manual"
     email_verified_at = Column(DateTime, nullable=True, default=get_utc_now)
     is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
+    role = Column(String(50), default="candidate")  # "super_admin", "ml_engineer", "reviewer", "support", "analyst", "candidate"
+    last_login_at = Column(DateTime, nullable=True)
+    training_consent = Column(Boolean, default=False)
+    training_consent_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
 
@@ -94,6 +99,8 @@ class Resume(Base):
     preview_path = Column(String(500), nullable=True)
     parsed_json = Column(JSON, nullable=True)
     raw_text = Column(Text, nullable=True)
+    parse_status = Column(String(30), default="parsed")  # "pending", "parsed", "failed", "warnings"
+    parse_warnings = Column(JSON, default=list)
     is_archived = Column(Boolean, default=False)
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
@@ -216,6 +223,8 @@ class AnalysisRun(Base):
     weaknesses = Column(JSON, default=list)
     recommendations = Column(JSON, default=list)
     section_breakdown = Column(JSON, default=dict)
+    model_versions = Column(JSON, default=dict)
+    scoring_config_id = Column(String(36), nullable=True)
     
     created_at = Column(DateTime, default=get_utc_now)
     
@@ -326,7 +335,10 @@ class AuditLog(Base):
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    actor_role = Column(String(50), nullable=True)
     action = Column(String(100), nullable=False)
+    target_type = Column(String(50), nullable=True)
+    target_id = Column(String(100), nullable=True)
     ip_address = Column(String(50), nullable=True)
     details = Column(JSON, default=dict)
     timestamp = Column(DateTime, default=get_utc_now)
@@ -654,6 +666,245 @@ class SalarySnapshot(Base):
     fetched_at = Column(DateTime, default=get_utc_now, index=True)
 
     role = relationship("JobRole", back_populates="snapshots")
+
+
+class TrainingDataset(Base):
+    __tablename__ = "training_datasets"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    source_type = Column(String(30), default="manual")  # manual, online, user_consented, synthetic
+    license = Column(String(100), default="CC-BY-4.0")
+    document_count = Column(Integer, default=0)
+    status = Column(String(30), default="active")  # active, locked, archived
+    is_locked = Column(Boolean, default=False)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+
+    documents = relationship("TrainingDocument", back_populates="dataset", cascade="all, delete-orphan")
+
+
+class TrainingDocument(Base):
+    __tablename__ = "training_documents"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    dataset_id = Column(String(36), ForeignKey("training_datasets.id", ondelete="CASCADE"), index=True, nullable=False)
+    file_path = Column(String(500), nullable=True)
+    file_hash = Column(String(64), index=True, nullable=True)
+    original_filename = Column(String(255), nullable=False)
+    file_type = Column(String(20), default="txt")  # pdf, docx, txt, md
+    file_size = Column(Integer, default=0)
+    source_type = Column(String(30), default="manual")  # manual, online, user_consented, synthetic
+    source_url = Column(String(1000), nullable=True)
+    source_license = Column(String(100), nullable=True)
+    source_resume_id = Column(String(36), nullable=True)
+    raw_text = Column(Text, nullable=True)
+    anonymized_text = Column(Text, nullable=True)
+    language = Column(String(10), default="en")
+    quality_score = Column(Float, default=1.0)
+    target_role = Column(String(100), nullable=True)
+    split = Column(String(10), default="train")  # train, val, test
+    status = Column(String(20), default="parsed")  # pending, parsed, annotated, approved, rejected
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    dataset = relationship("TrainingDataset", back_populates="documents")
+    annotations = relationship("Annotation", back_populates="document", cascade="all, delete-orphan")
+
+
+class OnlineImportJob(Base):
+    __tablename__ = "online_import_jobs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    dataset_id = Column(String(36), ForeignKey("training_datasets.id", ondelete="CASCADE"), nullable=False)
+    source_mode = Column(String(30), default="url_list")  # url_list, csv_manifest, public_dataset, synthetic
+    license_declared = Column(String(100), nullable=False)
+    total_urls = Column(Integer, default=0)
+    succeeded_count = Column(Integer, default=0)
+    failed_count = Column(Integer, default=0)
+    status = Column(String(20), default="completed")  # running, completed, failed, cancelled
+    error_summary = Column(JSON, default=list)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+    finished_at = Column(DateTime, nullable=True)
+
+
+class Annotation(Base):
+    __tablename__ = "annotations"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    document_id = Column(String(36), ForeignKey("training_documents.id", ondelete="CASCADE"), index=True, nullable=False)
+    task_type = Column(String(20), default="section")  # section, skill, score, match, phrase
+    label_data = Column(JSON, default=dict)
+    annotator_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewer_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(20), default="draft")  # draft, submitted, approved, rejected
+    is_gold = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+
+    document = relationship("TrainingDocument", back_populates="annotations")
+
+
+class MistakeReport(Base):
+    __tablename__ = "mistake_reports"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    source = Column(String(30), default="reviewer")  # reviewer, user_report, user_correction, low_confidence, evaluation, admin_flag
+    document_id = Column(String(36), nullable=True)
+    resume_id = Column(String(36), nullable=True)
+    component = Column(String(30), default="section")  # parser, section, skill, field, score, match, rewrite
+    model_version_id = Column(String(36), nullable=True)
+    predicted = Column(JSON, default=dict)
+    corrected = Column(JSON, default=dict)
+    error_type = Column(String(50), nullable=False)
+    severity = Column(String(10), default="medium")  # low, medium, high
+    status = Column(String(20), default="open")  # open, in_review, resolved, wont_fix
+    resolution_type = Column(String(30), nullable=True)  # added_to_training, rule_updated, parser_bug, false_alarm
+    resolution_note = Column(Text, nullable=True)
+    assigned_to = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    regression_test_id = Column(String(36), nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+
+class RegressionTest(Base):
+    __tablename__ = "regression_tests"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    mistake_id = Column(String(36), nullable=True)
+    name = Column(String(255), nullable=False)
+    component = Column(String(30), nullable=False)
+    input_sample = Column(JSON, default=dict)
+    expected_output = Column(JSON, default=dict)
+    strictness = Column(String(20), default="exact")  # exact, substring, range, f1_threshold
+    created_at = Column(DateTime, default=get_utc_now)
+
+
+class TrainingJob(Base):
+    __tablename__ = "training_jobs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    model_type = Column(String(30), default="section")  # section, skill, field, score, match
+    mode = Column(String(15), default="manual")  # manual, scheduled, auto
+    dataset_ids = Column(JSON, default=list)
+    config = Column(JSON, default=dict)
+    status = Column(String(20), default="queued")  # queued, running, succeeded, failed, cancelled
+    progress = Column(Float, default=0.0)
+    log_path = Column(String(500), nullable=True)
+    metrics = Column(JSON, default=dict)
+    model_version_id = Column(String(36), nullable=True)
+    started_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    started_at = Column(DateTime, default=get_utc_now)
+    finished_at = Column(DateTime, nullable=True)
+
+
+class ModelVersion(Base):
+    __tablename__ = "model_versions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    model_type = Column(String(30), nullable=False)
+    version = Column(String(20), nullable=False)
+    artifact_path = Column(String(500), nullable=True)
+    checksum = Column(String(64), nullable=True)
+    base_version_id = Column(String(36), nullable=True)
+    metrics = Column(JSON, default=dict)
+    status = Column(String(15), default="candidate")  # candidate, shadow, active, archived
+    promoted_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    promoted_at = Column(DateTime, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+
+class EvaluationRun(Base):
+    __tablename__ = "evaluation_runs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    model_version_id = Column(String(36), ForeignKey("model_versions.id", ondelete="CASCADE"), nullable=False)
+    dataset_id = Column(String(36), nullable=True)
+    metrics = Column(JSON, default=dict)
+    confusion_matrix = Column(JSON, default=dict)
+    regression_results = Column(JSON, default=dict)
+    worst_examples = Column(JSON, default=list)
+    executed_at = Column(DateTime, default=get_utc_now)
+
+
+class ScoringConfig(Base):
+    __tablename__ = "scoring_configs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    version = Column(String(20), nullable=False)
+    name = Column(String(255), default="Default Transparent Weights")
+    structure_weight = Column(Float, default=0.25)
+    readability_weight = Column(Float, default=0.20)
+    impact_weight = Column(Float, default=0.35)
+    skills_weight = Column(Float, default=0.20)
+    thresholds = Column(JSON, default=dict)
+    is_active = Column(Boolean, default=False)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+
+class SkillTaxonomy(Base):
+    __tablename__ = "skill_taxonomy"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    canonical_name = Column(String(100), unique=True, index=True, nullable=False)
+    category = Column(String(50), default="Technical")
+    aliases = Column(JSON, default=list)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+
+class LanguageRule(Base):
+    __tablename__ = "language_rules"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    rule_type = Column(String(30), default="vague_phrase")  # vague_phrase, weak_verb, strong_verb
+    phrase = Column(String(255), index=True, nullable=False)
+    severity = Column(String(20), default="medium")  # low, medium, high
+    suggested_replacements = Column(JSON, default=list)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+
+class PromptTemplate(Base):
+    __tablename__ = "prompt_templates"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    module = Column(String(50), nullable=False)  # xyz_rewriter, cover_letter, interview_sim, ats_feedback
+    version = Column(String(20), nullable=False)
+    template_text = Column(Text, nullable=False)
+    is_active = Column(Boolean, default=False)
+    is_locked = Column(Boolean, default=False)  # locked guardrails
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+
+class FeatureFlag(Base):
+    __tablename__ = "feature_flags"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    key = Column(String(100), unique=True, index=True, nullable=False)
+    enabled = Column(Boolean, default=True)
+    description = Column(String(255), nullable=True)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+
+
+class UserFeedback(Base):
+    __tablename__ = "user_feedback"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resume_id = Column(String(36), nullable=True)
+    category = Column(String(50), default="score_wrong")  # score_wrong, section_misclassified, skill_missed, rewrite_bad, bug, general
+    description = Column(Text, nullable=False)
+    status = Column(String(20), default="new")  # new, in_review, resolved, dismissed
+    mistake_id = Column(String(36), nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
 
 
 

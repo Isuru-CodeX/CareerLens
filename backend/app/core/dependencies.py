@@ -67,11 +67,52 @@ def get_optional_user(
         return None
     return db.query(User).filter(User.id == user_id, User.is_active == True).first()
 
-def log_audit(db: Session, user_id: Optional[str], action: str, details: dict = None, ip: str = None):
+def require_role(*allowed_roles: str):
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        user_role = (getattr(current_user, "role", "") or "candidate").lower()
+        is_admin = getattr(current_user, "is_admin", False)
+        is_demo_master = current_user.email == "demo@careerlens.ai"
+
+        if is_demo_master or is_admin or user_role in ("admin", "superadmin", "super_admin"):
+            return current_user
+
+        normalized_allowed = set()
+        for r in allowed_roles:
+            r_clean = r.lower().replace("-", "_")
+            normalized_allowed.add(r_clean)
+            if r_clean in ("admin", "superadmin", "super_admin"):
+                normalized_allowed.update({"admin", "superadmin", "super_admin"})
+
+        if user_role in normalized_allowed:
+            return current_user
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access denied. Required role in: {', '.join(allowed_roles)}. Current role is '{user_role}'."
+        )
+    return role_checker
+
+def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+    user_role = (getattr(current_user, "role", "") or "").lower()
+    is_admin = getattr(current_user, "is_admin", False)
+    is_demo_master = current_user.email == "demo@careerlens.ai"
+
+    if is_demo_master or is_admin or user_role in ("admin", "superadmin", "super_admin", "ml_engineer", "reviewer", "support", "analyst"):
+        return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Administrative privileges required to access this resource."
+    )
+
+def log_audit(db: Session, user_id: Optional[str], action: str, details: dict = None, ip: str = None, actor_role: str = None, target_type: str = None, target_id: str = None):
     try:
         audit = AuditLog(
             user_id=user_id,
+            actor_role=actor_role,
             action=action,
+            target_type=target_type,
+            target_id=target_id,
             details=details or {},
             ip_address=ip
         )

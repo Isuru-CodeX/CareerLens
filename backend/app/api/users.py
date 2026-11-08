@@ -307,3 +307,54 @@ def delete_user_account(
     db.delete(current_user)
     db.commit()
     return {"message": "Account and all associated documents permanently deleted."}
+
+from pydantic import BaseModel
+class TrainingConsentUpdate(BaseModel):
+    consent: bool
+
+class FeedbackSubmit(BaseModel):
+    category: str = "score_wrong"
+    description: str
+    resume_id: Optional[str] = None
+
+from app.models.models import ConsentRecord, UserFeedback
+
+@router.put("/training-consent")
+def update_training_consent(
+    payload: TrainingConsentUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Allows user to opt in or out of 'Help improve CareerLens AI with my CV data'."""
+    current_user.training_consent = payload.consent
+    current_user.training_consent_at = datetime.now(timezone.utc)
+    
+    rec = ConsentRecord(
+        user_id=current_user.id,
+        consent_type="ai_training_data_donation",
+        agreed=payload.consent,
+        timestamp=datetime.now(timezone.utc)
+    )
+    db.add(rec)
+    db.commit()
+    return {"message": f"Training consent preference set to {payload.consent}.", "training_consent": payload.consent}
+
+@router.post("/feedback")
+def submit_user_feedback(
+    payload: FeedbackSubmit,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Allows user to report an inaccurate score, missed skill, or parsing problem."""
+    fb = UserFeedback(
+        user_id=current_user.id,
+        resume_id=payload.resume_id,
+        category=payload.category,
+        description=payload.description,
+        status="new"
+    )
+    db.add(fb)
+    db.commit()
+    db.refresh(fb)
+    return {"message": "Thank you for your feedback! Our AI engineering team will review it.", "feedback_id": fb.id}
+

@@ -56,9 +56,32 @@ METRIC_PATTERNS = [
 
 class AnalysisService:
     @staticmethod
-    def analyze_resume(parsed_data: Dict[str, Any], raw_text: str) -> Dict[str, Any]:
+    def analyze_resume(parsed_data: Dict[str, Any], raw_text: str, db: Any = None) -> Dict[str, Any]:
         text_lower = raw_text.lower()
         lines = [l.strip() for l in raw_text.split("\n") if l.strip()]
+
+        # Active scoring weights (dynamic from DB or default transparent weights)
+        struct_w, read_w, impact_w, skills_w = 0.25, 0.20, 0.35, 0.20
+        config_id = None
+        active_models_meta = {"section": "1.0.0", "skill": "1.0.0", "score": "1.0.0"}
+
+        if db:
+            try:
+                from app.models.models import ScoringConfig, LanguageRule, ModelVersion
+                active_cfg = db.query(ScoringConfig).filter(ScoringConfig.is_active == True).first()
+                if active_cfg:
+                    struct_w = active_cfg.structure_weight
+                    read_w = active_cfg.readability_weight
+                    impact_w = active_cfg.impact_weight
+                    skills_w = active_cfg.skills_weight
+                    config_id = active_cfg.id
+
+                # Load active model versions
+                act_m = db.query(ModelVersion).filter(ModelVersion.status == "active").all()
+                for m in act_m:
+                    active_models_meta[m.model_type] = m.version
+            except Exception:
+                pass
         
         # 1. Structure Audit
         has_contact = bool(parsed_data.get("contact", {}).get("email"))
@@ -115,10 +138,10 @@ class AnalysisService:
 
         # 5. Overall Weighted Score
         overall_score = round(
-            (structure_score * 0.25) +
-            (readability_score * 0.20) +
-            (impact_score * 0.35) +
-            (skills_score * 0.20),
+            (structure_score * struct_w) +
+            (readability_score * read_w) +
+            (impact_score * impact_w) +
+            (skills_score * skills_w),
             1
         )
 
@@ -213,6 +236,8 @@ class AnalysisService:
             "strengths": strengths,
             "weaknesses": weaknesses,
             "recommendations": recommendations,
-            "section_breakdown": section_breakdown
+            "section_breakdown": section_breakdown,
+            "scoring_config_id": config_id,
+            "model_versions": active_models_meta
         }
 

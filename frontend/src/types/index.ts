@@ -8,6 +8,8 @@ export interface User {
   appearance_preference: AppearanceMode;
   avatar_url?: string | null;
   is_active: boolean;
+  is_admin?: boolean;
+  role?: string;
   created_at: string;
 }
 
@@ -1465,4 +1467,354 @@ export interface CareerReadinessScorecard {
   calculation_method: string;
   categories: ReadinessCategoryItem[];
 }
+
+// ============================================================================
+// Admin Command Center & Model Training Types
+// ============================================================================
+export interface AdminModelItem {
+  id: string;
+  name: string;
+  type: string;
+  status: 'ready' | 'training' | 'pretrained_baseline' | string;
+  version: string;
+  accuracy_metric: string;
+  accuracy_value: number;
+  mae: number | null;
+  samples_trained: number;
+  last_trained: string;
+  can_train: boolean;
+  description: string;
+}
+
+export interface AdminTrainingMetrics {
+  model_id: string;
+  model_name: string;
+  version: string;
+  engine: string;
+  status: string;
+  samples_trained: number;
+  r2_score: number;
+  mae_usd: number;
+  rmse_usd: number;
+  training_duration_ms: number;
+  artifact_path: string;
+  feature_count: number;
+  top_features: Array<{ name: string; importance: number }>;
+  trained_at: string;
+}
+
+export interface AdminRagBenchmarkResults {
+  hybrid_ndcg_at_3: number;
+  hybrid_ndcg_at_5: number;
+  hybrid_recall_at_5: number;
+  hybrid_precision_at_3: number;
+  keyword_baseline_ndcg_at_3: number;
+  relative_lift_pct: string;
+  meets_spec: boolean;
+}
+
+export interface AdminRagReindexResult {
+  status: string;
+  total_chunks_indexed: number;
+  dimensions: number;
+  concept_clusters: number;
+  duration_ms: number;
+  benchmark_results: AdminRagBenchmarkResults;
+  timestamp: string;
+}
+
+export interface AdminTelemetryDailyItem {
+  date: string;
+  tokens: number;
+  calls: number;
+  cost_usd: number;
+}
+
+export interface AdminTelemetryData {
+  total_tokens: number;
+  total_calls: number;
+  estimated_cost_usd: number;
+  by_model: Record<string, { calls: number; tokens: number; estimated_cost_usd: number }>;
+  by_action: Record<string, number>;
+  daily_series: AdminTelemetryDailyItem[];
+}
+
+export interface AdminStatsData {
+  kpis: {
+    total_users: number;
+    total_resumes: number;
+    total_matches: number;
+    total_applications: number;
+    total_tokens_used: number;
+    estimated_ai_cost_usd: number;
+  };
+  system: {
+    status: string;
+    uptime_seconds: number;
+    database: {
+      engine: string;
+      size_kb: number;
+      tables: Record<string, number>;
+    };
+    storage: {
+      upload_dir: string;
+      total_size_kb: number;
+      parsed_resumes_on_disk: number;
+    };
+    scheduler: {
+      status: string;
+      jobs: Array<{
+        id: string;
+        interval: string;
+        next_run: string;
+        last_status: string;
+      }>;
+    };
+  };
+  ai_summary: AdminTelemetryData;
+}
+
+export interface AdminUserItem {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: 'superadmin' | 'admin' | 'placement_officer' | 'candidate' | string;
+  is_admin: boolean;
+  is_active: boolean;
+  avatar_url?: string | null;
+  created_at: string | null;
+  resumes_count: number;
+  applications_count: number;
+}
+
+export interface AdminUsersPageResponse {
+  items: AdminUserItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AdminCareerRole {
+  id: string;
+  title: string;
+  industry_id: string;
+  industry_name: string;
+  category: string;
+  level: number;
+  level_label: string;
+  salary_range: { min: number; median: number; max: number };
+  core_skills: string[];
+  advanced_skills: string[];
+  bridges_to: Array<{ target: string; difficulty: number; time_months: number; transition_label: string }>;
+}
+
+export interface AdminLocationTier {
+  id: string;
+  label: string;
+  multiplier: number;
+  currency: string;
+  symbol: string;
+  description: string;
+}
+
+export interface AdminCompanyTier {
+  id: string;
+  label: string;
+  base_mult: number;
+  bonus_pct: number;
+  equity_mult: number;
+  description: string;
+}
+
+export interface AdminMultipliersResponse {
+  location_tiers: Record<string, AdminLocationTier>;
+  company_tiers: Record<string, AdminCompanyTier>;
+}
+
+export interface AdminAtsRuleEngine {
+  engine_name: string;
+  pass_threshold: number;
+  strict_date_parsing: boolean;
+  table_penalty_pts?: number;
+  missing_header_penalty_pts?: number;
+  multi_column_penalty_pts?: number;
+  missing_email_penalty_pts?: number;
+  token_truncation_limit?: number;
+  ligature_glyph_penalty_pts?: number;
+  complex_graphics_penalty_pts?: number;
+  contact_link_bonus_pts?: number;
+  broken_link_penalty_pts?: number;
+}
+
+export interface AdminInterviewQuestion {
+  id: string;
+  role: string;
+  category: string;
+  question: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard' | string;
+  star_benchmark: {
+    situation: string;
+    task: string;
+    action: string;
+    result: string;
+  };
+}
+
+export interface AdminAuditLogItem {
+  id: string;
+  action: string;
+  user_id: string | null;
+  user_email: string;
+  actor_role?: string | null;
+  target_type?: string | null;
+  target_id?: string | null;
+  ip_address: string | null;
+  details: Record<string, any>;
+  timestamp: string | null;
+}
+
+export interface TrainingDatasetItem {
+  id: string;
+  name: string;
+  description: string | null;
+  source_type: string;
+  license: string;
+  document_count: number;
+  status: string;
+  is_locked: boolean;
+  created_at: string | null;
+}
+
+export interface TrainingDocumentItem {
+  id: string;
+  dataset_id: string;
+  original_filename: string;
+  file_type: string;
+  file_size: number;
+  source_type: string;
+  source_url?: string | null;
+  source_license?: string | null;
+  raw_text?: string | null;
+  anonymized_text?: string | null;
+  quality_score: number;
+  split: string;
+  status: string;
+  target_role?: string | null;
+  created_at: string | null;
+}
+
+export interface AnnotationItem {
+  id: string;
+  document_id: string;
+  task_type: string;
+  label_data: {
+    sections?: Array<{ label: string; start: number; end: number }>;
+    skills?: Array<{ text: string; canonical: string; level: string }>;
+    human_scores?: { structure: number; readability: number; impact: number; skills: number; overall: number };
+    notes?: string;
+  };
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | string;
+  is_gold: boolean;
+  created_at: string | null;
+}
+
+export interface MistakeReportItem {
+  id: string;
+  source: string;
+  component: string;
+  error_type: string;
+  severity: 'low' | 'medium' | 'high' | string;
+  status: 'open' | 'in_review' | 'resolved' | 'wont_fix' | string;
+  predicted: Record<string, any>;
+  corrected: Record<string, any>;
+  resolution_type?: string | null;
+  resolution_note?: string | null;
+  regression_test_id?: string | null;
+  created_at: string | null;
+}
+
+export interface RegressionTestItem {
+  id: string;
+  name: string;
+  component: string;
+  strictness: string;
+  created_at: string | null;
+}
+
+export interface TrainingJobItem {
+  id: string;
+  model_type: string;
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | string;
+  progress: number;
+  metrics: Record<string, any>;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface ModelVersionItem {
+  id: string;
+  model_type: string;
+  version: string;
+  status: 'candidate' | 'shadow' | 'active' | 'archived' | string;
+  metrics: Record<string, any>;
+  promoted_at: string | null;
+  created_at: string | null;
+}
+
+export interface ScoringConfigItem {
+  id: string;
+  version: string;
+  name: string;
+  structure_weight: number;
+  readability_weight: number;
+  impact_weight: number;
+  skills_weight: number;
+  is_active: boolean;
+  created_at: string | null;
+}
+
+export interface SkillTaxonomyItem {
+  id: string;
+  canonical_name: string;
+  category: string;
+  aliases: string[];
+  is_active: boolean;
+}
+
+export interface LanguageRuleItem {
+  id: string;
+  rule_type: string;
+  phrase: string;
+  severity: string;
+  suggested_replacements: string[];
+  is_active: boolean;
+}
+
+export interface PromptTemplateItem {
+  id: string;
+  module: string;
+  version: string;
+  template_text: string;
+  is_active: boolean;
+  is_locked: boolean;
+}
+
+export interface UserFeedbackItem {
+  id: string;
+  user_id: string | null;
+  category: string;
+  description: string;
+  status: string;
+  mistake_id: string | null;
+  created_at: string | null;
+}
+
+export interface FeatureFlagItem {
+  id: string;
+  key: string;
+  enabled: boolean;
+  description: string | null;
+}
+
+
 

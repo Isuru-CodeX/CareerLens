@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
+  Shield,
   Download,
   Trash2,
   Save,
@@ -45,7 +46,11 @@ const GithubIcon = () => (
   </svg>
 );
 
-export const ProfileView: React.FC = () => {
+interface ProfileViewProps {
+  onNavigate?: (view: string) => void;
+}
+
+export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
   const { user, updateUserAppearance, logout, refreshUser } = useAuth();
   const { mode, resolvedTheme } = useTheme();
 
@@ -921,6 +926,48 @@ export const ProfileView: React.FC = () => {
               <span>Delete Account & Data</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* 5. CareerLens Staff & Admin Command Center */}
+      <div className="p-6 rounded-3xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/60 via-white to-blue-50/40 dark:from-indigo-950/30 dark:via-slate-900/50 dark:to-slate-900 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+              <Shield className="w-3 h-3" />
+              <span>Restricted Administrative Zone</span>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>Admin Command Center & AI Ops</span>
+              {(user?.is_admin || ['admin', 'superadmin', 'super_admin', 'ml_engineer', 'reviewer', 'support', 'analyst'].includes(user?.role || '')) && (
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  Staff Verified
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+              Operational workbench for training Scikit-Learn compensation regressors, re-indexing 256-D vector RAG embeddings, inspecting LLM token spend, managing RBAC governance, and tuning ATS engine heuristic rules.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (user?.is_admin || ['admin', 'superadmin', 'super_admin', 'ml_engineer', 'reviewer', 'support', 'analyst'].includes(user?.role || '')) {
+                onNavigate?.('admin');
+              } else {
+                onNavigate?.('admin-login');
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold text-xs flex items-center gap-2 shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.02] shrink-0 cursor-pointer self-start md:self-auto"
+          >
+            <Shield className="w-4 h-4" />
+            <span>
+              {user?.is_admin || ['admin', 'superadmin', 'super_admin', 'ml_engineer', 'reviewer', 'support', 'analyst'].includes(user?.role || '')
+                ? 'Launch Admin Command Center'
+                : 'Sign In to Admin Command Center'}
+            </span>
+          </button>
         </div>
       </div>
 

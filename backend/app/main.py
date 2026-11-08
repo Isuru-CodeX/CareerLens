@@ -15,7 +15,7 @@ from app.services.navigator_service import NavigatorService
 from app.api import (
     auth, users, resumes, jobs, ai, applications,
     dashboard, experiences, activity, cv, profile, presets, cover_letters, text, interviews, career_navigator, navigator,
-    xai, github_verifier, coding, placement, learning
+    xai, github_verifier, coding, placement, learning, admin
 )
 
 logger = logging.getLogger(__name__)
@@ -97,6 +97,11 @@ async def lifespan(app: FastAPI):
                     conn.execute(text("ALTER TABLE users ADD COLUMN avatar_source VARCHAR(50) DEFAULT 'manual'"))
                 if "email_verified_at" not in existing_u_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN email_verified_at DATETIME"))
+                if "is_admin" not in existing_u_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+                if "role" not in existing_u_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'candidate'"))
+                conn.execute(text("UPDATE users SET is_admin = 1, role = 'admin' WHERE email = 'demo@careerlens.ai'"))
                 conn.commit()
 
             res_r = conn.execute(text("PRAGMA table_info(resumes)"))
@@ -212,6 +217,8 @@ app.include_router(github_verifier.router, prefix=settings.API_V1_STR)
 app.include_router(coding.router, prefix=settings.API_V1_STR)
 app.include_router(placement.router, prefix=settings.API_V1_STR)
 app.include_router(learning.router, prefix=settings.API_V1_STR)
+app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(admin.router, prefix="/api/v1")
 
 @app.get("/")
 def root():
