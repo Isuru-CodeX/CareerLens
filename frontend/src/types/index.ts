@@ -1072,35 +1072,103 @@ export interface GithubAuditResponse {
   };
 }
 
+export interface RoleMetaItem {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  challenge_count: number;
+  target_keywords: string[];
+}
+
 export interface CodingChallengeItem {
   id: string;
   title: string;
+  track: 'coding' | 'system_design';
   category: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   target_role: string;
+  role_id?: string;
   time_limit_minutes: number;
+  language?: string;
+  skills?: string[];
   description: string;
   starter_code: string;
   optimal_big_o: string;
+  hints?: string[];
+  is_recommended?: boolean;
+  has_model_answer?: boolean;
   test_cases: Array<{
     input: any;
     expected: any;
+    description?: string;
   }>;
+  model_answer?: {
+    solution_code?: string;
+    architecture_doc?: string;
+    design_principles?: string[];
+    trade_off_analysis?: string;
+  };
 }
 
 export interface CodingEvaluationResponse {
   success: boolean;
   challenge_id: string;
   title: string;
+  track?: 'coding' | 'system_design';
+  target_role?: string;
+  overall_score: number;
+  grade: string;
+  rubric_breakdown?: {
+    correctness: number;
+    scalability_complexity: number;
+    code_quality_architecture: number;
+    reliability_security: number;
+  };
+  errors_found?: Array<{
+    severity: 'critical' | 'warning' | 'info';
+    error: string;
+    explanation: string;
+    line_or_component?: string;
+  }>;
+  corrections?: Array<{
+    issue: string;
+    fix: string;
+    code_snippet?: string;
+  }>;
+  missed_important_things?: Array<{
+    item: string;
+    why_important: string;
+    recommendation: string;
+  }>;
+  model_answer?: {
+    solution_code?: string;
+    architecture_doc?: string;
+    design_principles?: string[];
+    trade_off_analysis?: string;
+  };
   tests_total: number;
   tests_passed: number;
+  test_results?: Array<{
+    test_id: number;
+    description: string;
+    input_repr: string;
+    expected_repr: string;
+    actual_repr: string;
+    passed: boolean;
+  }>;
   execution_time_ms: number;
   memory_usage_mb: number;
   estimated_complexity: string;
   target_complexity: string;
-  code_quality_score: number;
-  review_feedback: string[];
+  code_quality_score?: number;
+  review_feedback?: string[];
   ai_critique: string;
+  verified_skill_awarded?: {
+    skill_name: string;
+    level: string;
+    score: number;
+  } | null;
 }
 
 export interface CohortStudent {

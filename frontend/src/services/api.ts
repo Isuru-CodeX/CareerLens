@@ -48,6 +48,7 @@ import {
   BiasAuditResponse,
   BlindProfileResponse,
   GithubAuditResponse,
+  RoleMetaItem,
   CodingChallengeItem,
   CodingEvaluationResponse,
   CohortTelemetryResponse,
@@ -1169,18 +1170,41 @@ class ApiService {
   // MODULE 11: IN-BROWSER LIVE CODING SANDBOX
   // ==========================================
 
-  async getCodingChallenges(): Promise<CodingChallengeItem[]> {
-    return this.request<CodingChallengeItem[]>('/coding/challenges');
+  async getCodingRoles(): Promise<RoleMetaItem[]> {
+    return this.request<RoleMetaItem[]>('/coding/roles');
+  }
+
+  async getCodingChallenges(params?: {
+    role?: string;
+    track?: string;
+    difficulty?: string;
+  }): Promise<CodingChallengeItem[]> {
+    const query = new URLSearchParams();
+    if (params?.role && params.role !== 'all') query.set('role', params.role);
+    if (params?.track && params.track !== 'all') query.set('track', params.track);
+    if (params?.difficulty && params.difficulty !== 'all') query.set('difficulty', params.difficulty);
+    const qs = query.toString();
+    return this.request<CodingChallengeItem[]>(`/coding/challenges${qs ? `?${qs}` : ''}`);
   }
 
   async getCodingChallengeDetail(challengeId: string): Promise<CodingChallengeItem> {
     return this.request<CodingChallengeItem>(`/coding/challenges/${challengeId}`);
   }
 
+  async getModelAnswer(challengeId: string): Promise<{
+    challenge_id: string;
+    title: string;
+    model_answer: any;
+    optimal_big_o: string;
+  }> {
+    return this.request(`/coding/challenges/${challengeId}/model-answer`);
+  }
+
   async evaluateCodeSubmission(data: {
     challenge_id: string;
     code: string;
     language?: string;
+    role?: string;
   }): Promise<CodingEvaluationResponse> {
     return this.request<CodingEvaluationResponse>('/coding/evaluate', {
       method: 'POST',

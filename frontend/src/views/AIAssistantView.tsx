@@ -558,7 +558,7 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
           }`}
         >
           <Code2 className="w-3.5 h-3.5 text-purple-600" />
-          <span>Live Coding Sandbox</span>
+          <span>Coding & System Design</span>
         </button>
 
         <button
