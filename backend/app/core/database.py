@@ -52,7 +52,19 @@ def init_db():
                 ]:
                     if col_name not in existing_u_cols:
                         conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
-                conn.execute(text("UPDATE users SET is_admin = 1, role = 'admin' WHERE email = 'demo@careerlens.ai'"))
+                conn.execute(text("UPDATE users SET is_admin = 1, role = 'super_admin' WHERE email IN ('demo@careerlens.ai', 'admin@careerlens.ai')"))
+                conn.execute(text("UPDATE users SET appearance_preference = 'system' WHERE appearance_preference IS NULL"))
+                # Ensure admin@careerlens.ai exists
+                res_admin = conn.execute(text("SELECT id FROM users WHERE email = 'admin@careerlens.ai'")).first()
+                if not res_admin:
+                    from app.core.security import get_password_hash
+                    import uuid
+                    admin_id = str(uuid.uuid4())
+                    pwd_hash = get_password_hash("admin123456")
+                    conn.execute(text(
+                        "INSERT INTO users (id, email, hashed_password, full_name, is_admin, role, is_active, appearance_preference, created_at, updated_at) "
+                        f"VALUES ('{admin_id}', 'admin@careerlens.ai', '{pwd_hash}', 'Platform Super Admin', 1, 'super_admin', 1, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                    ))
                 conn.commit()
 
             # resumes

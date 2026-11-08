@@ -58,7 +58,8 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({ onNavigate, onLo
       }
 
       const userData = await res.json();
-      const isAdmin = userData.is_admin === true || userData.role === 'admin' || userData.role === 'superadmin';
+      const staffRoles = ['admin', 'superadmin', 'super_admin', 'ml_engineer', 'reviewer', 'support', 'analyst'];
+      const isAdmin = Boolean(userData.is_admin) || staffRoles.includes(userData.role || '');
 
       if (!isAdmin) {
         // Not an administrator - clear credentials and deny
@@ -81,6 +82,12 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({ onNavigate, onLo
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFillSuperAdmin = () => {
+    setEmail('admin@careerlens.ai');
+    setPassword('admin123456');
+    setErrorMessage(null);
   };
 
   const handleFillDemoAdmin = () => {
@@ -223,18 +230,28 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({ onNavigate, onLo
             </button>
           </form>
 
-          {/* Quick Demo Credentials Autofill */}
+          {/* Quick Admin Credentials Autofill */}
           <div className="mt-5 pt-4 border-t border-slate-800 text-center space-y-2">
-            <button
-              type="button"
-              onClick={handleFillDemoAdmin}
-              className="w-full py-2 px-3 rounded-xl border border-indigo-500/30 bg-indigo-950/30 hover:bg-indigo-900/40 text-indigo-300 text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Autofill Demo Admin Credentials</span>
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleFillSuperAdmin}
+                className="py-2 px-3 rounded-xl border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Super Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleFillDemoAdmin}
+                className="py-2 px-3 rounded-xl border border-blue-500/30 bg-blue-950/40 hover:bg-blue-900/50 text-blue-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                <span>Demo Admin</span>
+              </button>
+            </div>
             <p className="text-[10px] text-slate-500">
-              Demo Master Account: <code className="text-slate-400 font-mono">demo@careerlens.ai</code>
+              Super Admin: <code className="text-slate-400 font-mono">admin@careerlens.ai</code> | Demo: <code className="text-slate-400 font-mono">demo@careerlens.ai</code>
             </p>
           </div>
         </motion.div>

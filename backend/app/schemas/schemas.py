@@ -27,7 +27,7 @@ class AppearanceUpdate(BaseModel):
 
 class UserOut(UserBase):
     id: str
-    appearance_preference: str
+    appearance_preference: Optional[str] = "system"
     is_active: bool
     is_admin: bool = False
     role: str = "candidate"

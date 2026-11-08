@@ -1838,6 +1838,42 @@ class ApiService {
     });
   }
 
+  async getMatchingOverview(): Promise<any> {
+    return this.request('/admin/matching/overview');
+  }
+
+  async resetUserPassword(userId: string): Promise<{ message: string; temp_password?: string; temp_pin?: string }> {
+    return this.request(`/admin/users/${userId}/reset-password`, {
+      method: 'POST'
+    });
+  }
+
+  async testVectorLatency(): Promise<{ status: string; latency_ms: number; results_count: number; index_dimension: number }> {
+    return this.request('/admin/system/vector-test', {
+      method: 'POST'
+    });
+  }
+
+  async uploadTrainingFiles(datasetId: string, files: File[]): Promise<any> {
+    const formData = new FormData();
+    formData.append('dataset_id', datasetId);
+    files.forEach((f) => formData.append('files', f));
+
+    const token = localStorage.getItem('careerlens_token');
+    const res = await fetch('/api/admin/training/upload', {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(err.detail || 'Upload failed');
+    }
+    return res.json();
+  }
+
 }
 
 export const api = new ApiService();
