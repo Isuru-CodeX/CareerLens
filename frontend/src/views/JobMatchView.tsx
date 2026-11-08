@@ -647,7 +647,7 @@ Preferred:
             </div>
           )}
           {tailorResult && (
-            <TailoredResumePanel data={tailorResult} onOpenBuilder={() => onNavigate('resumes', { tab: 'builder' })} />
+            <TailoredResumePanel data={tailorResult} />
           )}
         </div>
       )}

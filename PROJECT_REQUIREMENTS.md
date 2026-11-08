@@ -8,7 +8,7 @@ Help users understand and improve their resumes, compare resume content against 
 ---
 
 ### 2. Visual Theme and Design Direction
-Professional executive platform utilizing royal blue, deep navy, and emerald accents. Light mode provides bright, document-friendly readability; dark mode utilizes deep navy slate surfaces (`#0f172a`) with luminous score indicators. Document previews and resume builders remain readable and printable in either theme.
+Professional executive platform utilizing royal blue, deep navy, and emerald accents. Light mode provides bright, document-friendly readability; dark mode utilizes deep navy slate surfaces (`#0f172a`) with luminous score indicators. Document previews and resume audits remain readable and printable in either theme.
 
 ---
 

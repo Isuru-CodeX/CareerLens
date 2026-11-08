@@ -1,12 +1,11 @@
 """
 app/services/tailor_service.py
 ------------------------------
-Pillar 6: In-App Dynamic Resume Builder with Live Compilation & One-Click Targeted Adaptation.
+Pillar 6: Semantic Resume Adaptation Engine & One-Click Targeted Re-Ranking.
 Implements:
 1. Zero-hallucination semantic bullet re-ranking based on target job vector similarity.
 2. Keyword elevation preserving strict factual evidence.
 3. Tailored professional summary generation.
-4. Support for 4 professional template themes (Executive, Tech Modern, Minimalist, Academic).
 """
 
 import re
@@ -16,7 +15,7 @@ from app.services.vector_rag_service import VectorRagService
 
 class TailorService:
     """
-    Intelligent resume tailoring and dynamic builder engine.
+    Intelligent resume tailoring and targeted adaptation engine.
     Elevates high-ROI competencies and reorders accomplishment bullets
     to maximize vector alignment against target job descriptions.
     """

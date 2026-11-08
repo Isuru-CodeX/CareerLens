@@ -9,7 +9,7 @@ Modern, responsive Single-Page Application (SPA) built with **React 19**, **Type
 | View / Module | Route / Component | Description |
 | :--- | :--- | :--- |
 | **Dashboard** | `DashboardView.tsx`, `ProjectTagsMatrix.tsx` | High-level metrics, upcoming interview schedules, active job applications, and the 5-pillar Categorized Capabilities Matrix (User Data, AI Writing, Career Analytics, Multimodal AI, Verification). |
-| **Resume Studio & Builder** | `ResumesView.tsx`, `ResumeBuilderStudio.tsx` | Drag-and-drop section reordering, 4 templates (Executive, Academic, Tech Modern, Minimalist), live Typst/PDF preview, and ATS score emulator. |
+| **Resume Vault & Library** | `ResumesView.tsx` | Secure document storage, section parsing, verification, and ATS score benchmarking. |
 | **Application Pipeline** | `JobsView.tsx`, `KanbanBoard.tsx` | Drag-and-drop Kanban workflow (Saved, Applied, Screening, Interview, Offer, Rejected) with real-time stage updates. |
 | **Voice & CV Interview Studio** | `InterviewsView.tsx`, `VoiceInterviewStudio.tsx` | Real-time speech-to-text (STT) + text-to-speech (TTS) audio interview simulation, STAR response evaluator, and live Computer Vision (CV) non-verbal coach. |
 | **Career Path Navigator** | `CareerNavigatorView.tsx`, `CareerPathComparator.tsx` | Interactive D3.js knowledge graph, Dijkstra/A* shortest-path career bridge, 54-role trajectory comparator with searchable dropdown, "My Current Profile" baseline, and AI semantic skill alignment. |

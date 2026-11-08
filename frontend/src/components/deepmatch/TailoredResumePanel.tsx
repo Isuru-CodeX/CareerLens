@@ -13,12 +13,10 @@ import { ResumeTailorResponse } from '../../types';
 
 interface TailoredResumePanelProps {
   data: ResumeTailorResponse;
-  onOpenBuilder?: () => void;
 }
 
 export const TailoredResumePanel: React.FC<TailoredResumePanelProps> = ({
-  data,
-  onOpenBuilder
+  data
 }) => {
   const [copiedSummary, setCopiedSummary] = useState(false);
   const [copiedBulletIdx, setCopiedBulletIdx] = useState<number | null>(null);
@@ -112,16 +110,6 @@ export const TailoredResumePanel: React.FC<TailoredResumePanelProps> = ({
               These verified bullets from your resume have been prioritized to match the employer's highest-weighted requirements
             </p>
           </div>
-          {onOpenBuilder && (
-            <button
-              type="button"
-              onClick={onOpenBuilder}
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
-            >
-              <span>Open in Resume Builder</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
 
         <div className="space-y-3">

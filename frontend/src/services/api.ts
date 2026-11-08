@@ -59,9 +59,7 @@ import {
   CareerRoleOption,
   SocialSkillExtractionResponse,
   LearningPlanData,
-  LearningQuizResult,
-  AiCanvasEnhanceResponse,
-  AiCanvasBuildResponse
+  LearningQuizResult
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -1115,31 +1113,6 @@ class ApiService {
     return this.request<ResumeTailorResponse>(`/resumes/${resumeId}/tailor`, {
       method: 'POST',
       body: JSON.stringify(data)
-    });
-  }
-
-  // ==========================================
-  // AI CV CANVAS ENHANCEMENT
-  // ==========================================
-
-  async aiEnhanceCanvas(data: {
-    sections: Array<{ id: string; type: string; title: string; content: string[] }>;
-    candidate_name?: string;
-    candidate_title?: string;
-    candidate_contact?: string;
-    enhancement_mode?: 'full' | 'section' | 'gap_fill';
-    section_id?: string;
-    target_role?: string;
-  }): Promise<AiCanvasEnhanceResponse> {
-    return this.request<AiCanvasEnhanceResponse>('/resumes/ai-enhance-canvas', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  }
-
-  async aiBuildCanvasFromResume(resumeId: string): Promise<AiCanvasBuildResponse> {
-    return this.request<AiCanvasBuildResponse>(`/resumes/ai-build-from-resume/${resumeId}`, {
-      method: 'POST'
     });
   }
 
