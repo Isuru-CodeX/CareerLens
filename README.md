@@ -23,6 +23,8 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Windows%20App-Ready%20%F0%9F%96%A5%EF%B8%8F-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows Desktop App" />
+  <img src="https://img.shields.io/badge/Electron-Desktop%20Shell-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron" />
   <img src="https://img.shields.io/badge/Backend%20Tests-32%2F32%20Passed%20%E2%9C%85-10b981?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest Tests" />
   <img src="https://img.shields.io/badge/Frontend%20Build-Passing%20(0%20Errors)-6366f1?style=for-the-badge&logo=vite&logoColor=white" alt="Build Status" />
   <img src="https://img.shields.io/badge/IR%20Benchmark-NDCG%403%20%E2%89%A5%200.985-0ea5e9?style=for-the-badge&logo=googlecloud&logoColor=white" alt="IR Benchmark" />
@@ -34,6 +36,7 @@
 <!-- Quick Link Buttons -->
 <p align="center">
   <a href="#-about-careerlens-ai"><b>📱 About</b></a> •
+  <a href="#-windows-desktop-application-mode"><b>🖥️ Desktop App</b></a> •
   <a href="#-enterprise-admin-command-center--ai-training-workbench"><b>🛡️ Admin Command Center</b></a> •
   <a href="#-in-app-ai-model-training-engine"><b>🧠 AI Model Training</b></a> •
   <a href="#-real-time-voice-mock-interviewer"><b>🎙️ Voice Interviewer</b></a> •
@@ -58,6 +61,55 @@
 * 📑 **4-Tier ATS Stress-Test Engine**: Deep heuristic emulation across Workday, Greenhouse, Taleo, and Lever with explainable SHAP token attribution.
 * 💰 **Market Salary Predictor & Offer Negotiation Coach**: Supervised compensation regression across 5 cost tiers paired with game-theory recruiter roleplay simulation.
 * 🔒 **GDPR Article 17 Governance & Zero-PII Guarantee**: Instant machine-readable SAR export (.JSON) and cryptographic right-to-be-forgotten purges.
+
+---
+
+## 🖥️ Windows Desktop Application Mode
+
+CareerLens AI can run as a **native Windows Desktop Application** without needing to open a web browser tab manually:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        CareerLens AI - Windows Desktop App Shell                       │
+├────────────────────────────────────────────────────────────────────────────┬───────────┤
+│ 💼 CareerLens AI  •  Autonomous Career Intelligence Engine                 │ —  □  ✕   │
+├────────────────────────────────────────────────────────────────────────────┴───────────┤
+│  ✓ Standalone Native Windows App Window (No browser tabs or address bar)               │
+│  ✓ Automatic Background Services Orchestration (FastAPI + React 19)                    │
+│  ✓ High-Resolution Multi-Size Desktop Icon (careerlens.ico)                            │
+│  ✓ Clean Window-Close Termination (Auto-kills backend processes, no zombie ports)      │
+│  ✓ Pinned Windows Taskbar & Desktop Shortcut Integration (.lnk)                        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### ⚡ 3 Ways to Run as a Windows Application:
+
+#### 1️⃣ Desktop Shortcut (Double-Click from Windows Desktop)
+A permanent desktop shortcut has been created at:
+```text
+C:\Users\<YourUsername>\Desktop\CareerLens AI.lnk
+```
+Simply double-click the **CareerLens AI** icon directly on your Windows desktop!
+*(To regenerate the shortcut anytime, run `create_desktop_shortcut.bat`).*
+
+#### 2️⃣ 1-Click Desktop Launcher (`run_desktop.bat`)
+Double-click `run_desktop.bat` from the root directory or execute in PowerShell:
+```powershell
+.\run_desktop.ps1
+```
+* **What happens:** Boots FastAPI in hidden background mode, starts the React 19 UI server, verifies service health, and immediately opens CareerLens in a dedicated, distraction-free native desktop window ($1440 \times 920$). When you close the window, all background processes terminate automatically.
+
+#### 3️⃣ Native Electron Desktop Shell (`npm run electron`)
+You can also launch CareerLens directly inside the Electron desktop shell:
+```bash
+# Start desktop app via Electron
+npm run electron
+
+# Or launch development mode with live HMR
+npm run desktop
+```
+
+---
 
 ---
 

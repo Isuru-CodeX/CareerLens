@@ -231,6 +231,7 @@ def root():
     }
 
 @app.get("/health")
+@app.get("/api/health")
 def health():
     return {"status": "healthy", "service": "careerlens-backend"}
 

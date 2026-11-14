@@ -1,0 +1,19 @@
+{
+  "name": "careerlens-ai",
+  "version": "1.0.0",
+  "description": "CareerLens AI - Autonomous AI Career Intelligence & ATS Platform",
+  "main": "electron/main.cjs",
+  "author": "Isuru Rathnayaka",
+  "license": "MIT",
+  "scripts": {
+    "desktop": "powershell -ExecutionPolicy Bypass -File ./run_desktop.ps1",
+    "desktop:shortcut": "powershell -ExecutionPolicy Bypass -File ./create_desktop_shortcut.ps1",
+    "dev": "powershell -ExecutionPolicy Bypass -File ./run_dev.ps1",
+    "electron": "electron .",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:backend": "cd backend && .\\venv\\Scripts\\pytest.exe"
+  },
+  "devDependencies": {
+    "electron": "^34.5.8"
+  }
+}
