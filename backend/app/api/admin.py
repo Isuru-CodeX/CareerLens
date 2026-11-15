@@ -34,6 +34,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_admin, require_role, log_audit
 from app.models.models import (
