@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { api } from '../services/api';
+import { CareerLensLogo } from '../components/common/CareerLensLogo';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -139,10 +140,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-xs">
-                  C
-                </div>
+              <div className="flex items-center gap-2.5">
+                <CareerLensLogo size={32} />
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">CareerLens AI</h2>
               </div>
               <button

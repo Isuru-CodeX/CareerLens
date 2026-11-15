@@ -16,6 +16,7 @@ import {
   Sliders,
   HelpCircle
 } from 'lucide-react';
+import { CareerLensLogo } from './common/CareerLensLogo';
 
 interface SidebarProps {
   currentView: string;
@@ -212,9 +213,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
               <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <span className="font-extrabold text-sm text-slate-900 dark:text-white">
-                  CareerLens AI
-                </span>
+                <CareerLensLogo size={26} showText />
                 <button
                   onClick={onCloseMobile}
                   className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"

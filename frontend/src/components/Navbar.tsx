@@ -18,6 +18,7 @@ import {
 import { useTheme } from '../context/useTheme';
 import { useAuth } from '../context/useAuth';
 import { AppearanceMode } from '../types';
+import { CareerLensLogo } from './common/CareerLensLogo';
 
 interface NavbarProps {
   onOpenAuth: () => void;
@@ -74,22 +75,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onNavigate('dashboard')}
-            className="flex items-center gap-2.5 text-left focus:outline-hidden"
+            className="flex items-center gap-2.5 text-left focus:outline-hidden group"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <FileText className="w-5 h-5" />
-            </div>
+            <CareerLensLogo size={36} />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
+                <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
                   CareerLens
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-xs tracking-wider">
                   AI
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block -mt-0.5 font-medium">
-                Resume Intelligence & Job Matching
+                Autonomous Career Intelligence
               </p>
             </div>
           </button>

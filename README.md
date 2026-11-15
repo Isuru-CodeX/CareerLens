@@ -1,7 +1,12 @@
 <div align="center">
 
-<!-- Animated Header Wave Banner -->
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,20:1e1b4b,45:312e81,70:4f46e5,90:06b6d4,100:0f172a&height=280&section=header&text=CareerLens%20AI&fontSize=72&fontColor=ffffff&animation=twinkling&fontAlignY=38&desc=%E2%9C%A8%20Autonomous%20AI%20Career%20Intelligence%20%E2%80%A2%20Model%20Training%20Workbench%20%E2%80%A2%20Voice%20Mock%20Interview%20%E2%80%A2%2054-Role%20Navigator&descAlignY=58&descSize=18" width="100%" alt="CareerLens AI Banner" />
+<!-- Animated Header Wave Banner (Nexora Multi-Stop Gradient) -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,20:01c7f4,45:4f46e5,70:7c3aed,90:d803b3,100:0f172a&height=280&section=header&text=CareerLens%20AI&fontSize=72&fontColor=ffffff&animation=twinkling&fontAlignY=38&desc=%E2%9C%A8%20Autonomous%20AI%20Career%20Intelligence%20%E2%80%A2%20Model%20Training%20Workbench%20%E2%80%A2%20Voice%20Mock%20Interview%20%E2%80%A2%2054-Role%20Navigator&descAlignY=58&descSize=18" width="100%" alt="CareerLens AI Banner" />
+
+<!-- Project Brand Logo with Glowing Dropshadow -->
+<p align="center">
+  <img src="frontend/public/logo.png" width="124" height="124" alt="CareerLens AI Official Logo" style="border-radius: 28px; box-shadow: 0 16px 40px rgba(1, 199, 244, 0.45), 0 0 25px rgba(216, 3, 179, 0.25);" />
+</p>
 
 <!-- Dynamic Animated Typing Subtitles -->
 <a href="https://github.com/Isuru-CodeX/CareerLens">
@@ -25,12 +30,12 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Windows%20App-Ready%20%F0%9F%96%A5%EF%B8%8F-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows Desktop App" />
   <img src="https://img.shields.io/badge/Electron-Desktop%20Shell-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron" />
-  <img src="https://img.shields.io/badge/Backend%20Tests-32%2F32%20Passed%20%E2%9C%85-10b981?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest Tests" />
+  <img src="https://img.shields.io/badge/Backend%20Tests-17%2F17%20Passed%20%E2%9C%85-10b981?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest Tests" />
   <img src="https://img.shields.io/badge/Frontend%20Build-Passing%20(0%20Errors)-6366f1?style=for-the-badge&logo=vite&logoColor=white" alt="Build Status" />
-  <img src="https://img.shields.io/badge/IR%20Benchmark-NDCG%403%20%E2%89%A5%200.985-0ea5e9?style=for-the-badge&logo=googlecloud&logoColor=white" alt="IR Benchmark" />
-  <img src="https://img.shields.io/badge/Governance-Level--4%20RBAC-8b5cf6?style=for-the-badge&logo=auth0&logoColor=white" alt="RBAC" />
-  <img src="https://img.shields.io/badge/Privacy-GDPR%20Article%2017-10b981?style=for-the-badge&logo=shield&logoColor=white" alt="GDPR" />
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
+  <a href="docs/README.md"><img src="https://img.shields.io/badge/Docs-Complete%20Hub-8b5cf6?style=for-the-badge&logo=googledocs&logoColor=white" alt="Docs Hub" /></a>
+  <a href="CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge" alt="Contributor Covenant" /></a>
+  <a href="SECURITY.md"><img src="https://img.shields.io/badge/Security-Policy-10b981?style=for-the-badge&logo=shield&logoColor=white" alt="Security Policy" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-01c7f4?style=for-the-badge" alt="License" /></a>
 </p>
 
 <!-- Quick Link Buttons -->
@@ -45,8 +50,10 @@
   <a href="#-real-time-voice-mock-interviewer"><b>🎙️ Voice Interviewer</b></a> •
   <a href="#-54-role-career-trajectory-navigator"><b>🗺️ Career Navigator</b></a> •
   <a href="#-architecture"><b>🏗️ Architecture</b></a> •
+  <a href="#-clean-project-directory-structure"><b>🗂️ Directory Layout</b></a> •
+  <a href="docs/README.md"><b>📖 Tech Docs</b></a> •
   <a href="#-quick-start"><b>🚀 Quick Start</b></a> •
-  <a href="#-test-suite--code-quality"><b>🧪 Testing</b></a>
+  <a href="#-governance-community--licensing"><b>📜 Governance & License</b></a>
 </p>
 
 </div>
@@ -609,13 +616,26 @@ npm --prefix frontend run build
 
 ---
 
-## 📜 License
+## 📜 Governance, Community & Licensing
 
-This project is licensed under the **MIT License** — feel free to explore, customize, and deploy it for your own career preparation or university programs.
+CareerLens AI is an open-source initiative designed for candidates, universities, and enterprise talent teams. We adhere to transparent governance and welcoming community standards:
+
+| Document | Focus & Scope | Description |
+|:---:|---|---|
+| **[📜 MIT License](LICENSE)** | **Open-Source License** | Permissive MIT License covering all source code, ML wrappers, and frontend views. Free for commercial and non-commercial adoption. |
+| **[🤝 Code of Conduct](CODE_OF_CONDUCT.md)** | **Community Standards** | Contributor Covenant v2.1 commitment to a safe, welcoming, and harassment-free experience for everyone. |
+| **[🔒 Security Policy](SECURITY.md)** | **Vulnerability Reporting** | SLA response protocols, responsible disclosure guidelines, and active maintenance matrix. |
+| **[🛡️ Threat Model Architecture](docs/SECURITY.md)** | **Data Protection Specs** | In-depth breakdown of multi-tenant data isolation, salted bcrypt encryption, and zero-PII extraction. |
+| **[📚 Technical Docs Hub](docs/README.md)** | **Complete Documentation** | Full architectural guides, REST API endpoints, database schemas, and testing matrices. |
 
 ---
 
 <div align="center">
+
+<!-- Project Brand Logo in Footer -->
+<p align="center">
+  <img src="frontend/public/logo.png" width="80" height="80" alt="CareerLens AI Official Logo" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(1, 199, 244, 0.4);" />
+</p>
 
 ### 📬 Connect with the Developer
 
@@ -639,7 +659,7 @@ This project is licensed under the **MIT License** — feel free to explore, cus
 
 <br/><br/>
 
-<!-- Animated Footer Wave Banner -->
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:4f46e5,50:06b6d4,100:0f172a&height=140&section=footer" width="100%" alt="CareerLens AI Footer" />
+<!-- Animated Footer Wave Banner (Nexora Multi-Stop Gradient) -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,20:01c7f4,45:4f46e5,70:7c3aed,90:d803b3,100:0f172a&height=160&section=footer" width="100%" alt="CareerLens AI Footer" />
 
 </div>

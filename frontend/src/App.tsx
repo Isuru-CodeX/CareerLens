@@ -22,6 +22,7 @@ import { AdminLoginView } from './views/AdminLoginView';
 import { SettingsView } from './views/SettingsView';
 import { HelpView } from './views/HelpView';
 import { TopRouteLoader } from './components/common/TopRouteLoader';
+import { CareerLensLogo } from './components/common/CareerLensLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './context/useAuth';
 import { ExternalLink, LogOut, Cpu } from 'lucide-react';
@@ -140,9 +141,7 @@ const AdminProjectShell: React.FC<{
         <div className="w-full max-w-[2160px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Left: Brand + Staff Mode Pill */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-              <Cpu className="w-5 h-5" />
-            </div>
+            <CareerLensLogo size={36} />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-base tracking-tight text-white">
@@ -497,6 +496,7 @@ const MainLayout: React.FC = () => {
       <footer className="w-full border-t border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
+            <CareerLensLogo size={20} />
             <span className="font-bold text-slate-800 dark:text-slate-200">CareerLens AI</span>
             <span>—</span>
             <span>Production-Grade Resume Analyzer & Career Platform</span>

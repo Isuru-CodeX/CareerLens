@@ -16,6 +16,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
+import { CareerLensLogo } from '../components/common/CareerLensLogo';
 
 interface AdminLoginViewProps {
   onNavigate: (view: string) => void;
@@ -129,10 +130,10 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({ onNavigate, onLo
           transition={{ duration: 0.35, ease: 'easeOut' }}
           className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl shadow-indigo-950/40 backdrop-blur-xl relative"
         >
-          {/* Badge & Lock Icon */}
+          {/* Brand Logo & Lock Icon */}
           <div className="text-center space-y-3">
-            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/25">
-              <Shield className="w-7 h-7" />
+            <div className="flex justify-center">
+              <CareerLensLogo size={52} />
             </div>
 
             <div>

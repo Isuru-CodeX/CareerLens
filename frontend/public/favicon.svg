@@ -1,7 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-  <polyline points="14 2 14 8 20 8"/>
-  <line x1="16" y1="13" x2="8" y2="13"/>
-  <line x1="16" y1="17" x2="8" y2="17"/>
-  <polyline points="10 9 9 9 8 9"/>
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="clFaviconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#01C7F4" />
+      <stop offset="40%" stop-color="#4F46E5" />
+      <stop offset="75%" stop-color="#7C3AED" />
+      <stop offset="100%" stop-color="#D803B3" />
+    </linearGradient>
+    <linearGradient id="clPrismGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#818CF8" />
+      <stop offset="100%" stop-color="#F43F5E" />
+    </linearGradient>
+    <radialGradient id="clFaviconCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#6366F1" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#4F46E5" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Squircle Base Frame -->
+  <rect x="4" y="4" width="92" height="92" rx="24" fill="#0B0F19" stroke="url(#clFaviconGrad)" stroke-width="3" />
+
+  <!-- Core Flare -->
+  <circle cx="50" cy="50" r="34" fill="url(#clFaviconCore)" />
+
+  <!-- Calibrated Optical Ring -->
+  <circle cx="50" cy="50" r="32" stroke="url(#clFaviconGrad)" stroke-width="2" stroke-dasharray="4 3" stroke-opacity="0.7" />
+
+  <!-- Aperture Iris Blades -->
+  <path d="M 50 18 C 66 18, 80 32, 80 48 L 62 48 C 62 40, 56 34, 48 34 Z" fill="url(#clFaviconGrad)" fill-opacity="0.8" />
+  <path d="M 82 50 C 82 66, 68 80, 52 80 L 52 62 C 60 62, 66 56, 66 48 Z" fill="url(#clFaviconGrad)" fill-opacity="0.7" />
+  <path d="M 48 82 C 32 82, 18 68, 18 52 L 36 52 C 36 60, 42 66, 50 66 Z" fill="url(#clPrismGrad)" fill-opacity="0.85" />
+  <path d="M 18 48 C 18 32, 32 18, 48 18 L 48 36 C 40 36, 34 42, 34 50 Z" fill="url(#clFaviconGrad)" fill-opacity="0.65" />
+
+  <!-- Central Career Prism -->
+  <path d="M 50 32 L 64 50 L 50 45 L 36 50 Z" fill="#FFFFFF" />
+  <path d="M 50 45 L 64 50 L 50 68 L 36 50 Z" fill="url(#clPrismGrad)" />
+
+  <!-- Focus Apex Spark -->
+  <circle cx="50" cy="46" r="3.5" fill="#FFFFFF" />
+  <circle cx="50" cy="46" r="6" fill="#01C7F4" fill-opacity="0.5" />
 </svg>
