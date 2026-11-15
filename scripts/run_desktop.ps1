@@ -1,20 +1,30 @@
 # CareerLens AI - Native Windows Desktop Application Launcher
 $ErrorActionPreference = "Stop"
 
-# Robustly determine root directory (works in direct execution, dot-sourcing, or batch calls)
-$rootDir = if ($PSScriptRoot) { 
+# Robustly determine root directory (works in root or scripts/)
+$scriptDir = if ($PSScriptRoot) { 
     $PSScriptRoot 
 } elseif ($MyInvocation.MyCommand.Path) { 
     Split-Path -Parent $MyInvocation.MyCommand.Path 
 } else { 
     (Get-Location).Path 
 }
+
+$rootDir = if (Test-Path (Join-Path $scriptDir "package.json")) {
+    $scriptDir
+} elseif (Test-Path (Join-Path (Split-Path -Parent $scriptDir) "package.json")) {
+    Split-Path -Parent $scriptDir
+} else {
+    $scriptDir
+}
 Set-Location $rootDir
 
 $pythonExe = Join-Path $rootDir "backend\venv\Scripts\python.exe"
 $backendDir = Join-Path $rootDir "backend"
 $frontendDir = Join-Path $rootDir "frontend"
-$backendLog = Join-Path $rootDir ".backend_desktop.log"
+$logDir = Join-Path $rootDir "logs"
+if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
+$backendLog = Join-Path $logDir "backend_desktop.log"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "       Launching CareerLens AI Desktop Application        " -ForegroundColor Cyan

@@ -7,8 +7,18 @@ __pycache__/
 backend/venv/
 venv/
 ENV/
+# Database
 *.db
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+database/*.db
+database/*.sqlite3
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
+!database/.gitkeep
 
 # Node / Frontend
 node_modules/
@@ -29,7 +39,11 @@ backend/.env
 .DS_Store
 Thumbs.db
 *.log
+logs/*
+!logs/.gitignore
+!logs/.gitkeep
 .pytest_cache/
+.desktop_profile/
 
 # Storage
 storage/*

@@ -10,8 +10,8 @@ if not exist "backend\venv" (
     call backend\venv\Scripts\pip.exe install -r backend\requirements.txt
 )
 
-if not exist "careerlens.db" (
-    echo Seeding database...
+if not exist "database\careerlens.db" if not exist "careerlens.db" (
+    echo Seeding database into database\careerlens.db...
     call backend\venv\Scripts\python.exe database\seed-data\seed.py
 )
 

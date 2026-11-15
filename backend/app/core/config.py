@@ -21,8 +21,16 @@ def get_normalized_db_url(url: str) -> str:
             return f"sqlite:///{raw_file.replace(os.sep, '/')}"
         if raw_file.startswith("./") or raw_file.startswith(".\\"):
             raw_file = raw_file[2:]
-        abs_file = os.path.abspath(os.path.join(_PROJECT_ROOT, raw_file)).replace("\\", "/")
-        return f"sqlite:///{abs_file}"
+        abs_file = os.path.abspath(os.path.join(_PROJECT_ROOT, raw_file))
+        # If path does not exist at exact location, check inside database/ directory
+        if not os.path.exists(abs_file):
+            candidate_in_db = os.path.abspath(os.path.join(_PROJECT_ROOT, "database", os.path.basename(raw_file)))
+            if os.path.exists(candidate_in_db):
+                abs_file = candidate_in_db
+            elif raw_file == "careerlens.db":
+                os.makedirs(os.path.join(_PROJECT_ROOT, "database"), exist_ok=True)
+                abs_file = candidate_in_db
+        return f"sqlite:///{abs_file.replace(os.sep, '/')}"
     return url
 
 class Settings(BaseSettings):
@@ -36,10 +44,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./careerlens.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./database/careerlens.db")
     
     # File Storage
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage"))
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(_PROJECT_ROOT, "storage"))
     MAX_UPLOAD_SIZE_MB: int = 10
     
     # Live Market Job Feed API Keys (Adzuna is optional; Remotive and Arbeitnow are free public feeds)

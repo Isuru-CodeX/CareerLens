@@ -251,10 +251,21 @@ def system_diagnostics(db: Session = Depends(get_db)):
         db_latency_ms = -1
         db_status = f"error: {str(e)}"
 
-    db_path = "careerlens.db"
-    if not os.path.exists(db_path):
-        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "careerlens.db")
-    db_size_bytes = os.path.getsize(db_path) if os.path.exists(db_path) else 0
+    db_file = None
+    if settings.RESOLVED_DATABASE_URL.startswith("sqlite:///"):
+        db_file = settings.RESOLVED_DATABASE_URL[10:]
+    if not db_file or not os.path.exists(db_file):
+        _proj_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        for candidate in [
+            os.path.join(_proj_root, "database", "careerlens.db"),
+            os.path.join(_proj_root, "careerlens.db"),
+            "database/careerlens.db",
+            "careerlens.db"
+        ]:
+            if os.path.exists(candidate):
+                db_file = candidate
+                break
+    db_size_bytes = os.path.getsize(db_file) if (db_file and os.path.exists(db_file)) else 0
 
     user_count = 0
     resume_count = 0

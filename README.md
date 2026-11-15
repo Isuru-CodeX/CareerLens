@@ -98,7 +98,11 @@ Simply double-click the **CareerLens AI** icon directly on your Windows desktop!
 #### 2️⃣ 1-Click Desktop Launcher (`run_desktop.bat`)
 Double-click `run_desktop.bat` from the root directory or execute in PowerShell:
 ```powershell
-.\run_desktop.ps1
+# PowerShell:
+.\scripts\run_desktop.ps1
+
+# Or via npm:
+npm run desktop
 ```
 * **What happens:** Boots FastAPI in hidden background mode, starts the React 19 UI server, verifies service health, and immediately opens CareerLens in a dedicated, distraction-free native desktop window ($1440 \times 920$). When you close the window, all background processes terminate automatically.
 
@@ -116,7 +120,7 @@ npm run desktop
 To instantly terminate all running background background servers, workers, and browser instances:
 ```powershell
 # In PowerShell:
-.\stop_desktop.ps1
+.\scripts\stop_desktop.ps1
 
 # Or via npm:
 npm run stop
@@ -375,9 +379,9 @@ flowchart TD
     end
 
     subgraph Persistence["🗄️ Storage & Database"]
-        DB[("🐬 SQLite Database (careerlens.db)<br/>SQLAlchemy 2.0 ORM")]
+        DB[("🐬 SQLite Database (database/careerlens.db)<br/>SQLAlchemy 2.0 ORM")]
         VectorCache[("📦 In-Memory 256-D Vector Cache")]
-        DiskVault["📁 Private Encrypted Document Vault"]
+        DiskVault["📁 Private Encrypted Document Vault (storage/)"]
     end
 
     UI --> API
@@ -437,7 +441,10 @@ The project includes automated scripts that set up the virtual environment, inst
 
 ```powershell
 # In PowerShell:
-.\run_dev.ps1
+.\scripts\run_dev.ps1
+
+# Or via npm:
+npm run dev
 ```
 
 Or double-click **`run_dev.bat`** from Windows File Explorer.
@@ -446,6 +453,57 @@ Once initialized:
 * **Candidate Portal**: [http://localhost:5173](http://localhost:5173)
 * **Admin Login Portal**: [http://localhost:5173](http://localhost:5173) $\rightarrow$ Profile $\rightarrow$ **Admin Command Center**
 * **FastAPI Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 🗂️ Clean Project Directory Structure
+
+The project has been organized with clean separation of concerns, ensuring database files, logs, documentation, scripts, and media storage reside in their dedicated directories:
+
+```text
+CareerLens/
+├── backend/                    # FastAPI REST application & ML training pipelines
+│   ├── app/                    # API routers, core configuration & SQLAlchemy models
+│   ├── ml_artifacts/           # Trained Scikit-Learn weights (score_calibrator.joblib)
+│   ├── tests/                  # Pytest unit & integration test suites
+│   └── requirements.txt        # Python backend package dependencies
+├── database/                   # SQLite database & data persistence
+│   ├── careerlens.db           # Canonical SQLite database file (WAL mode)
+│   ├── migrations/             # Schema migration scripts
+│   └── seed-data/              # Seed fixtures (Alex Rivera demo user & initial jobs)
+├── docs/                       # Comprehensive Technical Documentation Hub
+│   ├── README.md               # Documentation library index & table of contents
+│   ├── API_DOCUMENTATION.md    # REST API specification & schemas
+│   ├── ARCHITECTURE.md         # Microservice & frontend architectural design
+│   ├── DATABASE_DESIGN.md      # Relational entity models, tables & indexes
+│   ├── DEPLOYMENT.md           # Production deployment & Docker containers
+│   ├── PROJECT_REQUIREMENTS.md # Functional requirements & acceptance criteria
+│   ├── SECURITY.md             # Level-4 RBAC rules & GDPR Article 17 protocols
+│   ├── TESTING.md              # Test matrix & IR benchmark specifications
+│   ├── UI_UX_GUIDELINES.md     # Design tokens, typography & WCAG 2.1 rules
+│   ├── diagrams/               # Architectural sequence & entity relationship diagrams
+│   └── screenshots/            # Feature previews and UI showcases
+├── electron/                   # Native Electron desktop application wrapper
+├── extension/                  # Chrome extension companion for 1-click job parsing
+├── frontend/                   # React 19 + TypeScript + Vite + Tailwind CSS SPA
+│   ├── src/                    # Components, views, services & state contexts
+│   └── package.json            # Frontend dependencies & build commands
+├── logs/                       # Application runtime, diagnostic & process logs
+│   ├── backend_desktop.log     # Background FastAPI service log
+│   └── .gitkeep                # Git tracking keeper (logs gitignored)
+├── scripts/                    # Automation & process management PowerShell scripts
+│   ├── run_desktop.ps1         # Windows desktop app orchestrator & port allocator
+│   ├── stop_desktop.ps1        # 1-click clean background process termination
+│   ├── run_dev.ps1             # Local development server launcher
+│   └── create_desktop_shortcut.ps1 # Windows Desktop shortcut (.lnk) generator
+├── storage/                    # Uploaded candidate resumes, avatars, and audio records
+├── package.json                # Root workspace configuration & unified npm scripts
+├── run_desktop.bat             # 1-click desktop double-click launcher
+├── stop_desktop.bat            # 1-click stop double-click script
+├── run_dev.bat                 # 1-click dev server launcher
+├── create_desktop_shortcut.bat # 1-click shortcut generator
+└── README.md                   # Master project README
+```
 
 ---
 

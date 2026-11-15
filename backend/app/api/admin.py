@@ -228,8 +228,16 @@ def get_dashboard_summary(
 
     # System Health
     db_size_mb = 2.4
-    if os.path.exists("./careerlens.db"):
-        db_size_mb = round(os.path.getsize("./careerlens.db") / (1024 * 1024), 2)
+    db_file = None
+    if settings.RESOLVED_DATABASE_URL.startswith("sqlite:///"):
+        db_file = settings.RESOLVED_DATABASE_URL[10:]
+    if not db_file or not os.path.exists(db_file):
+        for candidate in ["./database/careerlens.db", "./careerlens.db"]:
+            if os.path.exists(candidate):
+                db_file = candidate
+                break
+    if db_file and os.path.exists(db_file):
+        db_size_mb = round(os.path.getsize(db_file) / (1024 * 1024), 2)
 
     return {
         "kpis": {

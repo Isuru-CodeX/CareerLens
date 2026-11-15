@@ -1,5 +1,13 @@
 # Start CareerLens AI Backend & Frontend Development Servers
-Set-Location $PSScriptRoot
+$scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+$rootDir = if (Test-Path (Join-Path $scriptDir "package.json")) {
+    $scriptDir
+} elseif (Test-Path (Join-Path (Split-Path -Parent $scriptDir) "package.json")) {
+    Split-Path -Parent $scriptDir
+} else {
+    $scriptDir
+}
+Set-Location $rootDir
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host " Starting CareerLens AI Development Environment " -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan

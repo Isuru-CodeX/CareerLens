@@ -6,13 +6,13 @@
   "author": "Isuru Rathnayaka",
   "license": "MIT",
   "scripts": {
-    "dev": "powershell -ExecutionPolicy Bypass -File ./run_dev.ps1",
+    "dev": "powershell -ExecutionPolicy Bypass -File ./scripts/run_dev.ps1",
     "build": "npm --prefix frontend run build",
     "build:frontend": "npm --prefix frontend run build",
-    "desktop": "powershell -ExecutionPolicy Bypass -File ./run_desktop.ps1",
-    "desktop:stop": "powershell -ExecutionPolicy Bypass -File ./stop_desktop.ps1",
-    "desktop:shortcut": "powershell -ExecutionPolicy Bypass -File ./create_desktop_shortcut.ps1",
-    "stop": "powershell -ExecutionPolicy Bypass -File ./stop_desktop.ps1",
+    "desktop": "powershell -ExecutionPolicy Bypass -File ./scripts/run_desktop.ps1",
+    "desktop:stop": "powershell -ExecutionPolicy Bypass -File ./scripts/stop_desktop.ps1",
+    "desktop:shortcut": "powershell -ExecutionPolicy Bypass -File ./scripts/create_desktop_shortcut.ps1",
+    "stop": "powershell -ExecutionPolicy Bypass -File ./scripts/stop_desktop.ps1",
     "electron": "electron .",
     "test:backend": "cd backend && .\\venv\\Scripts\\pytest.exe tests/test_backend.py",
     "test": "npm run test:backend"

@@ -5,11 +5,14 @@ from sklearn.ensemble import RandomForestRegressor
 from typing import List, Dict, Any
 from app.services.training.evaluator import EvaluatorService
 
+_BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+_DEFAULT_ARTIFACT_PATH = os.path.join(_BACKEND_DIR, "ml_artifacts", "score_calibrator.joblib")
+
 class ScoreCalibratorTrainer:
     @staticmethod
     def train(
         samples: List[Dict[str, Any]],
-        output_path: str = "backend/ml_artifacts/score_calibrator.joblib"
+        output_path: str = _DEFAULT_ARTIFACT_PATH
     ) -> Dict[str, Any]:
         """
         Calibrates overall score against human ratings while keeping weights explainable.

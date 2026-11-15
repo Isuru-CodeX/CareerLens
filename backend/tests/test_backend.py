@@ -17,8 +17,9 @@ from app.services.analysis_service import AnalysisService
 from app.services.matching_service import MatchingService
 from app.services.ai_service import AIService
 
-# In-memory test SQLite DB
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# Isolated test SQLite DB in database folder
+_TEST_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "database", "test.db"))
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{_TEST_DB_PATH.replace(os.sep, '/')}"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -45,11 +46,13 @@ def setup_database():
         Base.metadata.drop_all(bind=engine)
     except Exception:
         pass
-    if os.path.exists("./test.db"):
-        try:
-            os.remove("./test.db")
-        except Exception:
-            pass
+    engine.dispose()
+    for candidate in [_TEST_DB_PATH, "./database/test.db", "./test.db"]:
+        if os.path.exists(candidate):
+            try:
+                os.remove(candidate)
+            except Exception:
+                pass
 
 client = TestClient(app)
 
