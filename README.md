@@ -37,6 +37,9 @@
 <p align="center">
   <a href="#-about-careerlens-ai"><b>📱 About</b></a> •
   <a href="#-windows-desktop-application-mode"><b>🖥️ Desktop App</b></a> •
+  <a href="#-settings--configuration-hub"><b>⚙️ Settings & Config</b></a> •
+  <a href="#-help-playbooks--diagnostics-suite"><b>📚 Help & Playbooks</b></a> •
+  <a href="#-nexora-inspired-ui--motion-engine"><b>🎨 Nexora Motion</b></a> •
   <a href="#-enterprise-admin-command-center--ai-training-workbench"><b>🛡️ Admin Command Center</b></a> •
   <a href="#-in-app-ai-model-training-engine"><b>🧠 AI Model Training</b></a> •
   <a href="#-real-time-voice-mock-interviewer"><b>🎙️ Voice Interviewer</b></a> •
@@ -109,7 +112,114 @@ npm run electron
 npm run desktop
 ```
 
+#### 🛑 Clean Termination Anytime (`stop_desktop.bat`)
+To instantly terminate all running background background servers, workers, and browser instances:
+```powershell
+# In PowerShell:
+.\stop_desktop.ps1
+
+# Or via npm:
+npm run stop
+```
+
 ---
+
+## ⚙️ Settings & Configuration Hub
+
+The **Settings & Configuration Hub** (`Alt + S`) provides fine-grained control over AI inference parameters, scoring heuristic calibrations, desktop animation aesthetics, cache telemetry, and user privacy:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 CareerLens AI Settings & Configuration Hub                        │
+├──────────────────────┬──────────────────────┬──────────────────────┬─────────────────────────────┤
+│ 1. AI & Models       │ 2. ATS Calibration   │ 3. Desktop & UI      │ 4. Storage & Privacy        │
+├──────────────────────┼──────────────────────┼──────────────────────┼─────────────────────────────┤
+│ • Provider Selector  │ • Strictness Presets │ • Appearance Theme   │ • Live SQLite Telemetry     │
+│ • Custom Model ID    │ • 4 Weight Sliders   │ • Animation Level    │ • 1-Click Transient Cache   │
+│ • Masked API Keys    │ • 100% Sum Lock      │ • Top Route Loader   │ • Machine-Readable SAR JSON │
+│ • Live Ping Latency  │ • Blind DEI Masking  │ • Audio Chimes & Vol │ • GDPR Article 17 Erasure   │
+└──────────────────────┴──────────────────────┴──────────────────────┴─────────────────────────────┘
+```
+
+### 🎛️ 5 Configuration Categories:
+
+1. **🧠 AI & Inference Models:**
+   * **Multi-Provider Architecture:** Hot-swap between **Google Gemini** (`gemini-2.5-flash`, `gemini-1.5-pro`), **OpenAI** (`gpt-4o`, `gpt-4o-mini`), **Anthropic Claude** (`claude-3-5-sonnet`), and offline deterministic heuristic rules.
+   * **Inference Sliders:** Calibrate response temperature ($0.0 \leftrightarrow 1.0$) and max completion token budgets ($512 \leftrightarrow 8192$).
+   * **Security:** API keys are stored in secure local storage and masked with instant toggle visibility.
+   * **Live Diagnostics:** Run real-time latency ping tests against the FastAPI backend directly from the UI.
+
+2. **⚖️ ATS & Scoring Calibration:**
+   * **Industry Strictness Presets:** Choose from **Permissive** (Startup/Creative, 65 baseline), **Balanced** (Mid-Market, 75 baseline), or **Strict** (FAANG/Fortune 50, 85 baseline).
+   * **4-Way Weight Balancer:** Adjust the relative weights of **ATS Format**, **Quantified Impact**, **Brevity & Conciseness**, and **Structure** with real-time $100\%$ sum validation.
+   * **DEI Blind Recruitment Mode:** Automatically strips candidate name, email, phone, location, and graduation year before processing to ensure unbiased evaluation.
+
+3. **🎨 Desktop & Interface Customization:**
+   * **Triple Appearance Sync:** Full support for **Dark Mode**, **Light Mode**, and **System OS Synchronization**.
+   * **Framer Motion Animation Levels:** Select between **Full Motion** (smooth layout transitions), **Balanced**, or **Minimal / Reduced Motion**.
+   * **Nexora Glowing Top Route Stream:** Toggleable 3px top progress loader bar with multi-stop cyan-to-fuchsia gradients.
+   * **Audio Cue Chimes:** Sound effects for completed resume audits, interview audio recording triggers, and ATS score updates.
+
+4. **💾 Storage, Cache & Data Telemetry:**
+   * **Live Database Telemetry:** Displays real-time SQLite database file size, WAL journal mode status, table row counts, and disk path.
+   * **1-Click Cache Purge:** Clears session state and transient resume cache without affecting persistent user account data.
+   * **Full JSON SAR Backup:** Download your complete candidate profile, resumes, interview logs, and custom weights into a machine-readable JSON file.
+
+5. **🔒 Security & GDPR Rights:**
+   * **GDPR Article 17 Right to Erasure:** Cryptographically purges all candidate data, resumes, voice recordings, and audit logs.
+   * **Zero-PII Storage Policy:** Local vector embeddings and encrypted storage ensure data remains strictly private.
+
+---
+
+## 📚 Help, Resource Playbooks & Diagnostics Suite
+
+The **Help & Knowledge Hub** (`Alt + H`) delivers an end-to-end acceleration manual, industry interview masterclass, and real-time audio/microphone hardware self-test suite:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                CareerLens Help & Resource Playbook Suite                         │
+├──────────────────────┬──────────────────────┬──────────────────────┬─────────────────────────────┤
+│ 📖 User Playbook     │ 🎯 ATS Playbook      │ 🎙️ STAR Masterclass  │ 🛠️ Diagnostics Suite       │
+├──────────────────────┼──────────────────────┼──────────────────────┼─────────────────────────────┤
+│ • 5-Stage Fast-Track │ • Do's vs Don'ts     │ • 15/15/45/25 Ratio  │ • Web Audio Mic VU Meter    │
+│ • Resume Upload Flow │ • Keyword Density    │ • 120-150 WPM Target │ • FastAPI Ping Monitor      │
+│ • Job Vector Match   │ • Formatting Traps   │ • Listen to Exemplar │ • Speech Synthesis Test     │
+│ • Direct Deep Links  │ • PDF vs Word Heur.  │ • Metric Framing     │ • Ticket Help Desk Form     │
+└──────────────────────┴──────────────────────┴──────────────────────┴─────────────────────────────┘
+```
+
+### 🌟 Interactive Diagnostics & Self-Test Suite:
+
+* **🎙️ Live Web Audio Microphone VU Meter:** Connects to your native input device via the browser Web Audio API, calculating root-mean-square (RMS) decibel volume in real time with an animated color-coded visual indicator.
+* **🔊 Spoken Speech Synthesis Self-Test:** Tests your operating system's Web Speech API text-to-speech audio playback so you never enter a mock interview without sound verification.
+* **⚡ FastAPI Dual Ping Check:** Verifies that both the backend server (`http://127.0.0.1:8000/health`) and the Vite reverse proxy (`/api/health`) are responding with sub-millisecond latency.
+* **🗄️ Database Integrity Audit:** Queries SQLite WAL journal status and reports instantaneous query response time.
+
+### ⌨️ Universal Keyboard Shortcut Matrix:
+
+| Shortcut | Destination View | Function |
+|:---:|:---:|---|
+| <kbd>Alt</kbd> + <kbd>D</kbd> | **Dashboard** | Executive candidate overview & pipeline metrics |
+| <kbd>Alt</kbd> + <kbd>R</kbd> | **Resume Library** | Upload, audit, and compare resume versions |
+| <kbd>Alt</kbd> + <kbd>M</kbd> | **Job Matcher** | Vector similarity job matching & keyword gaps |
+| <kbd>Alt</kbd> + <kbd>C</kbd> | **Career Navigator** | 54-role directed graph & salary explorer |
+| <kbd>Alt</kbd> + <kbd>A</kbd> | **AI Studio** | Voice mock interviewer & XYZ bullet rewriter |
+| <kbd>Alt</kbd> + <kbd>K</kbd> | **Applications** | Drag-and-drop Kanban job application board |
+| <kbd>Alt</kbd> + <kbd>P</kbd> | **Profile** | Candidate preferences, target salary & skills |
+| <kbd>Alt</kbd> + <kbd>L</kbd> | **Activity** | Live audit event streaming & security ledger |
+| <kbd>Alt</kbd> + <kbd>S</kbd> | **Settings & Config** | AI models, ATS weights & desktop appearance |
+| <kbd>Alt</kbd> + <kbd>H</kbd> | **Help & Playbooks** | Playbooks, interview guides & hardware tests |
+
+---
+
+## 🎨 Nexora-Inspired Fluid UI & Motion Engine
+
+Following the design system and motion language of **[Nexora](https://github.com/Isuru-CodeX/Nexora)**, CareerLens AI incorporates an ultra-modern, high-polish visual experience:
+
+* 🌊 **Glowing Top Route Progress Stream:** A 3-pixel animated loader (`#careerlens-top-loader`) that sweeps across the screen on every route change with a vibrant multi-stop gradient (`#01C7F4` Cyan $\rightarrow$ `#6366F1` Indigo $\rightarrow$ `#A855F7` Purple $\rightarrow$ `#D803B3` Fuchsia).
+* 🔮 **Ambient Floating Glow Orbs:** Subtle, hardware-accelerated background radial blurs (`blur-3xl`) that drift in the background to provide deep glassmorphic contrast without impacting rendering performance.
+* ⚡ **Framer Motion Route Transitions:** Instant, spring-eased layout transitions (`y: 10` $\rightarrow$ `y: 0`, duration 220ms) that prevent harsh layout jumps and make every screen transition feel native and fluid.
+* 🪟 **Glassmorphism & Micro-Interactions:** Frosted glass navigation bars (`backdrop-blur-md`), hover-activated elevation scales, and glowing active indicator pills.
 
 ---
 
@@ -433,6 +543,10 @@ npm --prefix frontend run build
 - [x] **Mistake Review & 1-Click Regression Test Generator**
 - [x] **Model Registry with Staging Promotion Gates & Zero-Downtime Rollback**
 - [x] **GDPR Article 17 Data Rights Machine-Readable SAR Export & Purges**
+- [x] **Settings & Configuration Hub with Multi-LLM Provider & ATS Strictness Tuning**
+- [x] **Help & Knowledge Hub with Interactive Audio VU Meter Hardware Self-Test**
+- [x] **Nexora-Inspired UI with Top Glowing Route Stream & Ambient Glow Orbs**
+- [x] **Universal Keyboard Shortcut Engine (Alt+D, R, M, C, A, K, P, L, S, H)**
 - [ ] Celery + Redis distributed background worker queue for enterprise multi-tenancy
 
 ---

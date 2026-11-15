@@ -11,7 +11,9 @@ import {
   Menu,
   ChevronDown,
   Activity,
-  Shield
+  Shield,
+  Sliders,
+  HelpCircle
 } from 'lucide-react';
 import { useTheme } from '../context/useTheme';
 import { useAuth } from '../context/useAuth';
@@ -96,6 +98,26 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Right: Quick actions, Theme switcher, Auth */}
         <div className="flex items-center gap-2 sm:gap-3">
           
+          {/* Quick Help & Playbook */}
+          <button
+            onClick={() => onNavigate('help')}
+            className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center cursor-pointer"
+            title="Help & Knowledge Playbook (Alt+H)"
+            aria-label="Help and resources"
+          >
+            <HelpCircle className="w-4 h-4 text-sky-500" />
+          </button>
+
+          {/* Quick Settings & Config */}
+          <button
+            onClick={() => onNavigate('settings')}
+            className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center cursor-pointer"
+            title="Settings & AI Configurations (Alt+S)"
+            aria-label="Settings and configurations"
+          >
+            <Sliders className="w-4 h-4 text-indigo-500" />
+          </button>
+
           {/* Theme Dropdown (System / Light / Dark) */}
           <div className="relative" ref={themeRef}>
             <button
@@ -232,6 +254,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <Activity className="w-4 h-4 text-indigo-500" />
                     <span>Activity & Model Stats</span>
+                  </button>
+
+                  <button
+                    onClick={() => { onNavigate('settings'); setUserDropdownOpen(false); }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <Sliders className="w-4 h-4 text-indigo-500" />
+                    <span>Settings & Config</span>
+                  </button>
+
+                  <button
+                    onClick={() => { onNavigate('help'); setUserDropdownOpen(false); }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <HelpCircle className="w-4 h-4 text-sky-500" />
+                    <span>Help & Playbooks</span>
                   </button>
 
                   <button

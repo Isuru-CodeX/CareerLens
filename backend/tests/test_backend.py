@@ -771,6 +771,29 @@ def test_social_skill_extraction_and_import():
         assert skill_name in user_skill_names
 
 
+def test_system_diagnostics_and_health():
+    """Verify system diagnostics endpoint and dual health endpoints."""
+    client = TestClient(app)
+    
+    # 1. Root and API health
+    r_health_root = client.get("/health")
+    assert r_health_root.status_code == 200
+    assert r_health_root.json().get("status") == "healthy"
 
+    r_health_api = client.get("/api/health")
+    assert r_health_api.status_code == 200
+    assert r_health_api.json().get("status") == "healthy"
+
+    # 2. Diagnostics
+    r_diag = client.get("/api/system/diagnostics")
+    assert r_diag.status_code == 200
+    diag = r_diag.json()
+    assert diag.get("status") == "healthy"
+    assert "database" in diag
+    assert diag["database"]["status"] == "connected"
+    assert "latency_ms" in diag["database"]
+    assert "platform" in diag
+    assert "service" in diag
+    assert "version" in diag
 
 

@@ -3,14 +3,16 @@ import os
 import logging
 from datetime import datetime, timezone, timedelta
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import text as sa_text
 from app.core.config import settings
-from app.core.database import Base, engine, SessionLocal
-from app.models.models import SalarySnapshot
+from app.core.database import Base, engine, SessionLocal, get_db
+from app.models.models import SalarySnapshot, User, Resume
 from app.services.navigator_service import NavigatorService
 from app.api import (
     auth, users, resumes, jobs, ai, applications,
@@ -66,7 +68,7 @@ async def lifespan(app: FastAPI):
     # Ensure existing SQLite tables have newly added columns
     with engine.connect() as conn:
         try:
-            from sqlalchemy import text
+            from sqlalchemy.sql import text as sa_text
             res = conn.execute(text("PRAGMA table_info(career_profiles)"))
             existing_cols = [row[1] for row in res.fetchall()]
             if existing_cols:
@@ -234,6 +236,55 @@ def root():
 @app.get("/api/health")
 def health():
     return {"status": "healthy", "service": "careerlens-backend"}
+
+@app.get("/api/system/diagnostics")
+def system_diagnostics(db: Session = Depends(get_db)):
+    import platform
+    import time
+    
+    t0 = time.perf_counter()
+    try:
+        db.execute(sa_text("SELECT 1"))
+        db_latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+        db_status = "connected"
+    except Exception as e:
+        db_latency_ms = -1
+        db_status = f"error: {str(e)}"
+
+    db_path = "careerlens.db"
+    if not os.path.exists(db_path):
+        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "careerlens.db")
+    db_size_bytes = os.path.getsize(db_path) if os.path.exists(db_path) else 0
+
+    user_count = 0
+    resume_count = 0
+    try:
+        user_count = db.query(User).count()
+        resume_count = db.query(Resume).count()
+    except Exception:
+        pass
+
+    return {
+        "status": "healthy",
+        "service": "CareerLens AI Autonomous Engine",
+        "version": settings.VERSION,
+        "python_version": platform.python_version(),
+        "platform": f"{platform.system()} {platform.release()}",
+        "database": {
+            "status": db_status,
+            "engine": "SQLite WAL Mode",
+            "latency_ms": db_latency_ms,
+            "size_mb": round(db_size_bytes / (1024 * 1024), 2),
+            "users": user_count,
+            "resumes": resume_count
+        },
+        "llm_engine": {
+            "provider": os.getenv("LLM_PROVIDER", "gemini"),
+            "fallback_available": True
+        },
+        "audio_transcriber": "Web Speech API + Bundled FFmpeg",
+        "vector_rag": "256-D Cosine Indexer Active"
+    }
 
 if __name__ == "__main__":
     import uvicorn

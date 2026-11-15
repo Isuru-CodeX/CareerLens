@@ -12,7 +12,9 @@ import {
   ShieldCheck,
   UploadCloud,
   Compass,
-  GraduationCap
+  GraduationCap,
+  Sliders,
+  HelpCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -88,6 +90,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Profile & Privacy',
       icon: UserCheck,
       badge: null
+    },
+    {
+      id: 'settings',
+      label: 'Settings & Config',
+      icon: Sliders,
+      badge: 'Config'
+    },
+    {
+      id: 'help',
+      label: 'Help & Playbook',
+      icon: HelpCircle,
+      badge: 'Guide'
     }
   ];
 

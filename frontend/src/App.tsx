@@ -19,6 +19,10 @@ import { CareerNavigatorView } from './views/CareerNavigatorView';
 import { PlacementPortalView } from './views/PlacementPortalView';
 import { AdminView } from './views/AdminView';
 import { AdminLoginView } from './views/AdminLoginView';
+import { SettingsView } from './views/SettingsView';
+import { HelpView } from './views/HelpView';
+import { TopRouteLoader } from './components/common/TopRouteLoader';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './context/useAuth';
 import { ExternalLink, LogOut, Cpu } from 'lucide-react';
 
@@ -106,6 +110,20 @@ const VIEW_LOADER_CONFIG: Record<string, LoaderConfig> = {
     badge: 'Security Gateway',
     icon: 'shield',
     accentColor: 'indigo'
+  },
+  settings: {
+    title: 'Loading System Settings...',
+    subtitle: 'Synchronizing AI model presets, ATS thresholds and desktop preferences...',
+    badge: 'Configuration Hub',
+    icon: 'zap',
+    accentColor: 'indigo'
+  },
+  help: {
+    title: 'Loading Help & Knowledge Hub...',
+    subtitle: 'Mounting ATS Playbook, STAR audio studio and system diagnostics...',
+    badge: 'Resource Playbook',
+    icon: 'compass',
+    accentColor: 'sky'
   }
 };
 
@@ -216,10 +234,67 @@ const MainLayout: React.FC = () => {
     ['admin', 'superadmin', 'super_admin', 'ml_engineer', 'reviewer', 'support', 'analyst'].includes(user.role || '')
   ));
 
-  const { triggerTransition } = useLoader();
+  const { triggerTransition, isLoading } = useLoader();
   const [currentView, setCurrentView] = useState<string>('dashboard');
   const [viewParams, setViewParams] = useState<any>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Global Keyboard Navigation (Nexora-style fast desktop shortcut engine)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+        return;
+      }
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const key = e.key.toLowerCase();
+        switch (key) {
+          case 'd':
+            e.preventDefault();
+            handleNavigate('dashboard');
+            break;
+          case 'r':
+            e.preventDefault();
+            handleNavigate('resumes');
+            break;
+          case 'm':
+            e.preventDefault();
+            handleNavigate('matches');
+            break;
+          case 'c':
+            e.preventDefault();
+            handleNavigate('career');
+            break;
+          case 'a':
+            e.preventDefault();
+            handleNavigate('ai');
+            break;
+          case 'k':
+            e.preventDefault();
+            handleNavigate('applications');
+            break;
+          case 'p':
+            e.preventDefault();
+            handleNavigate('profile');
+            break;
+          case 'l':
+            e.preventDefault();
+            handleNavigate('activity');
+            break;
+          case 's':
+            e.preventDefault();
+            handleNavigate('settings');
+            break;
+          case 'h':
+            e.preventDefault();
+            handleNavigate('help');
+            break;
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentView]);
   const getInitialResetToken = () => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -297,7 +372,17 @@ const MainLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200 relative overflow-x-hidden">
+      {/* Nexora-Style Glowing Top Route Stream Loader */}
+      <TopRouteLoader loading={isLoading} />
+
+      {/* Nexora-Style Ambient Gradient Glow Orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+        <div className="absolute -top-32 -left-32 w-80 h-80 bg-blue-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-1/4 -right-32 w-80 h-80 bg-purple-500/5 dark:bg-purple-600/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 left-1/4 w-80 h-80 bg-indigo-500/5 dark:bg-fuchsia-600/10 rounded-full blur-3xl" />
+      </div>
+
       {/* Top Navbar */}
       <Navbar
         onOpenAuth={() => setAuthModalOpen(true)}
@@ -307,7 +392,7 @@ const MainLayout: React.FC = () => {
       />
 
       {/* Main Body Area: Sidebar + Active View with Max Widescreen Real Estate */}
-      <div className="flex-1 flex w-full max-w-[2160px] 2xl:max-w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 2xl:px-12">
+      <div className="flex-1 flex w-full max-w-[2160px] 2xl:max-w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 2xl:px-12 relative z-10">
         <Sidebar
           currentView={currentView}
           onNavigate={handleNavigate}
@@ -319,61 +404,80 @@ const MainLayout: React.FC = () => {
         />
 
         <main className="flex-1 w-full min-w-0 pt-3 sm:pt-5 pb-16">
-          {currentView === 'dashboard' && (
-            <DashboardView
-              onNavigate={handleNavigate}
-              onOpenUpload={handleQuickUpload}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentView}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="w-full"
+            >
+              {currentView === 'dashboard' && (
+                <DashboardView
+                  onNavigate={handleNavigate}
+                  onOpenUpload={handleQuickUpload}
+                />
+              )}
 
-          {currentView === 'resumes' && (
-            <ResumesView
-              onNavigate={handleNavigate}
-              openUploadOnMount={quickUploadTrigger}
-            />
-          )}
+              {currentView === 'resumes' && (
+                <ResumesView
+                  onNavigate={handleNavigate}
+                  openUploadOnMount={quickUploadTrigger}
+                />
+              )}
 
-          {currentView === 'analysis' && (
-            <AnalysisView
-              resumeId={viewParams.resumeId}
-              onNavigate={handleNavigate}
-            />
-          )}
+              {currentView === 'analysis' && (
+                <AnalysisView
+                  resumeId={viewParams.resumeId}
+                  onNavigate={handleNavigate}
+                />
+              )}
 
-          {currentView === 'matches' && (
-            <JobMatchView
-              initialResumeId={viewParams.resumeId}
-              onNavigate={handleNavigate}
-            />
-          )}
+              {currentView === 'matches' && (
+                <JobMatchView
+                  initialResumeId={viewParams.resumeId}
+                  onNavigate={handleNavigate}
+                />
+              )}
 
-          {currentView === 'career' && (
-            <CareerNavigatorView />
-          )}
+              {currentView === 'career' && (
+                <CareerNavigatorView />
+              )}
 
-          {currentView === 'ai' && (
-            <AIAssistantView
-              initialTab={viewParams.tab || 'rewrite'}
-              jobDescription={viewParams.jobDescription}
-              targetRole={viewParams.targetRole}
-            />
-          )}
+              {currentView === 'ai' && (
+                <AIAssistantView
+                  initialTab={viewParams.tab || 'rewrite'}
+                  jobDescription={viewParams.jobDescription}
+                  targetRole={viewParams.targetRole}
+                />
+              )}
 
-          {currentView === 'applications' && (
-            <ApplicationsView />
-          )}
+              {currentView === 'applications' && (
+                <ApplicationsView />
+              )}
 
-          {currentView === 'profile' && (
-            <ProfileView onNavigate={handleNavigate} />
-          )}
+              {currentView === 'profile' && (
+                <ProfileView onNavigate={handleNavigate} />
+              )}
 
-          {currentView === 'activity' && (
-            <UserActivityView onNavigate={handleNavigate} />
-          )}
+              {currentView === 'activity' && (
+                <UserActivityView onNavigate={handleNavigate} />
+              )}
 
-          {currentView === 'placement' && (
-            <PlacementPortalView />
-          )}
+              {currentView === 'placement' && (
+                <PlacementPortalView />
+              )}
+
+              {currentView === 'settings' && (
+                <SettingsView onNavigate={handleNavigate} />
+              )}
+
+              {currentView === 'help' && (
+                <HelpView onNavigate={handleNavigate} />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

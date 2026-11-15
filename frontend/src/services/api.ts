@@ -1874,6 +1874,37 @@ class ApiService {
     return res.json();
   }
 
+  async getSystemDiagnostics(): Promise<{
+    status: string;
+    service: string;
+    version: string;
+    python_version: string;
+    platform: string;
+    database: {
+      status: string;
+      engine: string;
+      latency_ms: number;
+      size_mb: number;
+      users: number;
+      resumes: number;
+    };
+    llm_engine: {
+      provider: string;
+      fallback_available: boolean;
+    };
+    audio_transcriber: string;
+    vector_rag: string;
+  }> {
+    return this.request('/system/diagnostics');
+  }
+
+  async pingBackend(): Promise<{ status: string; latency_ms: number }> {
+    const start = performance.now();
+    await this.request('/health');
+    const latency_ms = Math.round(performance.now() - start);
+    return { status: 'healthy', latency_ms };
+  }
+
 }
 
 export const api = new ApiService();
